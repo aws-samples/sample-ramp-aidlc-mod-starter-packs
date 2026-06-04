@@ -1,0 +1,20 @@
+# macOS
+.DS_Store
+
+# Secrets / env
+.env
+.env.*
+!.env.example
+
+# Dependencies & build output
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+cdk.out/
+.aws-sam/
+dist/
+build/
+
+# Brownfield source brought in for Phase 0 (kept local, not committed)
+existing-codebase/
