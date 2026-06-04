@@ -6,6 +6,17 @@ These packs are distilled from real modernization engagements and have been gene
 
 > **Important:** This is sample code for demonstration and non-production usage. You should work with your security and legal teams to meet your organizational security, regulatory, and compliance requirements before any production deployment.
 
+## Part of RAMP
+
+These packs are part of the **Rapid Agentic Modernisation Program (RAMP)** — a structured engagement model that accelerates enterprise application modernisation to cloud-native architectures using agentic AI tooling. RAMP covers the full lifecycle: identifying high-impact workloads, a 2-3 day hands-on AI-DLC workshop that produces deployed output at 5-7x speed, driving those workloads to production, and scaling the methodology across the customer's portfolio.
+
+RAMP addresses two modernisation types:
+
+- **Transform from Legacy** — existing codebase (on-prem or EC2) converted/refactored into a cloud-native form (app + DB).
+- **Reimagine and Build** — a new cloud-native system designed to replace or extend legacy, with legacy as requirements input (app + DB). Includes ERP/CRM consolidation, platform rebuilds, and brownfield extension with agentic AI.
+
+These packs are designed for the hands-on AI-DLC for modernization workshop as part of RAMP.
+
 ## What is AI-DLC?
 
 **AI-DLC (AI-Driven Development Life Cycle)** is an AWS methodology for building and modernizing software with AI as a central collaborator rather than a code-completion assistant. It is built on two principles: **AI-powered execution with human oversight** (the AI plans, asks clarifying questions, and defers key decisions to humans) and **dynamic team collaboration** (teams decide the things that matter while the AI does the heavy lifting). Work is organized across three phases — **Inception → Construction → Operations** — and every artifact (requirements, design, tasks, audit log) is persisted to the repository so work resumes cleanly across sessions.
@@ -22,14 +33,14 @@ Learn more:
 
 ## The starter packs
 
-| Pack | Scenario | Type | Highlights |
-|------|----------|------|-----------|
-| [**legacy-transformation-on-aws**](legacy-transformation-on-aws/) | Transform a legacy app on AWS — e.g. monolith → microservices | Brownfield | Reverse engineering → decomposition blueprint; steering-only, stack-agnostic |
-| [**enterprise-app-on-cloudnative**](enterprise-app-on-cloudnative/) | Greenfield cloud-native enterprise app — e.g. ERP (Customer 360: CRM + Inventory) | Greenfield | Lambda + API Gateway + Aurora DSQL; durable-functions & DSQL skills |
-| [**genai-on-serverless**](genai-on-serverless/) | GenAI on serverless — e.g. intelligent document processing | Brownfield | Bedrock + Lambda + API Gateway + S3; ingest/classify/extract/search |
-| [**api-platform-migration-n-modernization**](api-platform-migration-n-modernization/) | API platform migration & modernization — e.g. API Gateway platform / POC with Terraform | Either | Deep API Gateway skill (16 references) + HashiCorp Terraform power |
-| [**regression-software-testing**](regression-software-testing/) | Build a regression safety net before a major upgrade | Brownfield | Behavior-first test strategy; steering-only; survives version/framework upgrades |
-| [**agentic-ai-workflow**](agentic-ai-workflow/) | Reusable AI-DLC + skills + MCP environment | Either | Agentic-AI & Terraform skills; install script; worked sample guide |
+| Pack | Scenario | Highlights |
+|------|----------|-----------|
+| [**legacy-transformation-on-aws**](legacy-transformation-on-aws/) | Transform a legacy app on AWS — e.g. monolith → microservices | Reverse engineering → decomposition blueprint; steering-only, stack-agnostic |
+| [**enterprise-app-on-cloudnative**](enterprise-app-on-cloudnative/) | Greenfield cloud-native enterprise app — e.g. ERP (Customer 360: CRM + Inventory) | Lambda + API Gateway + Aurora DSQL; durable-functions & DSQL skills |
+| [**genai-on-serverless**](genai-on-serverless/) | GenAI on serverless — e.g. intelligent document processing | Bedrock + Lambda + API Gateway + S3; ingest/classify/extract/search |
+| [**api-platform-migration-n-modernization**](api-platform-migration-n-modernization/) | API platform migration & modernization — e.g. API Gateway platform / POC with Terraform | Deep API Gateway skill (16 references) + HashiCorp Terraform power |
+| [**regression-software-testing**](regression-software-testing/) | Build a regression safety net before a major upgrade | Behavior-first test strategy; steering-only; survives version/framework upgrades |
+| [**agentic-ai-workflow**](agentic-ai-workflow/) | Reusable AI-DLC + skills + MCP environment | Agentic-AI & Terraform skills; install script; worked sample guide |
 
 ## How to use a pack
 
