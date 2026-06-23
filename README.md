@@ -40,6 +40,7 @@ Learn more:
 | [**genai-on-serverless**](genai-on-serverless/) | GenAI on serverless — e.g. intelligent document processing | Bedrock + Lambda + API Gateway + S3; ingest/classify/extract/search |
 | [**api-platform-migration-n-modernization**](api-platform-migration-n-modernization/) | API platform migration & modernization — e.g. API Gateway platform / POC with Terraform | Deep API Gateway skill (16 references) + HashiCorp Terraform power |
 | [**regression-software-testing**](regression-software-testing/) | Build a regression safety net before a major upgrade | Behavior-first test strategy; steering-only; survives version/framework upgrades |
+| [**qa-automated-testing**](qa-automated-testing/) | Build automated test suites for web and/or mobile apps | Web (Playwright-first) & mobile (Maestro/Appium-first) testing skills; AWS Device Farm CI guidance |
 | [**agentic-ai-workflow**](agentic-ai-workflow/) | Reusable AI-DLC + skills + MCP environment | Agentic-AI & Terraform skills; install script; worked sample guide |
 
 ## How to use a pack
@@ -61,6 +62,7 @@ aidlc-for-modernization-starter-packs/
 ├── genai-on-serverless/                      # GenAI on serverless — e.g. intelligent document processing
 ├── api-platform-migration-n-modernization/   # API platform migration & modernization (Terraform)
 ├── regression-software-testing/                    # Pre-upgrade regression testing
+├── qa-automated-testing/                           # Automated web & mobile test suites
 └── agentic-ai-workflow/                            # Reusable AI-DLC + skills + MCP environment
 ```
 
