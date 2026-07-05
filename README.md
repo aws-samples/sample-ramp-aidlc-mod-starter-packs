@@ -37,6 +37,7 @@ Learn more:
 |------|----------|-----------|
 | [**legacy-transformation-on-aws**](legacy-transformation-on-aws/) | Transform a legacy app on AWS — e.g. monolith → microservices | Reverse engineering → decomposition blueprint; steering-only, stack-agnostic |
 | [**enterprise-app-on-cloudnative**](enterprise-app-on-cloudnative/) | Greenfield cloud-native enterprise app — e.g. ERP (Customer 360: CRM + Inventory) | Lambda + API Gateway + Aurora DSQL; durable-functions & DSQL skills |
+| [**web-app-on-cloudnative**](web-app-on-cloudnative/) | Multi-tier web app (SPA + BFF over a shared domain service) on cloud-native AWS — e.g. a multi-channel consumer/operator platform | Containers (ECS/Fargate) or serverless; Aurora / Aurora DSQL; Terraform/CDK/CloudFormation; multi-repo spec-splitting; container/IaC/IAM/observability + serverless & Aurora skills |
 | [**genai-on-serverless**](genai-on-serverless/) | GenAI on serverless — e.g. intelligent document processing | Bedrock + Lambda + API Gateway + S3; ingest/classify/extract/search |
 | [**api-platform-migration-n-modernization**](api-platform-migration-n-modernization/) | API platform migration & modernization — e.g. API Gateway platform / POC with Terraform | Deep API Gateway skill (16 references) + HashiCorp Terraform power |
 | [**regression-software-testing**](regression-software-testing/) | Build a regression safety net before a major upgrade | Behavior-first test strategy; steering-only; survives version/framework upgrades |
@@ -59,6 +60,7 @@ aidlc-for-modernization-starter-packs/
 ├── README.md                                       # You are here
 ├── legacy-transformation-on-aws/             # Legacy transformation — e.g. monolith → microservices
 ├── enterprise-app-on-cloudnative/            # Cloud-native enterprise app — e.g. ERP (Customer 360)
+├── web-app-on-cloudnative/                   # Multi-tier web app (SPA + BFF) — e.g. multi-channel consumer/operator platform
 ├── genai-on-serverless/                      # GenAI on serverless — e.g. intelligent document processing
 ├── api-platform-migration-n-modernization/   # API platform migration & modernization (Terraform)
 ├── regression-software-testing/                    # Pre-upgrade regression testing

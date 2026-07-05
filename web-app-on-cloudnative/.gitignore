@@ -1,0 +1,16 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+cdk.out/
+.aws-sam/
+dist/
+build/
+
+# AI-DLC working directories — keep specs but not session state if you prefer
+# aidlc-docs/aidlc-state.md
+# aidlc-docs/audit.md
