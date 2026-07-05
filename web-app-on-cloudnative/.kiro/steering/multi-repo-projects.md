@@ -1,5 +1,7 @@
 ---
-inclusion: always
+inclusion: auto
+name: multi-repo-projects
+description: Repo-model decision gate (monorepo → monorepo-with-workspaces → domain-grouped repos → polyrepo) and the contract-first multi-repo spec-splitting flow — System/Platform spec, shared-contract publishing (Wave 0), per-repo fan-out, contract tiers, and directory conventions. Use when the project spans multiple repositories, when deciding how to organize repos, when splitting specs across SPA/BFF/engine repos, or for a monorepo spanning multiple contract-sharing domains.
 ---
 
 # Multi-Repo Projects & Repo Model
@@ -42,6 +44,10 @@ You do **not** need to know the repo model before starting — this is a decisio
 
 > 🔑 **The only real difference across models is the contract mechanism:** an **in-repo shared package** (monorepo — changes are atomic) vs a **versioned, published artifact** (multi-repo — changes are coordinated and version-bumped). Everything else — decision gates, approval gates, state/audit tracking, parallel task waves — is identical.
 
+**Coarse choice early, detailed topology later.** Two things are decided at different times: (1) **spec placement** + a *provisional* **mono-vs-multi lean** can be set up front (largely an org/Conway call); (2) the **detailed topology** — the exact repos and where the boundaries sit — is finalized **after the overall (system-level) requirements + domain model** (and Phase 0 for brownfield), because it must follow the bounded contexts, capability set, NFRs, and ownership those reveal. In the multi-repo flow the detailed topology is answered inside `_decisions-system.md`, *after* its requirements-level questions.
+
+**Brownfield: reverse-engineer before you fix the topology.** For an existing system, run a **system-level Phase 0 (Reverse Engineering) BEFORE committing the repo model/topology** — the bounded contexts, coupling, and existing API contracts it surfaces are the primary input to *where the repo boundaries go* and to the contract catalog. You can discuss the mono-vs-multi *preference* early (it's partly an org/Conway decision), but confirm the *topology* after RE. Greenfield has no code to RE, so topology follows the domain design directly.
+
 **If the model is undecided at project start:** proceed with requirements-level work (which is model-independent), and treat the repo-model gate as a hard prerequisite before the **design** phase — the design (component boundaries, contract packaging) depends on it. Do not generate `design.md` until the repo model is chosen.
 
 ---
@@ -80,9 +86,9 @@ You do **not** need to know the repo model before starting — this is a decisio
 
 ## Step M0 — Decision gate: `_decisions-system.md`
 
-Before writing any spec, create `_decisions-system.md`. In addition to the normal requirements-level questions, it MUST cover these multi-repo decision points:
+Before writing any spec, create `_decisions-system.md`. **Answer the requirements-level questions first** (scope, capabilities/personas, cross-cutting NFRs, integration map, compliance) — the topology decision below **follows from them** (and from Phase 0 for brownfield), so don't fix repos/boundaries until the overall requirements are understood. It MUST then cover these multi-repo decision points:
 
-- **Repo topology** — how many repos, and the boundary of each (e.g. one repo per SPA, one per BFF, one for the domain engine, one per integration endpoint). List them explicitly.
+- **Repo topology** — how many repos, and the boundary of each (e.g. one repo per SPA, one per BFF, one for the domain engine, one per integration endpoint). List them explicitly. **For brownfield systems, base these boundaries on the bounded contexts and coupling surfaced by the system-level Phase 0 reverse engineering — run that first; don't guess the seams.**
 - **Spec placement** — where the spec files live:
   1. **Central specs repo (Kiro Recommended for workshops)** — all specs in ONE repo (`aidlc-docs/` + `.kiro/specs/`), code in separate repos. Single source of truth for contracts, one audit trail, agent can read the umbrella when generating each component spec. Best when teams must stay aligned on a short timeline.
   2. **Co-located** — each repo carries its own `.kiro/specs/<component>/` and `aidlc-docs/`; a shared **contracts repo** (or published package) holds the OpenAPI/types/event schemas as the authority. Specs travel with code; each team owns its repo. Higher drift risk unless the contracts repo is strictly authoritative.
@@ -118,7 +124,7 @@ For each repo, run the normal **Phase 1 → 2 → 3** — with these multi-repo 
   - **Domain-internal contract** (a BFF↔SPA seam owned by one squad): the squad may evolve it directly and update the published contract — only they consume it. Low ceremony.
   - **Shared contract** (the engine API, or anything multiple components consume): STOP, record it in `audit.md`, and amend it in the System spec — bump the version and notify every consumer. Never fork or redefine a shared contract locally in a component spec.
   - **Prefer additive, backward-compatible changes** (add optional fields) over breaking ones (rename/remove/retype). A single **contract owner** (e.g. the architect) approves shared-contract amendments. Batch and re-freeze shared contracts at a defined checkpoint rather than letting them churn continuously.
-- **Brownfield components** (e.g. an already-built domain engine) still run Phase 0 reverse engineering in their own repo, feeding the component spec.
+- **Brownfield components** (e.g. an already-built domain engine) run a deeper **component-level** Phase 0 reverse engineering in their own repo, feeding the component spec. This is distinct from — and comes after — the **system-level** RE that ran up front to inform the topology and contract catalog.
 
 ## Step M3 — Contract-driven parallel construction
 

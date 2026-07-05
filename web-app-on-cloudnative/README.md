@@ -23,7 +23,7 @@ It works for **greenfield** builds and **brownfield** extensions alike — when 
 ```
 web-app-on-cloudnative/
 ├── .kiro/
-│   ├── steering/                       # Always-on agent rules
+│   ├── steering/                       # Agent steering rules (always-on core + auto-loaded playbooks)
 │   │   ├── aidlc-decisions-workflow.md     # Decision-gated Requirements → Design → Tasks
 │   │   ├── multi-repo-projects.md          # Repo-model gate + contract-first multi-repo spec-splitting
 │   │   ├── reverse-engineering.md          # Phase 0 playbook (used only for brownfield)

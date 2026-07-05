@@ -22,11 +22,12 @@ modernize, or change anything that warrants a spec.
 **MANDATORY FIRST ACTIONS (in this exact order):**
 
 1. Check if `aidlc-docs/aidlc-state.md` exists — if yes, **resume** from where we left off
-2. If no state file exists, decide if this is **brownfield** (existing code present) or **greenfield** (no existing code)
-3. Determine the **repo model** — see **`.kiro/steering/multi-repo-projects.md`**. It's a spectrum: monorepo, monorepo-with-workspaces, domain-grouped repos, or repo-per-component. If undecided, it's fine to start requirements work, but the repo model MUST be chosen before the design phase. Multi-repo (domain-grouped or polyrepo) → run the **System / Platform spec** BEFORE any per-component spec.
-4. Create `aidlc-docs/aidlc-state.md` and `aidlc-docs/audit.md`
-5. Brownfield → start at **Phase 0**. Greenfield single-repo/monorepo → start at **Phase 1** (add a light System/Platform spec if the monorepo spans multiple contract-sharing domains). Multi-repo (domain-grouped/polyrepo) → start at the **System / Platform spec**, then fan out to per-repo Phase 1–3.
-6. Follow the workflow sequentially with approval gates.
+2. If no state file exists, create `aidlc-docs/aidlc-state.md` and `aidlc-docs/audit.md`
+3. Decide if this is **brownfield** (existing code present) or **greenfield** (no existing code)
+4. **Brownfield → run a system-level Phase 0 (Reverse Engineering) FIRST.** Its outputs (bounded contexts, coupling, existing API contracts, modernization-readiness) are the primary input to the repo-model/topology decision and the contract catalog. **Greenfield → skip Phase 0.**
+5. Decide **spec placement** (e.g. central specs repo) and a *provisional* **mono-vs-multi preference** early — see **`.kiro/steering/multi-repo-projects.md`**. But **defer the detailed repo topology** (exact repos + boundaries): it is finalized inside the System/Platform spec, *after* the overall (system-level) requirements + domain model are captured (and after Phase 0 for brownfield). Topology follows bounded contexts + overall requirements — don't lock exact repos/boundaries before them. Topology must be locked before the design phase.
+6. Proceed: Greenfield single-repo/monorepo → **Phase 1**. Multi-repo (domain-grouped/polyrepo) → the **System / Platform spec**: capture the overall/system-level requirements + domain model FIRST (consuming Phase 0 outputs for brownfield), THEN finalize the repo topology and freeze the contract catalog, then fan out to per-repo Phase 1–3. (Monorepo spanning multiple contract-sharing domains → add a light System/Platform spec.)
+7. Follow the workflow sequentially with approval gates.
 
 ---
 
@@ -129,6 +130,7 @@ session start, **resume** from the recorded state.
 
 ## Multi-Repo Progress (only if Repo Model = Multi-repo)
 - [ ] System / Platform spec
+  - [ ] S0. (Brownfield only) System-level Phase 0 RE completed — feeds repo topology + contract catalog (run BEFORE freezing topology)
   - [ ] S1. _decisions-system.md created
   - [ ] S2. _decisions-system.md completed by user
   - [ ] S3. system spec generated and approved (domain model, contract catalog, repo topology)
