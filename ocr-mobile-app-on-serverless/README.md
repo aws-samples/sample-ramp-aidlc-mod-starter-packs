@@ -24,7 +24,7 @@ A reference target stack: **Android/Kotlin (Jetpack Compose + CameraX)** on the 
 ## What's in this pack
 
 ```
-mobile-document-capture-on-serverless/
+ocr-mobile-app-on-serverless/
 ├── .kiro/
 │   ├── steering/                       # Always-on agent rules
 │   │   ├── decision-driven-specs.md        # Phase 0 → Requirements → Design → Tasks
