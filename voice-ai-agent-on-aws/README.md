@@ -25,7 +25,7 @@ It works for **greenfield** builds and **brownfield** extensions alike — when 
 ## What's in this pack
 
 ```
-voice-ai-on-nova-sonic/
+voice-ai-agent-on-aws/
 ├── .kiro/
 │   ├── steering/                       # Always-on agent rules
 │   │   ├── decision-driven-specs.md        # Phase 0 → Requirements → Design → Tasks

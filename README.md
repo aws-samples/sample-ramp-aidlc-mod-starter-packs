@@ -39,7 +39,7 @@ Learn more:
 | [**enterprise-app-on-cloudnative**](enterprise-app-on-cloudnative/) | Greenfield cloud-native enterprise app — e.g. ERP (Customer 360: CRM + Inventory) | Lambda + API Gateway + Aurora DSQL; durable-functions & DSQL skills |
 | [**web-app-on-cloudnative**](web-app-on-cloudnative/) | Multi-tier web app (SPA + BFF over a shared domain service) on cloud-native AWS — e.g. a multi-channel consumer/operator platform | Containers (ECS/Fargate) or serverless; Aurora / Aurora DSQL; Terraform/CDK/CloudFormation; multi-repo spec-splitting; container/IaC/IAM/observability + serverless & Aurora skills |
 | [**genai-on-serverless**](genai-on-serverless/) | GenAI on serverless — e.g. intelligent document processing | Bedrock + Lambda + API Gateway + S3; ingest/classify/extract/search |
-| [**voice-ai-on-nova-sonic**](voice-ai-on-nova-sonic/) | Real-time voice AI agents on AWS — e.g. adding a voice channel to an existing text/chat platform | Amazon Nova Sonic speech-to-speech + Strands BidiAgent; text-agent→voice migration (LangChain/OpenAI/custom); voice UX, latency & cost optimization skills |
+| [**voice-ai-agent-on-aws**](voice-ai-agent-on-aws/) | Real-time voice AI agents on AWS — e.g. adding a voice channel to an existing text/chat platform | Amazon Nova Sonic speech-to-speech + Strands BidiAgent; text-agent→voice migration (LangChain/OpenAI/custom); voice UX, latency & cost optimization skills |
 | [**api-platform-migration-n-modernization**](api-platform-migration-n-modernization/) | API platform migration & modernization — e.g. API Gateway platform / POC with Terraform | Deep API Gateway skill (16 references) + HashiCorp Terraform power |
 | [**regression-software-testing**](regression-software-testing/) | Build a regression safety net before a major upgrade | Behavior-first test strategy; steering-only; survives version/framework upgrades |
 | [**qa-automated-testing**](qa-automated-testing/) | Build automated test suites for web and/or mobile apps | Web (Playwright-first) & mobile (Maestro/Appium-first) testing skills; AWS Device Farm CI guidance |
@@ -63,7 +63,7 @@ aidlc-for-modernization-starter-packs/
 ├── enterprise-app-on-cloudnative/            # Cloud-native enterprise app — e.g. ERP (Customer 360)
 ├── web-app-on-cloudnative/                   # Multi-tier web app (SPA + BFF) — e.g. multi-channel consumer/operator platform
 ├── genai-on-serverless/                      # GenAI on serverless — e.g. intelligent document processing
-├── voice-ai-on-nova-sonic/                   # Real-time voice AI agents on Amazon Nova Sonic
+├── voice-ai-agent-on-aws/                    # Real-time voice AI agents on AWS (Amazon Nova Sonic)
 ├── api-platform-migration-n-modernization/   # API platform migration & modernization (Terraform)
 ├── regression-software-testing/                    # Pre-upgrade regression testing
 ├── qa-automated-testing/                           # Automated web & mobile test suites
