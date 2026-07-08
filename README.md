@@ -40,6 +40,7 @@ Learn more:
 | [**web-app-on-cloudnative**](web-app-on-cloudnative/) | Multi-tier web app (SPA + BFF over a shared domain service) on cloud-native AWS — e.g. a multi-channel consumer/operator platform | Containers (ECS/Fargate) or serverless; Aurora / Aurora DSQL; Terraform/CDK/CloudFormation; multi-repo spec-splitting; container/IaC/IAM/observability + serverless & Aurora skills |
 | [**genai-on-serverless**](genai-on-serverless/) | GenAI on serverless — e.g. intelligent document processing | Bedrock + Lambda + API Gateway + S3; ingest/classify/extract/search |
 | [**voice-ai-agent-on-aws**](voice-ai-agent-on-aws/) | Real-time voice AI agents on AWS — e.g. adding a voice channel to an existing text/chat platform | Amazon Nova Sonic speech-to-speech + Strands BidiAgent; text-agent→voice migration (LangChain/OpenAI/custom); voice UX, latency & cost optimization skills |
+| [**ocr-mobile-app-on-serverless**](ocr-mobile-app-on-serverless/) | Mobile capture app + serverless computer-vision extraction pipeline — e.g. digitizing printed/handwritten forms into structured data | Android/Kotlin (Compose + CameraX) + Textract/Bedrock/Step Functions CV pipeline; human-in-the-loop review; Kotlin/Android/serverless/Terraform + PBT skills |
 | [**api-platform-migration-n-modernization**](api-platform-migration-n-modernization/) | API platform migration & modernization — e.g. API Gateway platform / POC with Terraform | Deep API Gateway skill (16 references) + HashiCorp Terraform power |
 | [**regression-software-testing**](regression-software-testing/) | Build a regression safety net before a major upgrade | Behavior-first test strategy; steering-only; survives version/framework upgrades |
 | [**qa-automated-testing**](qa-automated-testing/) | Build automated test suites for web and/or mobile apps | Web (Playwright-first) & mobile (Maestro/Appium-first) testing skills; AWS Device Farm CI guidance |
@@ -64,6 +65,7 @@ aidlc-for-modernization-starter-packs/
 ├── web-app-on-cloudnative/                   # Multi-tier web app (SPA + BFF) — e.g. multi-channel consumer/operator platform
 ├── genai-on-serverless/                      # GenAI on serverless — e.g. intelligent document processing
 ├── voice-ai-agent-on-aws/                    # Real-time voice AI agents on AWS (Amazon Nova Sonic)
+├── ocr-mobile-app-on-serverless/             # Mobile capture + serverless computer-vision extraction pipeline
 ├── api-platform-migration-n-modernization/   # API platform migration & modernization (Terraform)
 ├── regression-software-testing/                    # Pre-upgrade regression testing
 ├── qa-automated-testing/                           # Automated web & mobile test suites

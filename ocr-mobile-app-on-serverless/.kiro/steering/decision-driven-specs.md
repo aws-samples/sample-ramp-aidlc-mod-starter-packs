@@ -22,12 +22,10 @@ modernize, or change anything that warrants a spec.
 **MANDATORY FIRST ACTIONS (in this exact order):**
 
 1. Check if `aidlc-docs/aidlc-state.md` exists — if yes, **resume** from where we left off
-2. If no state file exists, create `aidlc-docs/aidlc-state.md` and `aidlc-docs/audit.md`
-3. Decide if this is **brownfield** (existing code present) or **greenfield** (no existing code)
-4. **Brownfield → run a system-level Phase 0 (Reverse Engineering) FIRST.** Its outputs (bounded contexts, coupling, existing API contracts, modernization-readiness) are the primary input to the repo-model/topology decision and the contract catalog. **Greenfield → skip Phase 0.**
-5. Decide **spec placement** (e.g. central specs repo) and a *provisional* **mono-vs-multi preference** early — see **`.kiro/steering/multi-repo-projects.md`**. But **defer the detailed repo topology** (exact repos + boundaries): it is finalized in the **System High-Level Design (S2)**, *after* the **System Requirements (S1)** are captured (and after Phase 0 for brownfield). Topology follows bounded contexts + overall requirements — don't lock exact repos/boundaries before them. Topology must be locked before per-repo design.
-6. Proceed: Greenfield single-repo/monorepo → **Phase 1** (its Phase 1/2 already capture overall requirements + design in one repo). Multi-repo (domain-grouped/polyrepo) → the two-level flow: **S1 System Requirements → S2 System High-Level Design** (freeze contracts = Wave 0) → **S3 split** the system requirements into per-repo slices → **S4 fan out** to per-repo detailed R→D→T. (Monorepo spanning multiple contract-sharing domains → run S1/S2 lightly with in-repo contracts.)
-7. Follow the workflow sequentially with approval gates.
+2. If no state file exists, decide if this is **brownfield** (existing code present) or **greenfield** (no existing code)
+3. Create `aidlc-docs/aidlc-state.md` and `aidlc-docs/audit.md`
+4. Brownfield → start at **Phase 0**. Greenfield → start at **Phase 1**.
+5. Follow the workflow sequentially with approval gates.
 
 ---
 
@@ -117,35 +115,14 @@ Each decision file is independent:
 Maintain `aidlc-docs/aidlc-state.md` for session continuity. If it exists at
 session start, **resume** from the recorded state.
 
-> **Multi-repo:** keep state **per level** — `aidlc-docs/_platform/aidlc-state.md` for the shared S0–S3 phases, and a separate `aidlc-docs/<repo>/aidlc-state.md` per sub for its S4 fan-out. This keeps parallel branches from colliding on one tracker. See `.kiro/steering/multi-repo-projects.md`.
-
 ```markdown
 # AI-DLC Workflow State
 
 ## Project Info
 - **Project Type**: [Greenfield / Brownfield Modernization / Feature on existing system]
-- **Repo Model**: [Single-repo / Multi-repo]
-- **Spec Placement** (if multi-repo): [Central specs repo / Co-located / Hybrid]
 - **Existing Stack** (if brownfield): [e.g., language, framework, database, cloud services]
 - **Target Architecture**: [e.g., target platform / runtime / deployment model]
 - **Active Spec**: [name of the spec currently being worked on]
-
-## Multi-Repo Progress (only if Repo Model = Multi-repo)
-- [ ] S0. (Brownfield only) System-level Phase 0 RE completed — feeds repo topology + contract catalog (run BEFORE freezing topology)
-- [ ] S1. System Requirements (Phase 1, whole system)
-  - [ ] _decisions-requirements.md created + completed
-  - [ ] system requirements.md approved (intent, user stories + ACs, units of work, cross-cutting NFRs)
-- [ ] S2. System High-Level Design (Phase 2, whole system)
-  - [ ] _decisions-design.md created + completed
-  - [ ] system design.md approved (architecture, contract catalog, repo topology unit→repo, auth)
-  - [ ] Shared contracts published (OpenAPI / types / event schemas) — the Wave-0 dependency
-- [ ] S3. Split into per-repo slices (split.md) — user stories + contract obligations per repo, confirmed with user
-
-### Per-repo detailed specs (S4 — fan-out, from each repo's slice)
-| Repo / Component | Requirements | Design | Tasks | Notes |
-|------------------|:-----------:|:------:|:-----:|-------|
-| [e.g. consumer-bff] | [ ] | [ ] | [ ] | consumes: engine API |
-| [e.g. consumer-spa] | [ ] | [ ] | [ ] | consumes: consumer-bff API |
 
 ## Phase Progress
 - [ ] Phase 0: Reverse Engineering (skip if greenfield)
@@ -179,8 +156,6 @@ session start, **resume** from the recorded state.
 ## MANDATORY: Audit Logging
 
 Maintain `aidlc-docs/audit.md` as an append-only log.
-
-> **Multi-repo:** audit **per level** too — `aidlc-docs/_platform/audit.md` for shared S0–S3 decisions, and `aidlc-docs/<repo>/audit.md` per sub for its S4 work — so each sub's audit travels with it at repo hand-off.
 
 - ALWAYS append, NEVER overwrite
 - Log every user input with complete raw text
@@ -372,7 +347,6 @@ Decision categories to consider:
 
 - **Implementation Strategy:** Vertical slice vs horizontal layer; TDD vs test-after; pair vs solo
 - **Task Granularity:** Coarse (≤ 10 tasks) vs fine (≤ 30 tasks)
-- **Parallel Execution Groups:** How many parallel workers will execute tasks simultaneously? Which task groups have zero shared state and can execute concurrently? (Analyze dependencies and propose independent groups)
 - **Testing Strategy at Execution Level:** Test-first / parallel / post-impl; coverage targets
 - **Deployment Approach:** Per-task deploy vs end-of-spec deploy; canary vs simple cutover
 - **Rollback Granularity:** Per-task rollback vs full rollback
@@ -385,79 +359,43 @@ Decision categories to consider:
 
 ### Step 3.3 — Generate `tasks.md`
 
-Generate a numbered task list organized into **independent parallel groups**.
-Each group has zero shared-state dependencies with other groups and can be
-executed by a separate Kiro instance simultaneously. Within each group, tasks
-are ordered sequentially.
-
-**MANDATORY: Dependency Analysis**
-
-Before generating `tasks.md`, analyze all tasks for:
-1. File/module dependencies (does task B read/write files task A creates?)
-2. API contract dependencies (does task B call an API task A defines?)
-3. Infrastructure dependencies (does task B need infra task A provisions?)
-4. Data dependencies (does task B need seed data or schemas from task A?)
-
-Tasks with NO cross-dependencies form independent groups. Tasks that depend on
-outputs from another group go into a later wave.
+Generate a numbered task list, organized by section. Each task is small enough
+to execute as a single Kiro request.
 
 ```markdown
 # Tasks: <Spec Name>
 
-## Execution Plan
+## Setup
+- [ ] 1.1 Initialize project structure
+- [ ] 1.2 Wire dependencies and configuration
 
-| Wave | Groups (run in parallel) | Depends On |
-|------|--------------------------|------------|
-| 1    | Group A, Group B, Group C | —          |
-| 2    | Group D, Group E          | Wave 1     |
-| 3    | Group F                   | Wave 2     |
+## Domain
+- [ ] 2.1 Define domain types and contracts
+- [ ] 2.2 Implement domain logic with unit tests
 
-> **How to run:** Assign one worker (Kiro instance or developer) per group within the same wave.
-> Wait for all groups in a wave to complete before starting the next wave.
+## Adapters / Integrations
+- [ ] 3.1 Implement integrations with external systems
+- [ ] 3.2 Add integration tests
 
----
+## API
+- [ ] 4.1 Define API contracts
+- [ ] 4.2 Implement handlers
+- [ ] 4.3 Wire authentication / authorization
 
-## Wave 1 (no dependencies — start all in parallel)
+## Infrastructure
+- [ ] 5.1 IaC for compute, storage, auth
+- [ ] 5.2 Tags, alarms, dashboards
 
-### Group A: [Domain/Feature Name]
-- [ ] A.1 [Task description]
-- [ ] A.2 [Task description]
-
-### Group B: [Domain/Feature Name]
-- [ ] B.1 [Task description]
-- [ ] B.2 [Task description]
-
----
-
-## Wave 2 (depends on Wave 1 completion)
-
-### Group D: [Domain/Feature Name]
-**Requires:** Group A outputs (e.g., domain types), Group B outputs (e.g., schemas)
-- [ ] D.1 [Task description]
-- [ ] D.2 [Task description]
-
----
-
-## Wave 3 (integration — depends on Wave 2)
-
-### Group F: Verification & Integration
-**Requires:** All prior waves complete
-- [ ] F.1 End-to-end smoke test
-- [ ] F.2 Update README with run / teardown instructions
+## Verification
+- [ ] 6.1 Smoke test post-deploy
+- [ ] 6.2 Update README with run / teardown instructions
 ```
-
-**Task generation rules:**
-- Each group targets a distinct module/boundary/feature with its own files
-- Groups within the same wave MUST NOT touch the same files
-- The final wave always includes integration testing and verification
-- Each task is small enough to execute as a single Kiro request
 
 **Task execution rules:**
 - Mark each task `[x]` immediately on completion
 - Follow design choices from Phase 2 — do not silently override
 - Reference Phase 0 artifacts where relevant for brownfield work
-- Update `aidlc-state.md` after each group completes
-- A wave is complete only when ALL groups in that wave are `[x]`
+- Update `aidlc-state.md` after each section completes
 
 ### Approval Gate
 Wait for explicit user approval. Update `aidlc-state.md` and `audit.md`.
@@ -466,25 +404,18 @@ Wait for explicit user approval. Update `aidlc-state.md` and `audit.md`.
 
 # Task Execution
 
-After `tasks.md` is approved, the user assigns groups to parallel workers (Kiro instances, developers, or a mix). For each task:
+After `tasks.md` is approved, the user picks tasks to run in Kiro. For each task:
 
 1. Execute (generate code, IaC, tests, etc.)
 2. Mark the task `[x]` in `tasks.md`
 3. Append progress to `aidlc-state.md`
 4. Append a concise note to `audit.md`
 
-### Parallel Execution Protocol
-- Each worker (Kiro instance or developer) owns ONE group — only touches files within that group's boundary
-- Before starting a new wave, verify all groups in the previous wave are `[x]`
-- If a group finishes early, the worker waits — do NOT start next-wave tasks early
-- Conflicts (two workers accidentally touching the same file) → stop, flag in audit.md, ask user
-
 ### Session Continuity During Execution
 On resume:
 1. Read `aidlc-state.md` for the active spec and phase
-2. Read `tasks.md` for the next incomplete group/task
-3. Identify which wave is active and which groups are done
-4. Resume from the next incomplete task in the assigned group
+2. Read `tasks.md` for the next incomplete task
+3. Resume from there
 
 ### Completion
 When all tasks are `[x]`:
@@ -495,7 +426,7 @@ When all tasks are `[x]`:
 
 ---
 
-## Spec Directory Convention (single-repo)
+## Spec Directory Convention
 
 ```
 .kiro/specs/<spec-name>/
@@ -507,12 +438,6 @@ When all tasks are `[x]`:
 └── tasks.md
 ```
 
-## Repo Model & Multi-Repo Projects
-
-The repo model (monorepo → polyrepo) is a **decision gate** taken at project start. For multi-repo systems, capture the whole system once — **System Requirements (S1) → System High-Level Design (S2)** — then **split** those requirements into per-repo slices and fan out. The full flow — the repo-model decision gate, how the workflow adapts to each model, the two system-level passes, the split step, contract tiers and blast-radius rules, and directory conventions — lives in a dedicated steering doc to keep this workflow focused.
-
-**MANDATORY:** Load and follow **`.kiro/steering/multi-repo-projects.md`** whenever the repo model is anything other than a single simple repo (monorepo spanning multiple contract-sharing domains, domain-grouped repos, or polyrepo). Run its **repo-model decision gate** before the design phase in every case.
-
 ---
 
 ## Key Principles
@@ -522,7 +447,6 @@ The repo model (monorepo → polyrepo) is a **decision gate** taken at project s
 - **Questions in decision files**, never in chat
 - **Approval gates are real** — never proceed without explicit user approval
 - **Trackable** — state file + audit log + checkboxes enable session continuity
-- **Multi-repo: capture whole, then split** — run System Requirements → System High-Level Design once, freeze shared contracts, then split into **derived** per-repo slices; per-repo specs consume contracts and never redefine them
 
 ---
 
@@ -532,10 +456,9 @@ Every new interaction:
 
 1. CHECK for `aidlc-docs/aidlc-state.md`
 2. If it exists, READ it and RESUME
-3. If it doesn't exist, decide brownfield vs greenfield AND single-repo vs multi-repo, then start at the right phase (multi-repo → System Requirements → System High-Level Design → split → fan out)
+3. If it doesn't exist, decide brownfield vs greenfield, then start at the right phase
 4. NEVER skip a `_decisions-*.md` before the corresponding spec doc
 5. NEVER skip approval gates
 6. ALWAYS put questions in decision files, never in chat
-7. In multi-repo work, NEVER let a per-repo spec redefine a shared contract — amend the System High-Level Design (versioned) instead
 
 This workflow is the only workflow.

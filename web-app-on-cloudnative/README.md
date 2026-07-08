@@ -53,7 +53,7 @@ web-app-on-cloudnative/
 | File | What it does |
 |---|---|
 | `aidlc-decisions-workflow.md` | The decision-gated workflow. `Requirements → Design → Tasks`, each gated by a `_decisions-*.md` file you complete before the agent writes the final document. Tasks are generated as independent parallel groups (waves). Points to `multi-repo-projects.md` when a project spans repos. |
-| `multi-repo-projects.md` | The **repo-model decision gate** (monorepo → polyrepo) and the **contract-first multi-repo spec-splitting flow** — a System/Platform spec that fixes shared contracts once, then fans out into per-repo component specs. Includes contract tiers, blast-radius rules, and directory conventions. |
+| `multi-repo-projects.md` | The **repo-model decision gate** (monorepo → polyrepo) and the **contract-first multi-repo flow** — capture system-level requirements → high-level design (contracts + topology) once, then **split** into derived per-repo specs and fan out. Includes contract tiers, blast-radius rules, and directory conventions. |
 | `reverse-engineering.md` | Phase 0 playbook for analyzing an existing codebase. Used for brownfield work (e.g. extending an already-built domain engine), skipped for greenfield. |
 | `skill-power-mcp-activation.md` | Tells the agent which skills and MCP tools to activate, and when — including during design and decision phases, not just code execution. |
 
@@ -86,17 +86,56 @@ Skills are curated, domain-specific knowledge bundles the agent activates on dem
 | `amazon-aurora-mysql` | Aurora MySQL cluster ops, ACU sizing, I/O-Optimized, upgrade planning | agent-plugins |
 | `creating-amazon-aurora-db-cluster-with-instances` | Standing up a complete Aurora cluster + instances with Secrets Manager passwords | agent-plugins |
 
+## How the workflow works
+
+Every project is **decision-gated**: the agent writes a `_decisions-*.md`, waits for your input, then generates the matching spec document. Two shapes come out of one entry routing.
+
+**Entry (always):**
+1. Resume from `aidlc-state.md` if it exists.
+2. Detect **greenfield vs brownfield**. Brownfield → run **system-level reverse-engineering first** (it feeds topology + contracts).
+3. Set **spec placement** + a *provisional* mono-vs-multi lean; **defer the detailed repo topology** until after requirements.
+
+**Single-repo / monorepo** — the standard flow, each phase gated by a `_decisions-*.md`:
+```
+Phase 1 Requirements → Phase 2 Design → Phase 3 Tasks (parallel waves) → execute
+```
+
+**Multi-repo (domain-grouped or polyrepo) — "capture the whole, then split":**
+```
+LEVEL 1 — SYSTEM (once, up front)
+  S1  System Requirements    (= Phase 1, whole system)
+        intent · personas · user stories + acceptance criteria ·
+        units of work · cross-cutting NFRs               → approval gate
+  S2  System High-Level Design   (= Phase 2, whole system)
+        architecture · CONTRACT CATALOG (two-tier freeze) ·
+        repo topology (unit → repo) · auth ·
+        publish shared contracts = WAVE 0                → approval gate
+  S3  Split — the agent decomposes S1+S2 into per-repo slices
+        (the stories/ACs each repo owns + its contract obligations)  → confirm
+             │
+LEVEL 2 — PER REPO (fan-out, in parallel)
+  S4  each repo, on its slice:  Requirements → Design → Tasks
+        (derived, so substantive; per-repo decisions cover only local concerns)
+  S5  contract-driven build:  Wave 0 contracts → repos build in parallel
+        (contract tests) → integration wave (end-to-end across repos)
+```
+
+- **Topology is decided in S2, after S1** — it follows the bounded contexts (from RE) + overall requirements; never guessed up front.
+- **State & audit are per level:** `aidlc-docs/_platform/` for the shared S0–S3 phases, and a separate `aidlc-docs/<repo>/` per sub for its S4 work — so parallel branches never collide. At **hand-off**, a squad copies its `.kiro/specs/<repo>/` + `aidlc-docs/<repo>/` into its own code repo.
+
+**Invariants across all paths:** decision-file before every spec doc · real approval gates · **contract-first, decide-once** (per-repo specs are derived slices that consume shared contracts, never redefine them; changes routed by blast radius) · everything tracked in state + append-only audit.
+
 ## Repo model (monorepo → multi-repo)
 
 The repo model is a **decision gate**, not a hardcoded assumption — the workflow adapts to whatever you choose, so you don't need to settle it before opening the pack. It covers the full spectrum: **monorepo**, **monorepo with workspaces** (Nx/Turborepo/Gradle), **domain-grouped repos** (e.g. `consumer`=SPA+BFF, `cashier`, `backoffice`, `engine`, `contracts`), or **repo-per-component** (polyrepo). For small, tightly-coupled teams the workflow leans toward monorepo or a few domain-grouped repos; polyrepo is reserved for many-team / compliance / independent-cadence cases.
 
-The core risk once you split is **contract drift**: independent repos evolve APIs/types out of sync. The workflow addresses this with a **contract-first, decide-once** flow that applies to *every* model — only the contract *mechanism* differs (an in-repo shared package for monorepos, changed atomically; a versioned published artifact for multi-repo, changed with coordination):
+The core risk once you split is **contract drift**: independent repos evolve APIs/types (and intent) out of sync, and per-repo specs come out thin. The workflow addresses this by **capturing the whole system once, then splitting it** — a **contract-first, decide-once** flow that applies to *every* model (only the contract *mechanism* differs: an in-repo shared package for monorepos, changed atomically; a versioned published artifact for multi-repo, changed with coordination):
 
-1. **System / platform spec (umbrella)** — run *once* (mandatory for multi-repo; a light pass for a multi-domain monorepo). Fixes the shared decisions: domain model & bounded contexts, the **API contract catalog** (engine ↔ BFF, BFF ↔ SPA), auth model, cross-cutting NFRs, and the **repo topology**.
-2. **Per-repo / per-domain component specs** — each unit gets its own `requirements → design → tasks`, which *consume* the umbrella contracts as the source of truth and only decide local concerns. Component specs never redefine a shared contract.
-3. **Contract-driven parallel build** — shared contracts published first (wave 0), then units build in parallel against the frozen contract, with an integration wave at the end.
+1. **System-level requirements → high-level design** (run once, up front). First the **System Requirements** (the normal Phase 1, whole-system: intent, user stories + acceptance criteria, units of work, cross-cutting NFRs). Then the **System High-Level Design** (the normal Phase 2, whole-system: architecture, the **contract catalog** engine↔BFF / BFF↔SPA, **repo topology** unit→repo, auth). Shared contracts are published = **Wave 0**.
+2. **Split into per-repo slices** — Kiro **decomposes** the system requirements + design into each repo's slice (the user stories/ACs it owns + the contracts it consumes/publishes). Per-repo specs are **derived** from this slice, so they're substantive, not thin — and they never redefine a shared contract.
+3. **Per-repo detailed specs + contract-driven parallel build** — each repo runs detailed `requirements → design → tasks` on its slice; repos build in parallel against the frozen contract (Wave 0), with an integration wave at the end.
 
-The agent presents the repo-model gate (and, for multi-repo, spec placement and contract ownership/versioning) at project start. See the *Repo Model* and *Multi-Repo Projects* sections of `aidlc-decisions-workflow.md` for the full flow and directory conventions.
+The agent presents the repo-model gate (and, for multi-repo, spec placement and contract ownership/versioning) at project start. See the *Repo Model* and *Multi-Repo Projects* sections of `.kiro/steering/multi-repo-projects.md` for the full flow and directory conventions.
 
 ## Getting started
 
@@ -107,7 +146,7 @@ The agent presents the repo-model gate (and, for multi-repo, spec placement and 
    - *"This is a multi-repo project — each SPA and BFF is its own repo. Help me split the specs."*
    - *"Here's our existing domain engine repo — analyze it, then let's spec the new BFF that sits in front of it."*
 
-The workflow creates `_decisions-requirements.md` and waits for your input before writing `requirements.md`. The same gate applies before `design.md` and `tasks.md`. For multi-repo projects it first runs the system/platform spec, then fans out per repo. Every decision is appended to `aidlc-docs/audit.md`, and progress is tracked in `aidlc-docs/aidlc-state.md` so you can resume across sessions. The `specs/` and `aidlc-docs/` directories are created by the agent on the first run.
+The workflow creates `_decisions-requirements.md` and waits for your input before writing `requirements.md`. The same gate applies before `design.md` and `tasks.md`. For multi-repo projects it first captures system-level requirements → high-level design (freezing shared contracts), then splits those into per-repo slices and fans out. Every decision is appended to `aidlc-docs/audit.md`, and progress is tracked in `aidlc-docs/aidlc-state.md` so you can resume across sessions. The `specs/` and `aidlc-docs/` directories are created by the agent on the first run.
 
 ## Prerequisites
 
