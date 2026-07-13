@@ -1,5 +1,7 @@
 ---
-inclusion: always
+inclusion: auto
+name: reverse-engineering
+description: Phase 0 reverse-engineering playbook — analyze an existing/brownfield codebase to extract bounded contexts, architecture, APIs, and modernization-readiness before requirements and design. Use when existing source code is present in the workspace, or when the user references an existing system to modernize, extend, migrate, or reverse-engineer.
 ---
 
 # Reverse Engineering
