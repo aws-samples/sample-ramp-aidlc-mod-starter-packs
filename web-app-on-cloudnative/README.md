@@ -1,8 +1,8 @@
 # Web App on Cloud-Native — AI-DLC Starter Pack
 
-A pre-configured Kiro workspace for building a **multi-tier web application** — one or more single-page apps (SPAs) fronted by their own backends-for-frontend (BFFs), talking to a shared domain service — on AWS cloud-native compute, using the **AI-Driven Development Lifecycle (AI-DLC)** decision-driven workflow.
+A **tool-agnostic** starter pack for planning and building a **multi-tier web application** — one or more single-page apps (SPAs) fronted by their own backends-for-frontend (BFFs), talking to a shared domain service — on AWS cloud-native compute, driven by the **AI-Driven Development Lifecycle (AI-DLC)** decision-driven workflow.
 
-Open this folder in Kiro. The agent picks up the steering files automatically and follows a structured, decision-gated workflow — it never writes a spec document until you have filled in your decisions first.
+The pack is authored once as tool-neutral source and works with **Kiro, Claude Code, GitHub Copilot, and Cursor**. Whichever agent you use gains deep AWS expertise across compute, IaC, data, and operations, and follows structured, decision-gated workflows — no manual setup needed.
 
 ## Use case
 
@@ -18,56 +18,76 @@ The pack is deliberately **stack-flexible**:
 
 It works for **greenfield** builds and **brownfield** extensions alike — when an existing codebase is present, the workflow runs a reverse-engineering pass (Phase 0) first.
 
+## Getting started
+
+Pick **one** of the two ways to add this pack to your project.
+
+### Option A — copy a pre-built folder (no tooling)
+
+Pre-generated, tool-correct configs live under [`scaffolded-packs/`](scaffolded-packs/). Copy the folder for your tool into your project root:
+
+| Your tool | Copy from | Into your project |
+|---|---|---|
+| **Kiro** | `scaffolded-packs/kiro/` | `.kiro/` |
+| **Claude Code** | `scaffolded-packs/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
+| **GitHub Copilot** | `scaffolded-packs/copilot/` | `.github/`, `.vscode/mcp.json` |
+| **Cursor** | `scaffolded-packs/cursor/` | `.cursor/` |
+
+### Option B — generate it (installer)
+
+Run the `ramp-pack` installer from the repo root; it reads the neutral source and writes the correct layout into your target project:
+
+```bash
+node installer/bin/ramp-pack.js init web-app-on-cloudnative --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
+```
+
+Add `--dry-run` to preview, `--force` to overwrite existing files. Option B always works even if `scaffolded-packs/` is missing or out of date — the neutral source is the single source of truth.
+
+### Then
+
+1. Open the project in your tool and start a conversation. Try:
+   - *"I want to build a multi-channel web platform — consumer, cashier, and backoffice apps over a shared domain engine. Let's start the AI-DLC workflow."*
+   - *"This is a multi-repo project — each SPA and BFF is its own repo. Help me split the specs."*
+   - *"Here's our existing domain engine repo — analyze it, then let's spec the new BFF that sits in front of it."*
+   - On Claude Code / Copilot you can also run the **`/aidlc`** command to kick off the workflow.
+
+The workflow guides the agent to ask for your decisions first (writing a `_decisions-*.md` before each spec document), and the skills provide expert-level guidance throughout.
+
 ## What's in this pack
 
 ```
 web-app-on-cloudnative/
-├── .kiro/
-│   ├── steering/                       # Agent steering rules (always-on core + auto-loaded playbooks)
-│   │   ├── aidlc-decisions-workflow.md     # Decision-gated Requirements → Design → Tasks
-│   │   ├── multi-repo-projects.md          # Repo-model gate + contract-first multi-repo spec-splitting
-│   │   ├── reverse-engineering.md          # Phase 0 playbook (used only for brownfield)
-│   │   └── skill-power-mcp-activation.md   # When to activate skills + MCP
-│   ├── settings/mcp.json               # AWS Knowledge MCP
-│   ├── skills/                         # Vendored AWS skills (see Skills + Credits below)
-│   │   ├── aws-containers/
-│   │   ├── aws-cdk/
-│   │   ├── aws-cloudformation/
-│   │   ├── terraform-skill/
-│   │   ├── aws-iam/
-│   │   ├── aws-observability/
-│   │   ├── signing-in-to-aws/
-│   │   ├── aws-lambda/
-│   │   ├── api-gateway/
-│   │   ├── aws-lambda-durable-functions/
-│   │   ├── aurora-dsql/
-│   │   ├── amazon-aurora-postgresql/
-│   │   ├── amazon-aurora-mysql/
-│   │   └── creating-amazon-aurora-db-cluster-with-instances/
-│   └── specs/                          # Created during the workflow
-└── aidlc-docs/                         # Created during the workflow (progress tracker + audit log)
+├── pack.yaml                 # Manifest: instruction roles, MCP servers, /aidlc command
+├── instructions/             # Tool-neutral steering (source of truth)
+│   ├── aidlc-workflow.md         # Decision-gated Requirements → Design → Tasks, incl. multi-repo (primary)
+│   ├── skill-activation.md       # When to activate skills + MCP (companion, always)
+│   ├── reverse-engineering.md    # Phase 0 playbook (companion, brownfield-only)
+│   └── multi-repo-projects.md    # Repo-model gate + contract-first multi-repo flow (companion, auto)
+├── skills/                   # AWS skills across compute, IaC, data, operations (see Skills section)
+└── scaffolded-packs/         # Pre-generated per-tool configs (Option A above)
+    ├── kiro/         # .kiro/{steering,settings,skills}
+    ├── claude-code/  # CLAUDE.md, .claude/{rules,commands,skills}, .mcp.json
+    ├── copilot/      # .github/{copilot-instructions.md,instructions,prompts,skills}, .vscode/mcp.json
+    └── cursor/       # .cursor/{rules,skills}, .cursor/mcp.json
 ```
 
-### Steering
+> `instructions/`, `skills/`, and `pack.yaml` are the **neutral source** you edit. `scaffolded-packs/` is **generated** from them by the installer — regenerate it after editing the source; don't hand-edit the scaffolded output.
 
-| File | What it does |
-|---|---|
-| `aidlc-decisions-workflow.md` | The decision-gated workflow. `Requirements → Design → Tasks`, each gated by a `_decisions-*.md` file you complete before the agent writes the final document. Tasks are generated as independent parallel groups (waves). Points to `multi-repo-projects.md` when a project spans repos. |
-| `multi-repo-projects.md` | The **repo-model decision gate** (monorepo → polyrepo) and the **contract-first multi-repo flow** — capture system-level requirements → high-level design (contracts + topology) once, then **split** into derived per-repo specs and fan out. Includes contract tiers, blast-radius rules, and directory conventions. |
-| `reverse-engineering.md` | Phase 0 playbook for analyzing an existing codebase. Used for brownfield work (e.g. extending an already-built domain engine), skipped for greenfield. |
-| `skill-power-mcp-activation.md` | Tells the agent which skills and MCP tools to activate, and when — including during design and decision phases, not just code execution. |
+### How each instruction maps per tool
 
-### MCP servers (`.kiro/settings/mcp.json`)
+The neutral instructions declare a **role** (`primary` / `companion`) and a **load** rule (`always` / `auto`); the installer renders each into the target tool's native mechanism:
 
-| MCP Server | When the agent uses it |
-|---|---|
-| **AWS Knowledge** (`aws-knowledge-mcp-server`) | Validate AWS guidance — service limits, quotas, regional availability, current API behavior, and resource shapes when authoring IaC. |
-
-> This pack ships with just the AWS Knowledge MCP (remote, no credentials needed). The skills drive the standard CLIs (`cdk`, `cfn-lint`, `cfn-guard`, `aws`, `psql`) directly, so no service-specific MCP is required. If you want live CDK/CloudFormation resource-property validation, add the [AWS IaC MCP](https://awslabs.github.io/mcp/); for Aurora DSQL interaction, add the `awslabs.aurora-dsql-mcp-server`.
+| Neutral role | Kiro | Claude Code | Copilot | Cursor |
+|---|---|---|---|---|
+| `aidlc-workflow` (primary) | `.kiro/steering/*` `inclusion: always` | `CLAUDE.md` | `.github/copilot-instructions.md` | `.cursor/rules/*.mdc` `alwaysApply: true` |
+| `skill-activation` (always) | `inclusion: always` | `.claude/rules/*` | `.github/instructions/*` `applyTo: '**'` | `.mdc` `alwaysApply: false` |
+| `reverse-engineering` (auto) | `inclusion: auto` | `.claude/rules/*` | `.github/instructions/*` (conditional) | `.mdc` `alwaysApply: false` |
+| `multi-repo-projects` (auto) | `inclusion: auto` | `.claude/rules/*` | `.github/instructions/*` (conditional) | `.mdc` `alwaysApply: false` |
+| `/aidlc` command | — | `.claude/commands/aidlc.md` | `.github/prompts/aidlc.prompt.md` | — |
 
 ### Skills
 
-Skills are curated, domain-specific knowledge bundles the agent activates on demand. This pack vendors skills across four areas — **compute**, **infrastructure-as-code**, **data**, and **operations/identity** — so it can cover both container and serverless paths. See [Credits & attribution](#credits--attribution) for sources and licensing.
+Skills are curated, domain-specific knowledge bundles the agent activates on demand. This pack vendors skills across four areas — **compute**, **infrastructure-as-code**, **data**, and **operations/identity** — so it can cover both container and serverless paths. All follow the [Agent Skills open standard](https://agentskills.io/). See [Credits & attribution](#credits--attribution) for sources and licensing.
 
 | Skill | Activates when… | Source |
 |---|---|---|
@@ -85,6 +105,16 @@ Skills are curated, domain-specific knowledge bundles the agent activates on dem
 | `amazon-aurora-postgresql` | Aurora PostgreSQL cluster ops, express configuration, ACU sizing, upgrade planning | agent-plugins |
 | `amazon-aurora-mysql` | Aurora MySQL cluster ops, ACU sizing, I/O-Optimized, upgrade planning | agent-plugins |
 | `creating-amazon-aurora-db-cluster-with-instances` | Standing up a complete Aurora cluster + instances with Secrets Manager passwords | agent-plugins |
+
+### MCP servers
+
+Declared once in `pack.yaml`; the installer writes it to each tool's MCP config (`.kiro/settings/mcp.json`, `.mcp.json`, `.vscode/mcp.json`, `.cursor/mcp.json`).
+
+| MCP Server | When the agent uses it |
+|---|---|
+| **AWS Knowledge** (`aws-knowledge-mcp-server`) | Documentation search, page reading, regional availability, and recommendations — used proactively when validating best practices, checking service limits, or when you question a recommendation. |
+
+> This pack ships with just the AWS Knowledge MCP (remote, no credentials needed). The skills drive the standard CLIs (`cdk`, `cfn-lint`, `cfn-guard`, `aws`, `psql`) directly, so no service-specific MCP is required. If you want live CDK/CloudFormation resource-property validation, add the [AWS IaC MCP](https://awslabs.github.io/mcp/); for Aurora DSQL interaction, add the `awslabs.aurora-dsql-mcp-server`.
 
 ## How the workflow works
 
@@ -132,31 +162,21 @@ The repo model is a **decision gate**, not a hardcoded assumption — the workfl
 The core risk once you split is **contract drift**: independent repos evolve APIs/types (and intent) out of sync, and per-repo specs come out thin. The workflow addresses this by **capturing the whole system once, then splitting it** — a **contract-first, decide-once** flow that applies to *every* model (only the contract *mechanism* differs: an in-repo shared package for monorepos, changed atomically; a versioned published artifact for multi-repo, changed with coordination):
 
 1. **System-level requirements → high-level design** (run once, up front). First the **System Requirements** (the normal Phase 1, whole-system: intent, user stories + acceptance criteria, units of work, cross-cutting NFRs). Then the **System High-Level Design** (the normal Phase 2, whole-system: architecture, the **contract catalog** engine↔BFF / BFF↔SPA, **repo topology** unit→repo, auth). Shared contracts are published = **Wave 0**.
-2. **Split into per-repo slices** — Kiro **decomposes** the system requirements + design into each repo's slice (the user stories/ACs it owns + the contracts it consumes/publishes). Per-repo specs are **derived** from this slice, so they're substantive, not thin — and they never redefine a shared contract.
+2. **Split into per-repo slices** — the agent **decomposes** the system requirements + design into each repo's slice (the user stories/ACs it owns + the contracts it consumes/publishes). Per-repo specs are **derived** from this slice, so they're substantive, not thin — and they never redefine a shared contract.
 3. **Per-repo detailed specs + contract-driven parallel build** — each repo runs detailed `requirements → design → tasks` on its slice; repos build in parallel against the frozen contract (Wave 0), with an integration wave at the end.
 
-The agent presents the repo-model gate (and, for multi-repo, spec placement and contract ownership/versioning) at project start. See the *Repo Model* and *Multi-Repo Projects* sections of `.kiro/steering/multi-repo-projects.md` for the full flow and directory conventions.
-
-## Getting started
-
-1. Open this folder in Kiro.
-2. No MCP configuration is required — the AWS Knowledge MCP is remote and needs no credentials. For any AWS operations or deploys the agent runs locally, make sure you have valid AWS credentials (the `signing-in-to-aws` skill can help via `aws login`).
-3. Start a conversation. Try:
-   - *"I want to build a multi-channel web platform — consumer, cashier, and backoffice apps over a shared domain engine. Let's start the AI-DLC workflow."*
-   - *"This is a multi-repo project — each SPA and BFF is its own repo. Help me split the specs."*
-   - *"Here's our existing domain engine repo — analyze it, then let's spec the new BFF that sits in front of it."*
-
-The workflow creates `_decisions-requirements.md` and waits for your input before writing `requirements.md`. The same gate applies before `design.md` and `tasks.md`. For multi-repo projects it first captures system-level requirements → high-level design (freezing shared contracts), then splits those into per-repo slices and fans out. Every decision is appended to `aidlc-docs/audit.md`, and progress is tracked in `aidlc-docs/aidlc-state.md` so you can resume across sessions. The `specs/` and `aidlc-docs/` directories are created by the agent on the first run.
+The agent presents the repo-model gate (and, for multi-repo, spec placement and contract ownership/versioning) at project start. See the *Repo Model* and *Multi-Repo Projects* sections of `instructions/multi-repo-projects.md` for the full flow and directory conventions.
 
 ## Prerequisites
 
-- [Kiro](https://kiro.dev) installed and signed in
-- AWS credentials configured for any local AWS operations or deploys (not needed for the AWS Knowledge MCP)
-- `npx` available on your PATH (used to launch the AWS Knowledge MCP)
+- One of: [Kiro](https://kiro.dev), [Claude Code](https://claude.com/claude-code), GitHub Copilot, or Cursor — installed and signed in.
+- **Option B (installer) only:** Node.js 18+ (to run `ramp-pack`).
+- `npx` available on your PATH (used to launch the AWS Knowledge MCP).
+- AWS credentials configured for any local AWS operations or deploys (not needed for the AWS Knowledge MCP; the `signing-in-to-aws` skill can help via `aws login`).
 
 ## Credits & attribution
 
-The skills vendored in `.kiro/skills/` are sourced from three open-source projects, all licensed under **Apache License 2.0**. Full credit to their authors and maintainers:
+The skills vendored in `skills/` are sourced from three open-source projects, all licensed under **Apache License 2.0**. Full credit to their authors and maintainers:
 
 - **[aws/agent-toolkit-for-aws](https://github.com/aws/agent-toolkit-for-aws)** — `aws-core` plugin. Source of the compute, IaC, identity, and operations skills: `aws-containers`, `aws-cdk`, `aws-cloudformation`, `aws-iam`, `aws-observability`, and `signing-in-to-aws`.
 - **[awslabs/agent-plugins](https://github.com/awslabs/agent-plugins)** — Agent Plugins for AWS. Source of the serverless and database skills:

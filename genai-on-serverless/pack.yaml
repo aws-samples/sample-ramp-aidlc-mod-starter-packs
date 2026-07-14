@@ -1,0 +1,24 @@
+name: genai-on-serverless
+title: Intelligent Document Processing on Serverless
+description: Serverless Intelligent Document Processing (IDP) pipeline on AWS with Lambda, API Gateway, Bedrock, and S3, built via the AI-DLC decision-driven workflow.
+
+instructions:
+  - file: aidlc-workflow.md
+    role: primary
+  - file: skill-activation.md
+    role: companion
+    load: always
+  - file: reverse-engineering.md
+    role: companion
+    load: auto
+
+command:
+  name: aidlc
+  description: Start the AI-DLC decision-gated workflow for this pack
+
+mcp:
+  - id: aws-knowledge-mcp-server
+    transport: http
+    url: https://knowledge-mcp.global.api.aws
+
+skills: all

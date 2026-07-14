@@ -1,6 +1,8 @@
 # AI-DLC for Modernization Starter Packs
 
-A collection of ready-to-use **Kiro** starter packs that apply the **AI-Driven Development Lifecycle (AI-DLC)** to real-world application modernization scenarios. Each pack is a pre-configured starting point — steering files, skills, and MCP server registrations — so you can drop it into your own project and start a structured, decision-driven engagement immediately.
+A collection of ready-to-use, **tool-agnostic** starter packs that apply the **AI-Driven Development Lifecycle (AI-DLC)** to real-world application modernization scenarios. Each pack is a pre-configured starting point — instructions, skills, and MCP server registrations — that works with **Kiro, Claude Code, GitHub Copilot, and Cursor**, so you can drop it into your own project and start a structured, decision-driven engagement immediately.
+
+Each pack is authored once as tool-neutral source and ships pre-generated per-tool configs (plus an installer that regenerates them) — see [How to use a pack](#how-to-use-a-pack).
 
 These packs are distilled from real modernization engagements and have been generalized for reuse. They contain no customer-identifying information.
 
@@ -41,7 +43,7 @@ Learn more:
 | [**genai-on-serverless**](genai-on-serverless/) | GenAI on serverless — e.g. intelligent document processing | Bedrock + Lambda + API Gateway + S3; ingest/classify/extract/search |
 | [**voice-ai-agent-on-aws**](voice-ai-agent-on-aws/) | Real-time voice AI agents on AWS — e.g. adding a voice channel to an existing text/chat platform | Amazon Nova Sonic speech-to-speech + Strands BidiAgent; text-agent→voice migration (LangChain/OpenAI/custom); voice UX, latency & cost optimization skills |
 | [**ocr-mobile-app-on-serverless**](ocr-mobile-app-on-serverless/) | Mobile capture app + serverless computer-vision extraction pipeline — e.g. digitizing printed/handwritten forms into structured data | Android/Kotlin (Compose + CameraX) + Textract/Bedrock/Step Functions CV pipeline; human-in-the-loop review; Kotlin/Android/serverless/Terraform + PBT skills |
-| [**api-platform-migration-n-modernization**](api-platform-migration-n-modernization/) | API platform migration & modernization — e.g. API Gateway platform / POC with Terraform | Deep API Gateway skill (16 references) + HashiCorp Terraform power |
+| [**api-platform-migration-n-modernization**](api-platform-migration-n-modernization/) | API platform migration & modernization — e.g. API Gateway platform / POC with Terraform | Deep API Gateway skill (16 references) + HashiCorp Terraform tooling |
 | [**regression-software-testing**](regression-software-testing/) | Build a regression safety net before a major upgrade | Behavior-first test strategy; steering-only; survives version/framework upgrades |
 | [**qa-automated-testing**](qa-automated-testing/) | Build automated test suites for web and/or mobile apps | Web (Playwright-first) & mobile (Maestro/Appium-first) testing skills; AWS Device Farm CI guidance |
 | [**agentic-ai-workflow**](agentic-ai-workflow/) | Reusable AI-DLC + skills + MCP environment | Agentic-AI & Terraform skills; install script; worked sample guide |
@@ -49,17 +51,23 @@ Learn more:
 ## How to use a pack
 
 1. **Pick the pack** that matches your scenario from the table above.
-2. **Open it in [Kiro](https://kiro.dev)** — or copy its `.kiro/` directory into your own project's repository. Kiro automatically loads steering files and registers MCP servers from the workspace's `.kiro/` directory when a session starts.
-3. **Read the pack's README** for the kickoff prompt and any pack-specific setup (e.g., updating an `AWS_PROFILE`, installing the Terraform power, or copying steering files).
-4. **Start a conversation.** The agent creates decision files first, waits for your input, then generates requirements, design, and tasks — gate by gate.
+2. **Add it to your project** in whichever agent you use — two ways:
+   - **Copy a pre-built folder (no tooling):** each pack ships pre-generated configs under `<pack>/scaffolded-packs/<tool>/`. Copy the folder for your tool (`kiro`, `claude-code`, `copilot`, or `cursor`) into your project root.
+   - **Generate it (installer):** run the `ramp-pack` installer from the repo root — it reads the pack's tool-neutral source and writes the correct layout into your project:
+     ```bash
+     node installer/bin/ramp-pack.js init <pack> --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
+     ```
+3. **Read the pack's README** for the kickoff prompt and any pack-specific setup (e.g., updating an `AWS_PROFILE`, or adding Terraform tooling).
+4. **Start a conversation.** The agent creates decision files first, waits for your input, then generates requirements, design, and tasks — gate by gate. On Claude Code / Copilot you can also run the **`/aidlc`** command to kick off the workflow.
 
-Each pack's README documents its steering files, skills, MCP servers, and getting-started flow in detail.
+Each pack's README documents its instructions, skills, MCP servers, and getting-started flow in detail.
 
 ## Repository layout
 
 ```
 aidlc-for-modernization-starter-packs/
 ├── README.md                                       # You are here
+├── installer/                                      # `ramp-pack` — scaffolds a pack into a project per tool
 ├── legacy-transformation-on-aws/             # Legacy transformation — e.g. monolith → microservices
 ├── enterprise-app-on-cloudnative/            # Cloud-native enterprise app — line-of-business / transactional system
 ├── web-app-on-cloudnative/                   # Multi-tier web app (SPA + BFF) — e.g. multi-channel consumer/operator platform
@@ -67,26 +75,40 @@ aidlc-for-modernization-starter-packs/
 ├── voice-ai-agent-on-aws/                    # Real-time voice AI agents on AWS (Amazon Nova Sonic)
 ├── ocr-mobile-app-on-serverless/             # Mobile capture + serverless computer-vision extraction pipeline
 ├── api-platform-migration-n-modernization/   # API platform migration & modernization (Terraform)
-├── regression-software-testing/                    # Pre-upgrade regression testing
+├── regression-software-testing/                    # Pre-upgrade regression testing (steering-only docs)
 ├── qa-automated-testing/                           # Automated web & mobile test suites
 └── agentic-ai-workflow/                            # Reusable AI-DLC + skills + MCP environment
 ```
 
+Each tool-agnostic pack is laid out as tool-neutral source plus generated per-tool configs:
+
+```
+<pack>/
+├── pack.yaml                 # Manifest: instruction roles, MCP servers, /aidlc command
+├── instructions/             # Tool-neutral steering (source of truth)
+├── skills/                   # Agent Skills (SKILL.md + references) — omitted for steering-only packs
+└── scaffolded-packs/         # Pre-generated per-tool configs
+    ├── kiro/  claude-code/  copilot/  cursor/
+```
+
 ## Common building blocks
 
-Most packs share the same AI-DLC configuration primitives:
+Most packs share the same AI-DLC configuration primitives, authored once in the neutral source and rendered into each tool's native location by the installer:
 
-- **Steering** (`.kiro/steering/*.md`) — always-on instructions that define the workflow, decision gates, and when to activate skills/MCP.
-- **Skills** (`.kiro/skills/*/`) — curated, domain-specific knowledge bundles (e.g., AWS Lambda, API Gateway, Aurora DSQL) the agent activates on demand.
-- **MCP servers** (`.kiro/settings/mcp.json`) — runtime tools the agent calls during a conversation. The **AWS Knowledge MCP** appears in every pack for validating AWS guidance, service limits, and regional availability.
+- **Instructions** (`instructions/*.md`) — the workflow, decision gates, and when to activate skills/MCP. Rendered per tool (Kiro `steering/` with `inclusion:`, Claude Code `CLAUDE.md` + `.claude/rules/`, Copilot `.github/copilot-instructions.md` + `.github/instructions/`, Cursor `.cursor/rules/*.mdc`).
+- **Skills** (`skills/*/`) — curated, domain-specific knowledge bundles (e.g., AWS Lambda, API Gateway, Aurora DSQL) following the [Agent Skills open standard](https://agentskills.io/), copied verbatim into each tool's skills directory.
+- **MCP servers** (declared in `pack.yaml`) — runtime tools the agent calls during a conversation, rendered into each tool's MCP config. The **AWS Knowledge MCP** appears in every pack for validating AWS guidance, service limits, and regional availability.
 
-Because steering files are plain Markdown, treat them as code: version them, review them, and adapt them to your own use cases.
+Because instructions and skills are plain Markdown, treat them as code: version them, review them, and adapt them to your own use cases.
+
+> **Note:** `regression-software-testing` is a lightweight, steering-only pack — a set of Markdown docs you point any agent at directly; it doesn't use the installer / `scaffolded-packs` layout.
 
 ## Requirements
 
-- [Kiro](https://kiro.dev) installed and signed in
+- One of: [Kiro](https://kiro.dev), [Claude Code](https://claude.com/claude-code), GitHub Copilot, or Cursor — installed and signed in
 - [Git](https://git-scm.com/downloads)
-- Pack-specific tools as noted in each README (e.g., an AWS profile, Docker for the Terraform power, or `uvx`/`npx` for certain MCP servers)
+- [Node.js 18+](https://nodejs.org/) — only if you use the `ramp-pack` installer to generate a pack (copying a pre-built `scaffolded-packs/` folder needs no Node)
+- Pack-specific tools as noted in each README (e.g., an AWS profile, Terraform tooling, or `uvx`/`npx` for certain MCP servers)
 
 ## Security
 

@@ -1,16 +1,83 @@
 # Agentic AI Workflow — AI-DLC Starter Pack
 
-A shareable Kiro configuration package that bundles **AI-Driven Development Lifecycle (AI-DLC)** steering, AWS infrastructure and agentic-AI skills, and the AWS Knowledge MCP server into a ready-to-use development environment. Best suited for building **agentic AI workflows** (e.g., with LangGraph, CrewAI, or Strands) and AWS infrastructure work.
+A **tool-agnostic** starter pack for building **agentic AI workflows** (e.g., with LangGraph, CrewAI, or Strands) and AWS infrastructure, driven by the **AI-Driven Development Lifecycle (AI-DLC)** decision-driven workflow.
 
-A worked, vendor-neutral sample (`AIDLC_Workshop_Guide_EN.md`) walks through the full Inception → Construction → Operations flow on a fictional "AWSomeShop" demo app.
+The pack is authored once as tool-neutral source and works with **Kiro, Claude Code, GitHub Copilot, and Cursor**. Whichever agent you use gains structured decision-gated workflows, AWS infrastructure and agentic-AI expertise, plus real-time AWS documentation — no manual setup needed.
 
-## What's Included
+## Use case
 
-### Steering
+Build agentic AI workflows on AWS with infrastructure-as-code (Terraform/OpenTofu). Suited for developers creating multi-agent systems, optimizing existing agents, or building AWS infrastructure for agentic applications. Includes a vendor-neutral sample workshop guide demonstrating the full Inception → Construction → Operations flow.
 
-**Decision-Driven Spec Workflow** (`aidlc-decisions-approval.md`) — Enforces a decision-first approach for spec-driven development. Before generating requirements, design, or task documents, Kiro creates structured decision files for user input, ensuring high-quality aligned deliverables. Based on the [AI-DLC methodology](https://github.com/awslabs/aidlc-workflows).
+## Getting started
+
+Pick **one** of the two ways to add this pack to your project.
+
+### Option A — copy a pre-built folder (no tooling)
+
+Pre-generated, tool-correct configs live under [`scaffolded-packs/`](scaffolded-packs/). Copy the folder for your tool into your project root:
+
+| Your tool | Copy from | Into your project |
+|---|---|---|
+| **Kiro** | `scaffolded-packs/kiro/` | `.kiro/` |
+| **Claude Code** | `scaffolded-packs/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
+| **GitHub Copilot** | `scaffolded-packs/copilot/` | `.github/`, `.vscode/mcp.json` |
+| **Cursor** | `scaffolded-packs/cursor/` | `.cursor/` |
+
+### Option B — generate it (installer)
+
+Run the `ramp-pack` installer from the repo root; it reads the neutral source and writes the correct layout into your target project:
+
+```bash
+node installer/bin/ramp-pack.js init agentic-ai-workflow --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
+```
+
+Add `--dry-run` to preview, `--force` to overwrite existing files. Option B always works even if `scaffolded-packs/` is missing or out of date — the neutral source is the single source of truth.
+
+### Then
+
+1. **(Recommended)** Set up Terraform tooling for your agent — see [Terraform tooling](#terraform-tooling) below.
+2. Open the project in your tool and start a conversation. Try:
+   - *"Create requirements for a multi-agent workflow using LangGraph."*
+   - *"Help me design the agentic AI architecture."*
+   - *"Write Terraform for the AWS infrastructure."*
+   - On Claude Code / Copilot you can also run the **`/aidlc`** command to kick off the workflow.
+
+The workflow guides the agent to ask for your decisions first (writing a `_decisions-*.md` before each spec document), and the skills provide expert-level guidance throughout.
+
+## What's in this pack
+
+```
+agentic-ai-workflow/
+├── pack.yaml                 # Manifest: instruction roles, MCP servers, /aidlc command
+├── instructions/             # Tool-neutral steering (source of truth)
+│   └── aidlc-workflow.md         # Decision-gated Requirements → Design → Tasks (primary)
+├── skills/                   # Agent Skills standard (SKILL.md + references)
+│   ├── agentic-optimizer/        # Build & optimize agentic AI workflows (LangGraph, CrewAI, Strands)
+│   ├── terraform-skill/          # Terraform/OpenTofu best practices — testing, modules, CI/CD, security
+│   ├── terraform-aws/            # AWS infrastructure patterns — VPC, IAM, S3, RDS, EKS, state management
+│   ├── aws-skills/               # AWS cloud architecture — IaC tool selection, CI/CD, cost optimization
+│   └── iac/                      # IaC best practices across Terraform, Ansible, Pulumi, CloudFormation
+└── scaffolded-packs/         # Pre-generated per-tool configs (Option A above)
+    ├── kiro/         # .kiro/{steering,settings,skills}
+    ├── claude-code/  # CLAUDE.md, .claude/{commands,skills}, .mcp.json
+    ├── copilot/      # .github/{copilot-instructions.md,prompts,skills}, .vscode/mcp.json
+    └── cursor/       # .cursor/{rules,skills}, .cursor/mcp.json
+```
+
+> `instructions/`, `skills/`, and `pack.yaml` are the **neutral source** you edit. `scaffolded-packs/` is **generated** from them by the installer — regenerate it after editing the source; don't hand-edit the scaffolded output.
+
+### How each instruction maps per tool
+
+The neutral instructions declare a **role** (`primary` / `companion`) and a **load** rule (`always` / `auto`); the installer renders each into the target tool's native mechanism:
+
+| Neutral role | Kiro | Claude Code | Copilot | Cursor |
+|---|---|---|---|---|
+| `aidlc-workflow` (primary) | `.kiro/steering/*` `inclusion: always` | `CLAUDE.md` | `.github/copilot-instructions.md` | `.cursor/rules/*.mdc` `alwaysApply: true` |
+| `/aidlc` command | — | `.claude/commands/aidlc.md` | `.github/prompts/aidlc.prompt.md` | — |
 
 ### Skills
+
+All skills follow the [Agent Skills open standard](https://agentskills.io/), so they copy verbatim into every supported tool. The agent activates them when your conversation matches their domain.
 
 | Skill | Description |
 |-------|-------------|
@@ -20,110 +87,37 @@ A worked, vendor-neutral sample (`AIDLC_Workshop_Guide_EN.md`) walks through the
 | `aws-skills` | AWS cloud architecture — IaC tool selection, CI/CD, cost optimization |
 | `iac` | IaC best practices across Terraform, Ansible, Pulumi, CloudFormation |
 
-### MCP Server
+### MCP servers
 
-[AWS Knowledge MCP Server](https://awslabs.github.io/mcp/servers/aws-knowledge-mcp-server/) — real-time access to AWS documentation, API references, troubleshooting guides, SOPs, and regional availability info. No authentication required.
+Declared once in `pack.yaml`; the installer writes it to each tool's MCP config (`.kiro/settings/mcp.json`, `.mcp.json`, `.vscode/mcp.json`, `.cursor/mcp.json`).
 
-## Quick Start
+| MCP Server | When the agent uses it |
+|---|---|
+| **AWS Knowledge** (`aws-knowledge-mcp-server`) | Documentation search, page reading, regional availability, and recommendations — used proactively when validating best practices, checking service limits, or when you question a recommendation. |
 
-### Option 1: Setup Script (Recommended)
+## Terraform tooling
 
-```bash
-git clone <this-repo-url>
-cd <this-repo>
+The workflow generates infrastructure as **Terraform**. Give your agent live Terraform provider/module knowledge:
 
-# Install into your project
-./setup.sh /path/to/your/project
-```
-
-The script installs steering, skills, and MCP config automatically.
-
-### Option 2: Manual Setup
-
-#### 1. Copy steering
-
-```bash
-mkdir -p <your-project>/.kiro/steering
-cp .kiro/steering/aidlc-decisions-approval.md <your-project>/.kiro/steering/
-```
-
-#### 2. Copy skills
-
-```bash
-mkdir -p <your-project>/.kiro/skills
-cp -R .kiro/skills/* <your-project>/.kiro/skills/
-```
-
-#### 3. Copy MCP config
-
-```bash
-mkdir -p <your-project>/.kiro/settings
-cp .kiro/settings/mcp.json <your-project>/.kiro/settings/mcp.json
-```
-
-If you already have a `mcp.json`, merge the `aws-knowledge-mcp-server` entry:
-
-```json
-{
-  "mcpServers": {
-    "aws-knowledge-mcp-server": {
-      "url": "https://knowledge-mcp.global.api.aws",
-      "type": "http",
-      "disabled": false
+- **Kiro** — install the HashiCorp **Terraform power**: open the **Powers panel** (👻⚡), search **"Terraform"** by HashiCorp → **Install** → **Confirm** (or from the web: <https://kiro.dev/powers/hashicorp/terraform>). Requires Kiro signed in and Docker running.
+- **Claude Code / Copilot / Cursor** — add the HashiCorp **Terraform MCP server** ([`hashicorp/terraform-mcp-server`](https://github.com/hashicorp/terraform-mcp-server)) to your tool's MCP config. It runs as a Docker image, e.g.:
+  ```json
+  {
+    "mcpServers": {
+      "terraform": { "command": "docker", "args": ["run", "-i", "--rm", "hashicorp/terraform-mcp-server"] }
     }
   }
-}
-```
+  ```
+  (Copilot uses the `servers` key instead of `mcpServers`.) The agent then searches Terraform provider docs and modules. Requires Docker running.
 
-### Optional: AI-DLC Core Workflow
-
-For the full AI-DLC three-phase development workflow (Inception → Construction → Operations), download from [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows/releases):
-
-```bash
-curl -L -o /tmp/aidlc.zip https://github.com/awslabs/aidlc-workflows/releases/latest/download/aidlc-rules.zip
-unzip -o /tmp/aidlc.zip -d /tmp/aidlc-rules
-cp -R /tmp/aidlc-rules/aidlc-rules/aws-aidlc-rules <your-project>/.kiro/steering/
-cp -R /tmp/aidlc-rules/aidlc-rules/aws-aidlc-rule-details <your-project>/.kiro/
-```
-
-## Final Project Structure
-
-```
-your-project/
-├── .kiro/
-│   ├── settings/
-│   │   └── mcp.json                          # AWS Knowledge MCP server
-│   ├── steering/
-│   │   ├── aidlc-decisions-approval.md        # Decision-driven spec workflow
-│   │   └── aws-aidlc-rules/                   # AI-DLC core workflow (optional)
-│   ├── aws-aidlc-rule-details/                # AI-DLC rule details (optional)
-│   └── skills/
-│       ├── agentic-optimizer/
-│       ├── terraform-skill/
-│       ├── terraform-aws/
-│       ├── aws-skills/
-│       └── iac/
-└── ... (your project files)
-```
-
-## Verification
-
-After setup, open your project in Kiro and verify:
-
-1. **Steering** — Open "Agent Steering & Skills" in the Kiro panel. Confirm `aidlc-decisions-approval` appears under Workspace steering.
-2. **Skills** — In the same panel, you should see all 5 skills listed.
-3. **MCP** — Check the MCP Servers view. `aws-knowledge-mcp-server` should show as connected.
-
-## Usage
-
-- **Steering** activates automatically when creating spec documents (requirements.md, design.md, tasks.md). Kiro will create decision files first and wait for your input before generating final documents.
-- **Skills** activate automatically when your request matches their description, or invoke manually with `/skill-name` in chat.
-- **MCP** is used automatically when Kiro needs AWS documentation or guidance.
+The AWS Knowledge MCP (included) still validates the AWS resource shapes regardless of the Terraform tooling you choose.
 
 ## Prerequisites
 
-- [Kiro](https://kiro.dev) installed and signed in
-- Internet access (for the MCP server)
+- One of: [Kiro](https://kiro.dev), [Claude Code](https://claude.com/claude-code), GitHub Copilot, or Cursor — installed and signed in.
+- **Option B (installer) only:** Node.js 18+ (to run `ramp-pack`).
+- `npx` available on your PATH (used to launch the AWS Knowledge MCP).
+- *(For the Kiro Terraform power)* Docker installed and running.
 
 ## License
 
