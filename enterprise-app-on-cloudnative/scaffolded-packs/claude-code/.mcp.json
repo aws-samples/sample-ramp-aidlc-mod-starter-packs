@@ -1,0 +1,30 @@
+{
+  "mcpServers": {
+    "aws-knowledge-mcp-server": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://knowledge-mcp.global.api.aws"
+      ]
+    },
+    "aurora-dsql": {
+      "command": "uvx",
+      "args": [
+        "awslabs.aurora-dsql-mcp-server@latest"
+      ],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      }
+    },
+    "awslabs.aws-iac-mcp-server": {
+      "command": "uvx",
+      "args": [
+        "awslabs.aws-iac-mcp-server@latest"
+      ],
+      "env": {
+        "AWS_PROFILE": "your-named-profile",
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      }
+    }
+  }
+}
