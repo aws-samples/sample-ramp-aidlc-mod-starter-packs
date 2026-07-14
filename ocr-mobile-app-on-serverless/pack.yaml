@@ -1,0 +1,40 @@
+name: ocr-mobile-app-on-serverless
+title: Mobile Document Capture on Serverless
+description: Build a mobile document-capture app plus serverless computer-vision extraction pipeline on AWS via the AI-DLC decision-driven workflow.
+
+instructions:
+  - file: aidlc-workflow.md
+    role: primary
+  - file: skill-activation.md
+    role: companion
+    load: always
+  - file: reverse-engineering.md
+    role: companion
+    load: auto
+
+command:
+  name: aidlc
+  description: Start the AI-DLC decision-gated workflow for this pack
+
+mcp:
+  - id: aws-knowledge
+    command: uvx
+    args:
+      - awslabs.aws-knowledge-mcp-server@latest
+    env:
+      FASTMCP_LOG_LEVEL: ERROR
+    autoApprove:
+      - search_documentation
+      - read_documentation
+  - id: aws-docs
+    command: uvx
+    args:
+      - awslabs.aws-documentation-mcp-server@latest
+    env:
+      FASTMCP_LOG_LEVEL: ERROR
+    autoApprove:
+      - search_documentation
+      - read_documentation
+      - recommend
+
+skills: all

@@ -1,6 +1,8 @@
 # QA Automated Testing — AI-DLC Starter Pack
 
-A pre-configured **Kiro** starter pack for designing and building **automated test suites for web and mobile applications**, driven by the **AI-Driven Development Lifecycle (AI-DLC)** decision-gated workflow. It ships the standard AI-DLC steering plus two curated testing skills — one for **web** (Playwright-first) and one for **mobile** (Maestro/Appium-first, with AWS Device Farm guidance) — so the agent proposes current best-practice options instead of guessing.
+A **tool-agnostic** starter pack for designing and building **automated test suites for web and mobile applications**, driven by the **AI-Driven Development Lifecycle (AI-DLC)** decision-gated workflow. It ships two curated testing skills — one for **web** (Playwright-first) and one for **mobile** (Maestro/Appium-first, with AWS Device Farm guidance) — so the agent proposes current best-practice options instead of guessing.
+
+The pack is authored once as tool-neutral source and works with **Kiro, Claude Code, GitHub Copilot, and Cursor**. Whichever agent you use gains deep testing expertise and follows structured, decision-gated workflows — no manual setup needed.
 
 ## Use case
 
@@ -11,70 +13,98 @@ Typical kickoffs:
 - *"We have a React Native app — set up automated mobile tests and a device-farm CI strategy."*
 - *"Build a cross-surface QA automation plan covering our web app and native iOS/Android apps."*
 
+## Getting started
+
+Pick **one** of the two ways to add this pack to your project.
+
+### Option A — copy a pre-built folder (no tooling)
+
+Pre-generated, tool-correct configs live under [`scaffolded-packs/`](scaffolded-packs/). Copy the folder for your tool into your project root:
+
+| Your tool | Copy from | Into your project |
+|---|---|---|
+| **Kiro** | `scaffolded-packs/kiro/` | `.kiro/` |
+| **Claude Code** | `scaffolded-packs/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
+| **GitHub Copilot** | `scaffolded-packs/copilot/` | `.github/`, `.vscode/mcp.json` |
+| **Cursor** | `scaffolded-packs/cursor/` | `.cursor/` |
+
+### Option B — generate it (installer)
+
+Run the `ramp-pack` installer from the repo root; it reads the neutral source and writes the correct layout into your target project:
+
+```bash
+node installer/bin/ramp-pack.js init qa-automated-testing --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
+```
+
+Add `--dry-run` to preview, `--force` to overwrite existing files. Option B always works even if `scaffolded-packs/` is missing or out of date — the neutral source is the single source of truth.
+
+### Then
+
+1. **(Brownfield only)** Put the app you're testing in the workspace (or a `existing-codebase/` subfolder). The workflow detects existing code and runs **Phase 0 Reverse Engineering** first.
+
+2. Open the project in your tool and start a conversation. Try:
+   - *"Start the AI-DLC workflow to build our automated test suite."*
+   - *"Help me design an end-to-end Playwright test suite for our web app."*
+   - *"We have a React Native app — set up automated mobile tests and a device-farm CI strategy."*
+   - On Claude Code / Copilot you can also run the **`/aidlc`** command to kick off the workflow.
+
+The workflow guides the agent to ask for your decisions first (writing a `_decisions-*.md` before each spec document), and the matching testing skill provides expert-level guidance throughout.
+
 ## What's in this pack
 
 ```
 qa-automated-testing/
-├── README.md
-└── .kiro/
-    ├── steering/
-    │   ├── aidlc-decisions-workflow.md      # Requirements → Design → Tasks, decision-gated (always-on)
-    │   ├── skill-power-mcp-activation.md     # When to activate the testing skills + AWS Knowledge MCP (always-on)
-    │   └── reverse-engineering.md            # Phase 0 codebase-analysis playbook for brownfield (always-on)
-    ├── settings/
-    │   └── mcp.json                          # AWS Knowledge MCP registration
-    └── skills/
-        ├── web-test-automation/              # Playwright (default), Cypress, Selenium
-        │   ├── SKILL.md
-        │   └── references/                   # 9 topic guides (locators, flakiness, POM, a11y, CI, migration…)
-        └── mobile-test-automation/           # Maestro, Appium, Detox, Espresso, XCUITest, AWS Device Farm
-            ├── SKILL.md
-            └── references/                   # 9 topic guides (tool selection, flakiness, device strategy, device-farm CI…)
+├── pack.yaml                 # Manifest: instruction roles, MCP servers, /aidlc command
+├── instructions/             # Tool-neutral steering (source of truth)
+│   ├── aidlc-workflow.md         # Decision-gated Requirements → Design → Tasks (primary)
+│   ├── skill-activation.md       # When to activate the testing skills + MCP (companion, always)
+│   └── reverse-engineering.md    # Phase 0 playbook (companion, brownfield-only)
+├── skills/
+│   ├── web-test-automation/      # Playwright-first web testing expertise (SKILL.md + 10 reference topics)
+│   └── mobile-test-automation/   # Maestro/Appium mobile testing expertise (SKILL.md + 10 reference topics)
+└── scaffolded-packs/         # Pre-generated per-tool configs (Option A above)
+    ├── kiro/         # .kiro/{steering,settings,skills}
+    ├── claude-code/  # CLAUDE.md, .claude/{rules,commands,skills}, .mcp.json
+    ├── copilot/      # .github/{copilot-instructions.md,instructions,prompts,skills}, .vscode/mcp.json
+    └── cursor/       # .cursor/{rules,skills}, .cursor/mcp.json
 ```
 
-### Steering (`.kiro/steering/`)
+> `instructions/`, `skills/`, and `pack.yaml` are the **neutral source** you edit. `scaffolded-packs/` is **generated** from them by the installer — regenerate it after editing the source; don't hand-edit the scaffolded output.
 
-All three use `inclusion: always`, so Kiro loads them into every session.
+### How each instruction maps per tool
 
-| File | What it does |
-|---|---|
-| `aidlc-decisions-workflow.md` | The general AI-DLC workflow: optional **Phase 0 Reverse Engineering** (brownfield) → **Phase 1 Requirements** → **Phase 2 Design** → **Phase 3 Tasks**. Before each spec doc the agent writes a `_decisions-*.md` and waits for your input. State + audit logs enable session continuity. |
-| `skill-power-mcp-activation.md` | Forces activation of the matching testing skill (and the AWS Knowledge MCP) **before** generating decision files, design, or test code — so options reflect current best practice, not stale training data. |
-| `reverse-engineering.md` | The Phase 0 codebase-analysis recipe used for brownfield projects (produces architecture, API documentation, component inventory, etc.). |
+The neutral instructions declare a **role** (`primary` / `companion`) and a **load** rule (`always` / `auto`); the installer renders each into the target tool's native mechanism:
 
-### MCP servers (`.kiro/settings/mcp.json`)
+| Neutral role | Kiro | Claude Code | Copilot | Cursor |
+|---|---|---|---|---|
+| `aidlc-workflow` (primary) | `.kiro/steering/*` `inclusion: always` | `CLAUDE.md` | `.github/copilot-instructions.md` | `.cursor/rules/*.mdc` `alwaysApply: true` |
+| `skill-activation` (always) | `inclusion: always` | `.claude/rules/*` | `.github/instructions/*` `applyTo: '**'` | `.mdc` `alwaysApply: false` |
+| `reverse-engineering` (auto) | `inclusion: auto` | `.claude/rules/*` | `.github/instructions/*` (conditional) | `.mdc` `alwaysApply: false` |
+| `/aidlc` command | — | `.claude/commands/aidlc.md` | `.github/prompts/aidlc.prompt.md` | — |
 
-| Server | When the agent uses it |
-|---|---|
-| **AWS Knowledge MCP** (`aws-knowledge-mcp-server`) | Validating AWS specifics — especially **AWS Device Farm** supported test frameworks, device-minute pricing, regional availability, and CodePipeline/CodeBuild integration — before putting them in a decision file. |
+### Skills — Web & Mobile Test Automation
 
-### Skills (`.kiro/skills/`)
+The pack includes two testing skills that activate based on conversation triggers (web, mobile, Playwright, Appium, etc.). Each skill bundles `SKILL.md` plus a `references/` library with deep-dive guides. Both follow the [Agent Skills open standard](https://agentskills.io/), so they copy verbatim into every supported tool.
 
 | Skill | Activates on | Covers |
 |---|---|---|
 | `web-test-automation` | web testing, browser/E2E test, Playwright, Cypress, Selenium, page object, locator, flaky test, visual regression, accessibility testing, network mocking, CI sharding | Playwright-first guidance: locators, web-first assertions & flakiness, POM vs fixtures, isolation & auth reuse, API testing & network mocking, accessibility (axe-core), visual regression, CI/parallelization, and Cypress/Selenium → Playwright migration. |
 | `mobile-test-automation` | mobile/app test, iOS/Android, Appium, Maestro, Detox, Espresso, XCUITest, emulator, real device, device farm, AWS Device Farm, deep link, app permissions | Tool selection (Maestro/Appium/Detox/Espresso/XCUITest), per-framework setup, mobile flakiness, gestures/deep links/lifecycle, emulator-vs-real-device strategy, and device-farm CI with an **AWS Device Farm** centerpiece (incl. the no-native-Espresso/Detox/Flutter caveat) plus BrowserStack/Sauce comparison. |
 
-## Getting started
+### MCP servers
 
-1. **Open this folder in [Kiro](https://kiro.dev)** — or copy its `.kiro/` directory into your own project's repository. Kiro loads the steering files and registers the MCP server automatically when a session starts.
+Declared once in `pack.yaml`; the installer writes it to each tool's MCP config (`.kiro/settings/mcp.json`, `.mcp.json`, `.vscode/mcp.json`, `.cursor/mcp.json`).
 
-   ```bash
-   cp -R qa-automated-testing/.kiro /path/to/your/project/.kiro
-   ```
-
-2. **(Brownfield only)** Put the app you're testing in the workspace (or a `existing-codebase/` subfolder). The workflow detects existing code and runs **Phase 0 Reverse Engineering** first.
-
-3. **Start a conversation.** Try one of the kickoffs above, or *"Start the AI-DLC workflow to build our automated test suite."*
-
-The agent creates a `_decisions-*.md` file at each phase, waits for your choices (framework, device strategy, coverage targets, CI approach…), then generates requirements, a test design, and a task plan — gate by gate — before writing test code.
+| MCP Server | When the agent uses it |
+|---|---|
+| **AWS Knowledge** (`aws-knowledge-mcp-server`) | Validating AWS specifics — especially **AWS Device Farm** supported test frameworks, device-minute pricing, regional availability, and CodePipeline/CodeBuild integration — before putting them in a decision file. |
 
 ## Prerequisites
 
-- [Kiro](https://kiro.dev) installed and signed in
-- [Git](https://git-scm.com/downloads)
-- Test runtimes as chosen during the Design phase (e.g., Node.js + `npx playwright install` for web; Maestro / Appium / Xcode / Android SDK for mobile)
-- *(Optional)* An AWS account/profile if you adopt **AWS Device Farm** for device-cloud test runs
+- One of: [Kiro](https://kiro.dev), [Claude Code](https://claude.com/claude-code), GitHub Copilot, or Cursor — installed and signed in.
+- **Option B (installer) only:** Node.js 18+ (to run `ramp-pack`).
+- Test runtimes as chosen during the Design phase (e.g., Node.js + `npx playwright install` for web; Maestro / Appium / Xcode / Android SDK for mobile).
+- *(Optional)* An AWS account/profile if you adopt **AWS Device Farm** for device-cloud test runs.
 
 ## License
 

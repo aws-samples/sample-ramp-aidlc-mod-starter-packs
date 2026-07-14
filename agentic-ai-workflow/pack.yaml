@@ -1,0 +1,18 @@
+name: agentic-ai-workflow
+title: Agentic AI Workflow
+description: Reusable AI-DLC base + MCP environment for building agentic AI workflows and AWS infrastructure.
+
+instructions:
+  - file: aidlc-workflow.md
+    role: primary
+
+command:
+  name: aidlc
+  description: Start the AI-DLC decision-gated workflow for this pack
+
+mcp:
+  - id: aws-knowledge-mcp-server
+    transport: http
+    url: https://knowledge-mcp.global.api.aws
+
+skills: all

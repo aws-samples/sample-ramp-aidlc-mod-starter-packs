@@ -1,0 +1,24 @@
+name: qa-automated-testing
+title: QA Automated Testing
+description: Automated test suites for web and mobile applications, driven by the AI-DLC decision-gated workflow.
+
+instructions:
+  - file: aidlc-workflow.md
+    role: primary
+  - file: skill-activation.md
+    role: companion
+    load: always
+  - file: reverse-engineering.md
+    role: companion
+    load: auto
+
+command:
+  name: aidlc
+  description: Start the AI-DLC decision-gated workflow for this pack
+
+mcp:
+  - id: aws-knowledge-mcp-server
+    transport: http
+    url: https://knowledge-mcp.global.api.aws
+
+skills: all
