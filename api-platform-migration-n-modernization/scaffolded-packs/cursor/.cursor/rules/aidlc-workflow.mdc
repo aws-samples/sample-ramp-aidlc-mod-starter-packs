@@ -1,7 +1,6 @@
 ---
-inclusion: always
+alwaysApply: true
 ---
-
 # Decision-Driven Document Generation
 
 ## Core Principles
@@ -75,7 +74,6 @@ Each decision file is independent:
 
 > **Instructions:** Review each decision point below. Kiro recommendations are provided for guidance. Fill in your decisions in the "Answer" sections, then confirm when ready to proceed.
 
----
 
 ## [Decision Category]
 
@@ -91,7 +89,6 @@ Each decision file is independent:
 
 **Answer:** 
 
----
 ```
 
 **Important**: This is a template structure only. Create decision categories and questions that are specific and relevant to the actual project being planned. Avoid generic or irrelevant decision points.
@@ -146,6 +143,83 @@ Each decision file is independent:
 3. **Development Phases**: Sprint/milestone breakdown
 4. **Testing Approach**: When and how to test each component
 5. **Deployment Strategy**: How to release and deploy changes
+6. **Parallelization**: Whether to group tasks into independent **waves** that
+   can run in parallel (see *Wave-Based Task Generation* below), or execute them
+   as a single sequential list
+
+## Wave-Based Task Generation
+
+When the tasks decisions opt into parallelization, generate `tasks.md` as an
+ordered set of **waves** of independent **groups** that can run concurrently.
+
+Before writing `tasks.md`, analyze all tasks for:
+1. File/module dependencies (does task B read/write files task A creates?)
+2. API contract dependencies (does task B call an API task A defines?)
+3. Infrastructure dependencies (does task B need infra task A provisions?)
+4. Data dependencies (does task B need seed data or schemas from task A?)
+
+Tasks with NO cross-dependencies form independent groups. Tasks that depend on
+outputs from another group go into a later wave.
+
+```markdown
+# Tasks: <Spec Name>
+
+## Execution Plan
+
+| Wave | Groups (run in parallel) | Depends On |
+|------|--------------------------|------------|
+| 1    | Group A, Group B, Group C | —          |
+| 2    | Group D, Group E          | Wave 1     |
+| 3    | Group F                   | Wave 2     |
+
+> **How to run:** Assign one worker (agent instance or developer) per group
+> within the same wave. Wait for all groups in a wave to complete before
+> starting the next wave.
+
+---
+
+## Wave 1 (no dependencies — start all in parallel)
+
+### Group A: [Domain/Feature Name]
+- [ ] A.1 [Task description]
+- [ ] A.2 [Task description]
+
+### Group B: [Domain/Feature Name]
+- [ ] B.1 [Task description]
+
+---
+
+## Wave 2 (depends on Wave 1 completion)
+
+### Group D: [Domain/Feature Name]
+**Requires:** Group A outputs (e.g., domain types), Group B outputs (e.g., schemas)
+- [ ] D.1 [Task description]
+
+---
+
+## Wave 3 (integration — depends on Wave 2)
+
+### Group F: Verification & Integration
+**Requires:** All prior waves complete
+- [ ] F.1 End-to-end smoke test
+- [ ] F.2 Update README with run / teardown instructions
+```
+
+**Task generation rules:**
+- Each group targets a distinct module/boundary/feature with its own files
+- Groups within the same wave MUST NOT touch the same files
+- The final wave always includes integration testing and verification
+- Each task is small enough to execute as a single agent request
+
+**Task execution rules:**
+- Mark each task `[x]` immediately on completion
+- Follow design choices from the Design phase — do not silently override
+- Reference Phase 0 (reverse-engineering) artifacts where relevant for brownfield work
+- Update `aidlc-state.md` after each group completes
+- A wave is complete only when ALL groups in that wave are `[x]`
+- Before starting a new wave, verify all groups in the previous wave are `[x]`
+- If a group finishes early, the worker waits — do NOT start next-wave tasks early
+- Conflicts (two workers touching the same file) → stop, flag in `audit.md`, ask user
 
 ## Implementation Guidelines
 
@@ -206,7 +280,6 @@ Each decision file is independent:
 
 > **Instructions:** Review each decision point below. Kiro recommendations are provided for guidance. Fill in your decisions in the "Answer" sections, then confirm when ready to proceed.
 
----
 
 ## Scope Decisions
 
@@ -222,7 +295,6 @@ Each decision file is independent:
 
 **Answer:** Option 1 - We need both auth and CRUD for MVP
 
----
 
 ## Non-Functional Requirements
 
@@ -238,7 +310,6 @@ Each decision file is independent:
 
 **Answer:** Other: < 1000ms is acceptable for our use case
 
----
 ```
 
 ### Design Example
@@ -248,7 +319,6 @@ Each decision file is independent:
 
 > **Instructions:** Review each decision point below. Kiro recommendations are provided for guidance. Fill in your decisions in the "Answer" sections, then confirm when ready to proceed.
 
----
 
 ## Technical Approach
 
@@ -264,7 +334,6 @@ Each decision file is independent:
 
 **Answer:** Option 1 - Monolithic for faster MVP delivery
 
----
 
 ## Correctness Properties Strategy
 
@@ -280,7 +349,6 @@ Each decision file is independent:
 
 **Answer:** Option 2 - Essential properties for core business logic
 
----
 ```
 
 ### Tasks Example
@@ -290,7 +358,6 @@ Each decision file is independent:
 
 > **Instructions:** Review each decision point below. Kiro recommendations are provided for guidance. Fill in your decisions in the "Answer" sections, then confirm when ready to proceed.
 
----
 
 ## Implementation Strategy
 
@@ -306,7 +373,6 @@ Each decision file is independent:
 
 **Answer:** 
 
----
 
 ## Task Prioritization
 
@@ -322,7 +388,6 @@ Each decision file is independent:
 
 **Answer:** 
 
----
 
 ## Testing Strategy
 
@@ -338,5 +403,4 @@ Each decision file is independent:
 
 **Answer:** 
 
----
 ```
