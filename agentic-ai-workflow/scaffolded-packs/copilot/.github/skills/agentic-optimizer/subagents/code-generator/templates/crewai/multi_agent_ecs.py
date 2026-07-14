@@ -120,7 +120,11 @@ def with_tenant_context(func):
             return func(tenant_id=tenant_id, request_id=request_id, log=log, *args, **kwargs)
 
         except ValueError as e:
-            return jsonify({"error": str(e)}), 403
+            logger.bind(
+                request_id=request.headers.get("x-request-id", "unknown"),
+                endpoint=request.path
+            ).warning("Tenant context validation failed", error=str(e))
+            return jsonify({"error": "Invalid request"}), 403
 
     return wrapper
 
