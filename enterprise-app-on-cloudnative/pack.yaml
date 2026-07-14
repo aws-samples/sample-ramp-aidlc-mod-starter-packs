@@ -1,0 +1,42 @@
+name: enterprise-app-on-cloudnative
+title: Enterprise App on Cloud-Native
+description: Cloud-native enterprise app — a line-of-business / transactional system.
+
+instructions:
+  - file: aidlc-workflow.md
+    role: primary
+  - file: skill-activation.md
+    role: companion
+    load: always
+  - file: reverse-engineering.md
+    role: companion
+    load: auto
+
+command:
+  name: aidlc
+  description: Start the AI-DLC decision-gated workflow for this pack
+
+mcp:
+  - id: aws-knowledge-mcp-server
+    command: npx
+    args: ["mcp-remote", "https://knowledge-mcp.global.api.aws"]
+    autoApprove:
+      - aws___search_documentation
+      - aws___read_documentation
+      - aws___get_regional_availability
+      - aws___list_regions
+  - id: aurora-dsql
+    command: uvx
+    args: ["awslabs.aurora-dsql-mcp-server@latest"]
+    env:
+      FASTMCP_LOG_LEVEL: ERROR
+  - id: awslabs.aws-iac-mcp-server
+    command: uvx
+    args: ["awslabs.aws-iac-mcp-server@latest"]
+    env:
+      AWS_PROFILE: your-named-profile
+      FASTMCP_LOG_LEVEL: ERROR
+    autoApprove: []
+    disabled: false
+
+skills: all
