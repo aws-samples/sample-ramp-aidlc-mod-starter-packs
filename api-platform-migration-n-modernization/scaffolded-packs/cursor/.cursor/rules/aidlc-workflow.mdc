@@ -3,6 +3,29 @@ alwaysApply: true
 ---
 # Decision-Driven Document Generation
 
+## 🚨 CRITICAL: READ THIS BEFORE DOING ANYTHING 🚨
+
+**This workflow overrides default behavior** when the user asks to plan, build,
+modernize, or change anything that warrants a spec.
+
+**FORBIDDEN ACTIONS until the appropriate gate is cleared:**
+
+- DO NOT generate `requirements.md`, `design.md`, or `tasks.md` without first creating and completing the matching `_decisions-*.md`
+- DO NOT skip the Reverse Engineering phase when an existing codebase is present
+- DO NOT proceed past an approval gate without the user's explicit approval
+
+**MANDATORY FIRST ACTIONS (in this exact order):**
+
+1. Check if `aidlc-docs/aidlc-state.md` exists — if yes, **resume** from where we left off.
+2. If no state file exists, create `aidlc-docs/aidlc-state.md` and `aidlc-docs/audit.md`.
+3. Decide if this is **brownfield** (existing code present) or **greenfield** (no existing code).
+4. **Brownfield → run Phase 0 (Reverse Engineering) FIRST** — load and follow `reverse-engineering.md` and write every analysis document under `aidlc-docs/analysis/`. **Greenfield → skip Phase 0.**
+5. Then proceed through the phases sequentially — Requirements → Design → Tasks — each behind its decision-file gate.
+
+See **Session Entry** and **Phase 0** below for details.
+
+---
+
 ## Core Principles
 
 ### 🚨 MANDATORY DECISION FILE FIRST
@@ -63,6 +86,44 @@ Each decision file is independent:
 **⚠️ ENFORCEMENT**: If you find yourself about to create requirements.md, design.md, or tasks.md, STOP and ask: "Have I created and completed the _decisions-*.md file first?" If no, create the decision file immediately.
 
 **Natural Approach**: Present decision gathering as a collaborative planning step, not a procedural requirement. Make it feel like a natural part of creating high-quality specifications.
+
+## Session Entry (run FIRST, every session)
+
+Before any phase work, at the start of every session:
+
+1. **Resume or initialize state.** Check if `aidlc-docs/aidlc-state.md` exists.
+   - If yes → **resume** from the recorded phase/step.
+   - If no → **create** `aidlc-docs/aidlc-state.md` (progress tracker) and
+     `aidlc-docs/audit.md` (append-only decision log).
+2. **Detect brownfield vs greenfield.**
+   - **Brownfield** (existing source code is present in the workspace, or the user
+     references an existing system to modernize/migrate/extend) → **run Phase 0
+     (Reverse Engineering) FIRST**, before requirements.
+   - **Greenfield** (no existing code) → **skip Phase 0** and start at requirements.
+3. Then proceed through the phase order below (Requirements → Design → Tasks).
+
+## Phase 0: Reverse Engineering (Brownfield only)
+
+**When to run:** existing/brownfield source code is present. **Skip** for greenfield.
+**Rerun:** re-run when the brownfield codebase has changed materially.
+
+**🔒 MANDATORY:** Load and follow the **`reverse-engineering.md`** instruction.
+Execute its steps and **write every analysis document it specifies** under
+`aidlc-docs/analysis/` (business-overview, architecture, code-structure,
+api-documentation, component-inventory, technology-stack, dependencies,
+code-quality-assessment, bounded-contexts, modernization-readiness, and the
+timestamp file). Do not summarize in chat instead of writing the files — the
+files are the deliverable and feed the Requirements and Design phases.
+
+After Phase 0: update `aidlc-docs/aidlc-state.md` and append a note to
+`aidlc-docs/audit.md`, then continue to Requirements.
+
+## State & Audit (maintain throughout)
+
+- **`aidlc-docs/aidlc-state.md`** — update immediately after each phase/step so a
+  fresh session can resume correctly.
+- **`aidlc-docs/audit.md`** — append-only log; record every decision, approval, and
+  rationale as you go (do not overwrite prior entries).
 
 ## Decision File Format
 
