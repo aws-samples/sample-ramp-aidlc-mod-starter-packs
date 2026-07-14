@@ -58,6 +58,19 @@ describe('renderInstructions', () => {
     expect(re.content).toContain('description: reverse-engineering')
   })
 
+  it('copilot: auto companion uses the manifest description when provided (drives semantic matching)', () => {
+    const m = {
+      instructions: [
+        { file: 'aidlc-workflow.md', role: 'primary', load: 'always' },
+        { file: 'reverse-engineering.md', role: 'companion', load: 'auto', description: 'Use for brownfield source' },
+      ],
+    }
+    const w = renderInstructions(m, packDir, 'copilot')
+    const re = byPath(w, '.github/instructions/reverse-engineering.instructions.md')
+    expect(re.content).toContain('description: Use for brownfield source')
+    expect(re.content).not.toContain('applyTo') // still conditional, not always-on
+  })
+
   it('cursor: mdc per instruction with alwaysApply reflecting primary', () => {
     const w = renderInstructions(manifest, packDir, 'cursor')
     expect(byPath(w, '.cursor/rules/aidlc-workflow.mdc').content).toBe('---\nalwaysApply: true\n---\nWORKFLOW BODY\n')

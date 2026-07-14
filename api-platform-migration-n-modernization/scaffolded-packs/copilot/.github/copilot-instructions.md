@@ -49,7 +49,7 @@ Each decision file is independent:
 
 ## Workflow Steps
 
-1. **Generate** decision file with Kiro recommendations
+1. **Generate** decision file with agent recommendations
 2. **Wait** for user to review and provide decisions  
 3. **Confirm** all critical decisions have user input
 4. **Read** completed decision file
@@ -69,7 +69,7 @@ Each decision file is independent:
 ```markdown
 # Decisions: [Phase Name]
 
-> **Instructions:** Review each decision point below. Kiro recommendations are provided for guidance. Fill in your decisions in the "Answer" sections, then confirm when ready to proceed.
+> **Instructions:** Review each decision point below. agent recommendations are provided for guidance. Fill in your decisions in the "Answer" sections, then confirm when ready to proceed.
 
 
 ## [Decision Category]
@@ -79,7 +79,7 @@ Each decision file is independent:
 **Question:** [Clear question to be answered]
 
 **Options:**
-1. [Option 1 - Kiro Recommended]: [Description with rationale]
+1. [Option 1 - Recommended]: [Description with rationale]
 2. [Option 2]: [Description]  
 3. [Option 3]: [Description]
 4. Other (please specify): _______________________
@@ -224,7 +224,7 @@ outputs from another group go into a later wave.
 **Requirements**:
 - Explain WHY each decision matters and its project impact
 - Provide 3-4 concrete options per decision point
-- Mark one option as "Kiro Recommended" with rationale
+- Mark one option as "Recommended" with rationale
 - For design/tasks phases: reference previous phase decisions
 - **Customize decision points** to match the specific project domain and context
 - **Avoid generic decisions** - make each decision relevant to the actual project needs
@@ -234,8 +234,8 @@ outputs from another group go into a later wave.
 - Present decision files as a natural part of creating high-quality specs
 - Ask user to review and fill in decisions without referencing "rules" or "processes"
 - Handle partial responses: acknowledge completed items, prompt for remaining
-- If no response: ask if user wants Kiro recommendations as defaults
-- Validate all critical decisions have user input (not just Kiro recommendations)
+- If no response: ask if user wants agent recommendations as defaults
+- Validate all critical decisions have user input (not just agent recommendations)
 - Get explicit confirmation before proceeding
 
 **Natural Language Examples**:
@@ -275,7 +275,7 @@ outputs from another group go into a later wave.
 ```markdown
 # Decisions: Requirements
 
-> **Instructions:** Review each decision point below. Kiro recommendations are provided for guidance. Fill in your decisions in the "Answer" sections, then confirm when ready to proceed.
+> **Instructions:** Review each decision point below. agent recommendations are provided for guidance. Fill in your decisions in the "Answer" sections, then confirm when ready to proceed.
 
 
 ## Scope Decisions
@@ -285,7 +285,7 @@ outputs from another group go into a later wave.
 **Question:** Which features should be included in the MVP?
 
 **Options:**
-1. User authentication + basic CRUD operations (Kiro Recommended - fastest path to value)
+1. User authentication + basic CRUD operations (Recommended - fastest path to value)
 2. Full feature set including analytics and reporting  
 3. Authentication only, defer CRUD to phase 2
 4. Other (please specify): _______________________
@@ -300,7 +300,7 @@ outputs from another group go into a later wave.
 **Question:** What response time is acceptable for API calls?
 
 **Options:**
-1. < 200ms for 95th percentile (Kiro Recommended - industry standard)
+1. < 200ms for 95th percentile (Recommended - industry standard)
 2. < 500ms for 95th percentile
 3. < 100ms for 95th percentile  
 4. Other (please specify): _______________________
@@ -314,7 +314,7 @@ outputs from another group go into a later wave.
 ```markdown
 # Decisions: Design
 
-> **Instructions:** Review each decision point below. Kiro recommendations are provided for guidance. Fill in your decisions in the "Answer" sections, then confirm when ready to proceed.
+> **Instructions:** Review each decision point below. agent recommendations are provided for guidance. Fill in your decisions in the "Answer" sections, then confirm when ready to proceed.
 
 
 ## Technical Approach
@@ -324,7 +324,7 @@ outputs from another group go into a later wave.
 **Question:** What architectural pattern should we use?
 
 **Options:**
-1. Monolithic architecture (Kiro Recommended for MVP): Single deployable unit, faster development
+1. Monolithic architecture (Recommended for MVP): Single deployable unit, faster development
 2. Microservices: Distributed services, better scalability
 3. Modular monolith: Organized modules within single deployment
 4. Other (please specify): _______________________
@@ -339,7 +339,7 @@ outputs from another group go into a later wave.
 **Question:** Should the design document include formal correctness properties for property-based testing?
 
 **Options:**
-1. Skip correctness properties (Kiro Recommended for MVP): Focus on architecture and implementation, defer formal testing to later phases - 60-80% faster generation
+1. Skip correctness properties (Recommended for MVP): Focus on architecture and implementation, defer formal testing to later phases - 60-80% faster generation
 2. Essential properties only: Include basic round-trip and invariant properties for core business logic - moderate generation time
 3. Comprehensive properties: Full property-based testing approach with detailed prework analysis - slower but thorough
 4. Other (please specify): _______________________
@@ -353,7 +353,7 @@ outputs from another group go into a later wave.
 ```markdown
 # Decisions: Tasks
 
-> **Instructions:** Review each decision point below. Kiro recommendations are provided for guidance. Fill in your decisions in the "Answer" sections, then confirm when ready to proceed.
+> **Instructions:** Review each decision point below. agent recommendations are provided for guidance. Fill in your decisions in the "Answer" sections, then confirm when ready to proceed.
 
 
 ## Implementation Strategy
@@ -363,7 +363,7 @@ outputs from another group go into a later wave.
 **Question:** How should we organize the implementation work?
 
 **Options:**
-1. Feature-based (Kiro Recommended): Build complete features end-to-end before moving to next
+1. Feature-based (Recommended): Build complete features end-to-end before moving to next
 2. Layer-based: Build all backend APIs first, then frontend components
 3. Component-based: Build individual components in isolation, integrate later
 4. Other (please specify): _______________________
@@ -378,7 +378,7 @@ outputs from another group go into a later wave.
 **Question:** Which components should be built first?
 
 **Options:**
-1. Authentication system (Kiro Recommended): Foundation for all other features
+1. Authentication system (Recommended): Foundation for all other features
 2. Core business logic: Main functionality first, auth later
 3. Database layer: Data foundation before business logic
 4. Other (please specify): _______________________
@@ -393,7 +393,7 @@ outputs from another group go into a later wave.
 **Question:** When should testing be implemented?
 
 **Options:**
-1. Test-driven development (Kiro Recommended): Write tests before implementation
+1. Test-driven development (Recommended): Write tests before implementation
 2. Parallel testing: Write tests alongside implementation
 3. Post-implementation: Write tests after features are complete
 4. Other (please specify): _______________________

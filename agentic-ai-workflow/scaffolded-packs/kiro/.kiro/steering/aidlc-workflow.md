@@ -86,7 +86,7 @@ Each decision file is independent:
 
 ## Workflow Steps
 
-1. **Generate** decision file with Kiro recommendations
+1. **Generate** decision file with agent recommendations
 2. **STOP and WAIT** - Do NOT proceed to next step automatically
 3. **Ask user** to review and provide decisions
 4. **Wait for user response** with completed decisions
@@ -119,7 +119,7 @@ Each decision file is independent:
 ```markdown
 # Decisions: [Phase Name]
 
-> **Instructions:** Review each decision point below. Kiro recommendations are provided for guidance. Fill in your decisions in the "Answer" sections, then confirm when ready to proceed.
+> **Instructions:** Review each decision point below. agent recommendations are provided for guidance. Fill in your decisions in the "Answer" sections, then confirm when ready to proceed.
 
 ---
 
@@ -130,7 +130,7 @@ Each decision file is independent:
 **Question:** [Clear question to be answered]
 
 **Options:**
-1. [Option 1 - Kiro Recommended]: [Description with rationale]
+1. [Option 1 - Recommended]: [Description with rationale]
 2. [Option 2]: [Description]  
 3. [Option 3]: [Description]
 4. Other (please specify): _______________________
@@ -206,7 +206,7 @@ Each decision file is independent:
 **Requirements**:
 - Explain WHY each decision matters and its project impact
 - Provide 3-4 concrete options per decision point
-- Mark one option as "Kiro Recommended" with rationale
+- Mark one option as "Recommended" with rationale
 - For design/tasks phases: reference previous phase decisions
 - **Customize decision points** to match the specific project domain and context
 - **Avoid generic decisions** - make each decision relevant to the actual project needs
@@ -218,8 +218,8 @@ Each decision file is independent:
 - Explicitly ask user to review and fill in decisions without referencing "rules" or "processes"
 - DO NOT proceed to next phase until user provides input
 - Handle partial responses: acknowledge completed items, prompt for remaining
-- If no response: ask if user wants Kiro recommendations as defaults
-- Validate all critical decisions have user input (not just Kiro recommendations)
+- If no response: ask if user wants agent recommendations as defaults
+- Validate all critical decisions have user input (not just agent recommendations)
 - Get explicit confirmation before proceeding to generate final document
 
 **🛑 STOP POINTS**:
@@ -264,7 +264,7 @@ Each decision file is independent:
 ```markdown
 # Decisions: Requirements
 
-> **Instructions:** Review each decision point below. Kiro recommendations are provided for guidance. Fill in your decisions in the "Answer" sections, then confirm when ready to proceed.
+> **Instructions:** Review each decision point below. agent recommendations are provided for guidance. Fill in your decisions in the "Answer" sections, then confirm when ready to proceed.
 
 ---
 
@@ -275,7 +275,7 @@ Each decision file is independent:
 **Question:** Which features should be included in the MVP?
 
 **Options:**
-1. User authentication + basic CRUD operations (Kiro Recommended - fastest path to value)
+1. User authentication + basic CRUD operations (Recommended - fastest path to value)
 2. Full feature set including analytics and reporting  
 3. Authentication only, defer CRUD to phase 2
 4. Other (please specify): _______________________
@@ -290,7 +290,7 @@ Each decision file is independent:
 ```markdown
 # Decisions: Design
 
-> **Instructions:** Review each decision point below. Kiro recommendations are provided for guidance. Fill in your decisions in the "Answer" sections, then confirm when ready to proceed.
+> **Instructions:** Review each decision point below. agent recommendations are provided for guidance. Fill in your decisions in the "Answer" sections, then confirm when ready to proceed.
 
 ---
 
@@ -301,7 +301,7 @@ Each decision file is independent:
 **Question:** Should the design document include formal correctness properties for property-based testing?
 
 **Options:**
-1. Skip correctness properties (Kiro Recommended for MVP): Focus on architecture and implementation, defer formal testing to later phases - 60-80% faster generation
+1. Skip correctness properties (Recommended for MVP): Focus on architecture and implementation, defer formal testing to later phases - 60-80% faster generation
 2. Essential properties only: Include basic round-trip and invariant properties for core business logic - moderate generation time
 3. Comprehensive properties: Full property-based testing approach with detailed analysis - slower but thorough
 4. Other (please specify): _______________________
@@ -316,7 +316,7 @@ Each decision file is independent:
 ```markdown
 # Decisions: Tasks
 
-> **Instructions:** Review each decision point below. Kiro recommendations are provided for guidance. Fill in your decisions in the "Answer" sections, then confirm when ready to proceed.
+> **Instructions:** Review each decision point below. agent recommendations are provided for guidance. Fill in your decisions in the "Answer" sections, then confirm when ready to proceed.
 
 ---
 
@@ -327,7 +327,7 @@ Each decision file is independent:
 **Question:** How should we organize the implementation work?
 
 **Options:**
-1. Feature-based (Kiro Recommended): Build complete features end-to-end before moving to next
+1. Feature-based (Recommended): Build complete features end-to-end before moving to next
 2. Layer-based: Build all backend APIs first, then frontend components
 3. Component-based: Build individual components in isolation, integrate later
 4. Other (please specify): _______________________

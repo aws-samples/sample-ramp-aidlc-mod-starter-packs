@@ -179,7 +179,7 @@ Maintain `aidlc-docs/audit.md` as an append-only log.
 ```markdown
 # Decisions: [Phase Name]
 
-> **Instructions:** Review each decision point below. Kiro recommendations are provided for guidance. Fill in your decisions in the "Answer" sections, then confirm when ready to proceed.
+> **Instructions:** Review each decision point below. agent recommendations are provided for guidance. Fill in your decisions in the "Answer" sections, then confirm when ready to proceed.
 
 ---
 
@@ -192,7 +192,7 @@ Maintain `aidlc-docs/audit.md` as an append-only log.
 **Why this matters:** [One-sentence explanation of project impact]
 
 **Options:**
-1. [Option 1 — Kiro Recommended]: [Description with rationale]
+1. [Option 1 — Recommended]: [Description with rationale]
 2. [Option 2]: [Description]
 3. [Option 3]: [Description]
 4. Other (please specify): _______________________
@@ -204,12 +204,12 @@ Maintain `aidlc-docs/audit.md` as an append-only log.
 
 **Rules:**
 - 3–4 concrete options per decision point
-- Mark one option as "Kiro Recommended" with rationale
+- Mark one option as "Recommended" with rationale
 - Briefly explain why each decision matters
 - For Design and Tasks phases, **reference the previous phase's decisions** explicitly
 - **Customize** decision points to the actual project — never use generic boilerplate
 - Handle partial responses: acknowledge completed items, prompt for the rest
-- If the user does not respond, ask whether to use Kiro recommendations as defaults
+- If the user does not respond, ask whether to use agent recommendations as defaults
 - Validate that all critical decisions have user input before generating the document
 
 ---
@@ -237,7 +237,7 @@ explicitly references an existing system to modernize/extend.
 materially. Stale analysis is worse than no analysis.
 
 ### Activation
-**MANDATORY**: Load and follow `.kiro/steering/reverse-engineering.md`.
+**MANDATORY**: Load and follow the reverse-engineering guidance for your agent (available as a companion instruction).
 
 ### Outputs (in `aidlc-docs/analysis/`)
 - `business-overview.md`
@@ -360,7 +360,7 @@ Decision categories to consider:
 ### Step 3.3 — Generate `tasks.md`
 
 Generate a numbered task list, organized by section. Each task is small enough
-to execute as a single Kiro request.
+to execute as a single agent request.
 
 ```markdown
 # Tasks: <Spec Name>
@@ -404,7 +404,7 @@ Wait for explicit user approval. Update `aidlc-state.md` and `audit.md`.
 
 # Task Execution
 
-After `tasks.md` is approved, the user picks tasks to run in Kiro. For each task:
+After `tasks.md` is approved, the user picks tasks to run. For each task:
 
 1. Execute (generate code, IaC, tests, etc.)
 2. Mark the task `[x]` in `tasks.md`
@@ -429,7 +429,7 @@ When all tasks are `[x]`:
 ## Spec Directory Convention
 
 ```
-.kiro/specs/<spec-name>/
+specs/<spec-name>/
 ├── _decisions-requirements.md
 ├── requirements.md
 ├── _decisions-design.md

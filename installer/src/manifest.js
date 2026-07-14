@@ -9,6 +9,7 @@ export function loadManifest(packDir) {
     file: i.file,
     role: i.role,
     load: i.load ?? 'always',
+    description: i.description,
   }))
   const primaries = instructions.filter((i) => i.role === 'primary')
   if (primaries.length !== 1) {

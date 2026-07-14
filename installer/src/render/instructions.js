@@ -41,10 +41,13 @@ export function renderInstructions(manifest, packDir, tool) {
       { path: '.github/copilot-instructions.md', content: body(packDir, primary.file), kind: 'text' },
     ]
     for (const c of companions) {
+      // load:always → applyTo:'**' (attached to every request).
+      // load:auto  → no applyTo (conditional); a rich description drives Copilot's
+      //              semantic matching, so prefer the manifest description over the bare filename.
       const fm =
         c.load === 'always'
           ? `---\napplyTo: '**'\n---\n`
-          : `---\ndescription: ${stem(c.file)}\n---\n`
+          : `---\ndescription: ${c.description ?? stem(c.file)}\n---\n`
       writes.push({
         path: `.github/instructions/${stem(c.file)}.instructions.md`,
         content: fm + body(packDir, c.file),

@@ -11,6 +11,7 @@ instructions:
   - file: reverse-engineering.md
     role: companion
     load: auto
+    description: "Phase 0 reverse-engineering playbook — use when existing or brownfield source code is present, or when modernizing, migrating, extending, or reverse-engineering an existing system."
 
 command:
   name: aidlc

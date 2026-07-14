@@ -1,5 +1,5 @@
 ---
-description: reverse-engineering
+description: Phase 0 reverse-engineering playbook — use when existing or brownfield source code is present, or when modernizing, migrating, extending, or reverse-engineering an existing system.
 ---
 # Reverse Engineering
 

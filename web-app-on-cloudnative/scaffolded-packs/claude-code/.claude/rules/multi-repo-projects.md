@@ -21,7 +21,7 @@ You do **not** need to know the repo model before starting — this is a decisio
 **Why this matters:** It drives how specs are split, how shared contracts are published/consumed, and how much CI/coordination overhead the team carries.
 
 **Options (a spectrum, not just "one vs many"):**
-1. **Monorepo (single repo, one build)** — all apps/services in one repo. *Kiro Recommended for small teams (≈<15 devs) with tightly-coupled components sharing contracts,* because cross-cutting changes (contract + all consumers) happen atomically in one commit and there's one CI/toolchain.
+1. **Monorepo (single repo, one build)** — all apps/services in one repo. *Recommended for small teams (≈<15 devs) with tightly-coupled components sharing contracts,* because cross-cutting changes (contract + all consumers) happen atomically in one commit and there's one CI/toolchain.
 2. **Monorepo with workspaces** (Nx / Turborepo / Gradle multi-module / Maven reactor) — one repo, but independently buildable/deployable targets. Same atomic-contract benefit, with per-target build/deploy.
 3. **Domain-grouped repos (few)** — one repo per bounded context (e.g. `consumer` = SPA+BFF, `cashier`, `backoffice`), plus an `engine` repo and a `contracts` repo/package. Balances domain ownership and independent deploys against coordination overhead. A strong middle ground.
 4. **Repo-per-component (polyrepo)** — each SPA, each BFF, the engine, and each integration endpoint in its own repo. Maximum autonomy; justified by many independent teams, strict per-repo access control / compliance, or genuinely independent release cadences — less so by team size alone.
@@ -68,7 +68,7 @@ You do **not** need to know the repo model before starting — this is a decisio
    │      repo topology (unit → repo) · auth ·                  │
    │      publish shared contracts  ── WAVE 0 ──▶               │
    └────────────────────────────┬───────────────────────────────┘
-                                │  S3. SPLIT — Kiro decomposes
+                                │  S3. SPLIT — the agent decomposes
                                 │      system reqs + HLD → per-repo slices
         ┌───────────────────────┼───────────────────────┐
         ▼                       ▼                       ▼
@@ -105,7 +105,7 @@ Run the **normal Design phase (Phase 2)** at system scope, *derived from* S1. Cr
 - **Repo topology (unit → repo mapping)** — the definitive repo list, which units of work / stories each owns, and a dependency map (who consumes whose contract). For brownfield, base boundaries on the bounded contexts from Phase 0 — don't guess the seams.
 - **Auth model** — IdP (e.g. Keycloak/Cognito), token flow, where tokens are validated, roles per surface.
 - **Multi-repo mechanics:**
-  - **Spec placement** — 1) **Central specs repo (Kiro Recommended for workshops)**: all specs in ONE repo, code in separate repos — single source of truth, one audit trail, agent can read the whole system when slicing. 2) **Co-located**: each repo carries its own specs + a shared contracts repo/package as authority. 3) **Hybrid**: system specs + contracts central, per-repo specs co-located, each pinned to a contract version.
+  - **Spec placement** — 1) **Central specs repo (Recommended for workshops)**: all specs in ONE repo, code in separate repos — single source of truth, one audit trail, agent can read the whole system when slicing. 2) **Co-located**: each repo carries its own specs + a shared contracts repo/package as authority. 3) **Hybrid**: system specs + contracts central, per-repo specs co-located, each pinned to a contract version.
   - **Contract ownership & versioning** — who owns each contract, how it's versioned (semver on an OpenAPI/schema package), how changes propagate.
   - **Shared types strategy** — generated from the contract (recommended) vs hand-written; package vs vendored.
   - **Contract test strategy** — consumer-driven contract tests (recommended) so each repo verifies against the frozen contract independently.
@@ -113,9 +113,9 @@ Run the **normal Design phase (Phase 2)** at system scope, *derived from* S1. Cr
 
 Include a **Mermaid** system context diagram (repos as components + contract edges) and at least one cross-repo sequence diagram for the primary happy path. **Approval gate.** Update `aidlc-state.md` and `audit.md`.
 
-## Step S3 — Split the system into per-repo slices (Kiro decomposes)
+## Step S3 — Split the system into per-repo slices (the agent decomposes)
 
-With S1 + S2 approved, **Kiro decomposes** the system into per-repo work. This is the step that makes per-repo specs substantive instead of thin. Produce a `split.md` (in `_platform/`) and, for each repo/unit, a **derived requirements slice**:
+With S1 + S2 approved, **the agent decomposes** the system into per-repo work. This is the step that makes per-repo specs substantive instead of thin. Produce a `split.md` (in `_platform/`) and, for each repo/unit, a **derived requirements slice**:
 
 - The subset of **user stories + acceptance criteria** that repo owns — traceable back to the S1 story IDs (not re-authored from scratch).
 - Its **contract obligations** — which shared contracts it *consumes*, and (for a BFF/engine) which it *publishes*.
@@ -140,7 +140,7 @@ For each repo, run detailed **Requirements → Design → Tasks** on top of its 
 ## Step S5 — Contract-driven parallel construction
 
 - **Wave 0 (system):** shared contracts published and versioned. Every repo depends on this.
-- **Waves 1..n (per repo, parallel):** each repo executes its own `tasks.md` against the frozen contract. Repos with no cross-dependency run fully in parallel (one squad/Kiro instance per repo). Use consumer-driven contract tests to verify against the contract without needing the other repos live.
+- **Waves 1..n (per repo, parallel):** each repo executes its own `tasks.md` against the frozen contract. Repos with no cross-dependency run fully in parallel (one squad/agent instance per repo). Use consumer-driven contract tests to verify against the contract without needing the other repos live.
 - **Final wave (integration):** end-to-end flows exercised across the real repos; verify against the system design's sequence diagrams.
 
 ## State, audit & repo hand-off

@@ -173,7 +173,7 @@ Maintain `aidlc-docs/audit.md` as an append-only log.
 ```markdown
 # Decisions: [Phase Name]
 
-> **Instructions:** Review each decision point below. Kiro recommendations are provided for guidance. Fill in your decisions in the "Answer" sections, then confirm when ready to proceed.
+> **Instructions:** Review each decision point below. agent recommendations are provided for guidance. Fill in your decisions in the "Answer" sections, then confirm when ready to proceed.
 
 
 ## [Decision Category]
@@ -185,7 +185,7 @@ Maintain `aidlc-docs/audit.md` as an append-only log.
 **Why this matters:** [One-sentence explanation of project impact]
 
 **Options:**
-1. [Option 1 — Kiro Recommended]: [Description with rationale]
+1. [Option 1 — Recommended]: [Description with rationale]
 2. [Option 2]: [Description]
 3. [Option 3]: [Description]
 4. Other (please specify): _______________________
@@ -196,12 +196,12 @@ Maintain `aidlc-docs/audit.md` as an append-only log.
 
 **Rules:**
 - 3–4 concrete options per decision point
-- Mark one option as "Kiro Recommended" with rationale
+- Mark one option as "Recommended" with rationale
 - Briefly explain why each decision matters
 - For Design and Tasks phases, **reference the previous phase's decisions** explicitly
 - **Customize** decision points to the actual project — never use generic boilerplate
 - Handle partial responses: acknowledge completed items, prompt for the rest
-- If the user does not respond, ask whether to use Kiro recommendations as defaults
+- If the user does not respond, ask whether to use agent recommendations as defaults
 - Validate that all critical decisions have user input before generating the document
 
 
@@ -349,7 +349,7 @@ Decision categories to consider:
 
 Generate a numbered task list organized into **independent parallel groups**.
 Each group has zero shared-state dependencies with other groups and can be
-executed by a separate Kiro instance simultaneously. Within each group, tasks
+executed by a separate agent instance simultaneously. Within each group, tasks
 are ordered sequentially.
 
 **MANDATORY: Dependency Analysis**
@@ -374,7 +374,7 @@ outputs from another group go into a later wave.
 | 2    | Group D, Group E          | Wave 1     |
 | 3    | Group F                   | Wave 2     |
 
-> **How to run:** Assign one worker (Kiro instance or developer) per group within the same wave.
+> **How to run:** Assign one worker (agent instance or developer) per group within the same wave.
 > Wait for all groups in a wave to complete before starting the next wave.
 
 
@@ -409,7 +409,7 @@ outputs from another group go into a later wave.
 - Each group targets a distinct module/boundary/feature with its own files
 - Groups within the same wave MUST NOT touch the same files
 - The final wave always includes integration testing and verification
-- Each task is small enough to execute as a single Kiro request
+- Each task is small enough to execute as a single agent request
 
 **Task execution rules:**
 - Mark each task `[x]` immediately on completion
@@ -424,7 +424,7 @@ Wait for explicit user approval. Update `aidlc-state.md` and `audit.md`.
 
 # Task Execution
 
-After `tasks.md` is approved, the user assigns groups to parallel workers (Kiro instances, developers, or a mix). For each task:
+After `tasks.md` is approved, the user assigns groups to parallel workers (agent instances, developers, or a mix). For each task:
 
 1. Execute (generate code, IaC, tests, etc.)
 2. Mark the task `[x]` in `tasks.md`
@@ -432,7 +432,7 @@ After `tasks.md` is approved, the user assigns groups to parallel workers (Kiro 
 4. Append a concise note to `audit.md`
 
 ### Parallel Execution Protocol
-- Each worker (Kiro instance or developer) owns ONE group — only touches files within that group's boundary
+- Each worker (agent instance or developer) owns ONE group — only touches files within that group's boundary
 - Before starting a new wave, verify all groups in the previous wave are `[x]`
 - If a group finishes early, the worker waits — do NOT start next-wave tasks early
 - Conflicts (two workers accidentally touching the same file) → stop, flag in audit.md, ask user
