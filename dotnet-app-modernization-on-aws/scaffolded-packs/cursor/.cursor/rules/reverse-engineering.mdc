@@ -1,0 +1,493 @@
+---
+alwaysApply: false
+---
+# Reverse Engineering
+
+**Purpose**: Analyze an existing .NET codebase and generate comprehensive design
+artifacts that inform downstream modernization, replatform, or migration work.
+
+**Execute when**: Brownfield project detected (existing source code found in the
+workspace) — the default for a modernization engagement.
+
+**Skip when**: Greenfield "reimagine" project (no existing source code).
+
+**Rerun behavior**: Always rerun when the brownfield codebase has changed
+materially (for example, after running AWS Transform for .NET). Stale analysis
+is worse than no analysis.
+
+## Step 0: Ingest Pre-Existing AWS Transform (ATX) Analysis (if present)
+
+Before scanning the code from scratch, **check for pre-existing analysis
+produced by AWS Transform for .NET (sometimes labelled "ATX")** and, if found,
+read it and use it as a primary input. AWS Transform can emit rich assessment
+and documentation output that already answers much of what the steps below ask
+for — reusing it avoids redundant work and keeps your analysis consistent with
+the transform tooling.
+
+**Detection (generic — do not assume a fixed path):** look in the workspace and
+any location the user points you at for folders/files such as:
+
+- an **`ATXDocumentation/`** tree — commonly containing `project-overview.md`,
+  `README.md`, a `technical-debt-report.md`, and subfolders like `architecture/`
+  (system-overview, components, patterns, dependencies), `behavior/`
+  (business-logic, workflows, decision-logic, error-handling), `reference/`
+  (api-reference, interfaces, modules, program-structure, data-models),
+  `migration/` (component-order, test-specifications, validation-criteria),
+  `specialized/` (database-patterns, external-integrations), `analysis/`
+  (code-metrics, tech-debt, complexity-analysis, dependency-analysis,
+  security-patterns), and `diagrams/`.
+- an **`ATXModAnalysis/`** (modernization assessment) report — commonly a
+  `*-mod-report.md` / `.html` / `.json` plus a `*.metadata.json`.
+- any other clearly-labelled AWS Transform, migration-assessment, or portability
+  report the user provides.
+
+If the user gives you an explicit path to such analysis, read it from there.
+**If none is found, skip this step** and proceed with a from-scratch analysis.
+
+**How to use it:**
+- Treat ATX output as **source input, not final output** — extract facts
+  (framework version, dependencies, tech debt, migration order, data models,
+  external integrations) and fold them into the `aidlc-docs/analysis/*` documents
+  the steps below define.
+- **Reconcile, don't blindly trust:** spot-check ATX claims against the actual
+  code where feasible; note any discrepancies.
+- **Attribute** in each analysis doc when a finding came from ATX vs your own
+  scan, so downstream phases know the provenance.
+- Record in `aidlc-docs/audit.md` that pre-existing ATX analysis was ingested,
+  including where it came from.
+
+> This step is intentionally generic. The pack ships no customer data or fixed
+> paths — it only knows the *shape* of AWS Transform output so it can recognize
+> and reuse it wherever it lives.
+
+## Step 1: Workspace Discovery
+
+### 1.1 Scan the Workspace
+- All projects/solutions and modules (`.sln`, `.csproj`, `packages.config`, `*.vbproj`)
+- Project relationships and target frameworks (`net48`/`net472` vs `net8.0`, `TargetFramework(s)`)
+- Project types: Web (ASP.NET MVC/Web API/WebForms/ASP.NET Core), Class Library, Worker/Windows Service, Tests, Front-end, Infrastructure
+
+### 1.2 Understand the Business Context
+- The core business the system serves overall
+- The business purpose of every project or module
+- The list of business transactions the system implements
+
+### 1.3 .NET / Legacy Modernization Signals (capture explicitly)
+- **Target framework**: .NET Framework version vs .NET (Core) — the central modernization driver
+- **Hosting**: IIS + `web.config` (handlers, modules, rewrite), `Global.asax` startup, app pools
+- **Windows-only dependencies**: `System.Web`, WCF, MSMQ, `System.Drawing`, registry, Windows auth, COM interop — blockers for Linux containers
+- **Session/state**: in-process session, `Session[...]`, static/in-memory caches, file writes outside request scope
+- **Configuration/secrets**: `appsettings.json`, `web.config` `appSettings`/`connectionStrings`, hardcoded values
+- **Auth**: Forms auth, Windows auth, OWIN, ASP.NET Identity, external IdP
+
+### 1.4 Infrastructure Discovery
+- IaC: CDK, Terraform, CloudFormation, Pulumi, ARM/Bicep, Docker Compose, Helm
+- Deployment scripts (PowerShell, MSBuild, `dotnet publish`, shell, Make)
+- Runtime hosting today (on-prem IIS, EC2, ECS, EKS, App Service, containers)
+
+### 1.5 Build System Discovery
+- Build tooling: MSBuild / `dotnet` CLI / NuGet; solution and project configuration files
+- Package dependencies (`packages.config`, `<PackageReference>`) and any pinned/legacy versions
+- Build dependencies between projects
+
+### 1.6 Service & Component Discovery
+- API definitions (controllers/routes, OpenAPI/Swagger, WCF contracts, gRPC proto)
+- Worker / job definitions (queues, schedulers, background/hosted services, Windows Services)
+- Data stores (SQL Server, other relational, document, key-value, caches, search/vector indexes)
+- Front-end applications and their build/runtime configuration
+
+### 1.7 Code Quality Analysis
+- Languages and framework versions; C#/VB.NET language level
+- Test frameworks and observed coverage
+- Linting/analyzers, formatting, static analysis configuration
+- CI/CD pipeline definitions and what gates exist today
+
+## Step 2: Generate Business Overview Documentation
+
+Create `aidlc-docs/analysis/business-overview.md`:
+
+```markdown
+# Business Overview
+
+## Business Context Diagram
+[Mermaid diagram showing the business context — actors, system, external systems]
+
+## Business Description
+- **Business Description**: [Overall description of what the system does in business terms]
+- **Business Transactions**: [List of business transactions the system implements with descriptions]
+- **Business Dictionary**: [Domain terms the system uses and their meaning]
+
+## Component-Level Business Descriptions
+### [Project / Module / Component Name]
+- **Purpose**: [What it does from the business perspective]
+- **Responsibilities**: [Key responsibilities]
+```
+
+## Step 3: Generate Architecture Documentation
+
+Create `aidlc-docs/analysis/architecture.md`:
+
+```markdown
+# System Architecture
+
+## System Overview
+[High-level description of the system]
+
+## Architecture Diagram
+[Mermaid diagram showing all projects, services, data stores, and their relationships]
+
+## Component Descriptions
+### [Component Name]
+- **Purpose**: [What it does]
+- **Responsibilities**: [Key responsibilities]
+- **Dependencies**: [What it depends on]
+- **Type**: [Web / Library / Worker / Infrastructure / Model / Client / Test / Front-end]
+
+## Data Flow
+[Mermaid sequence diagram of key workflows]
+
+## Integration Points
+- **External APIs**: [List with purposes]
+- **Databases**: [List with purposes]
+- **Third-party Services**: [List with purposes]
+
+## Infrastructure Components
+- **Deployment Model**: [How the system is deployed today — e.g. IIS on Windows Server / EC2]
+- **Networking**: [VPC, subnets, security groups, public/private boundaries, or on-prem topology]
+- **Observability**: [Logging, metrics, tracing solutions in place — or absence of]
+```
+
+## Step 4: Generate Code Structure Documentation
+
+Create `aidlc-docs/analysis/code-structure.md`:
+
+```markdown
+# Code Structure
+
+## Build System
+- **Type**: [MSBuild / dotnet CLI / NuGet]
+- **Configuration**: [Key solution/project files and settings, target frameworks]
+
+## Key Modules / Classes
+[Mermaid class diagram or module hierarchy]
+
+### Existing Files Inventory
+[List meaningful source files with their purposes]
+
+**Format example**:
+- `[path/to/file]` — [Purpose / responsibility]
+
+## Design Patterns
+### [Pattern Name]
+- **Location**: [Where used]
+- **Purpose**: [Why used]
+- **Implementation**: [How implemented]
+
+## Critical Dependencies
+### [Dependency Name]
+- **Version**: [Version number]
+- **Usage**: [How and where used]
+- **Purpose**: [Why needed]
+- **Portability concern**: [Windows-only? Framework-only? Migration note]
+```
+
+## Step 5: Generate API Documentation
+
+Create `aidlc-docs/analysis/api-documentation.md`:
+
+```markdown
+# API Documentation
+
+## Endpoints
+
+### [Controller / Route Group Name]
+
+#### [Endpoint Name]
+- **Method**: [GET / POST / PUT / DELETE / etc.]
+- **Path**: [/api/path]
+- **Purpose**: [What it does]
+- **Handler**: [Controller / action and method signature]
+- **Auth**: [Auth mechanism required]
+- **Request Body**: [JSON / form structure with field types, or "none"]
+- **Response Body**: [JSON structure with field types]
+- **Success Status**: [HTTP status code]
+- **Error Responses**: [Status codes and conditions]
+- **Side Effects**: [DB writes, queue publishes, third-party calls]
+- **Dependencies**: [Service classes / functions invoked]
+
+## API Contract Summary Table
+
+| Method | Path | Request Body | Response Body | Success | Error Codes |
+|--------|------|--------------|---------------|---------|-------------|
+
+## Data Models
+
+### [Model Name]
+- **Storage**: [Database table / collection / index name]
+- **Fields**: [field name] — [type] — [storage column / attribute name] — [required / optional]
+- **Relationships**: [Related models]
+```
+
+## Step 6: Generate Component Inventory
+
+Create `aidlc-docs/analysis/component-inventory.md`:
+
+```markdown
+# Component Inventory
+
+## Application Projects
+- [Project name] — [Purpose]
+
+## Infrastructure Projects
+- [Project name] — [CDK / Terraform / CloudFormation / other] — [Purpose]
+
+## Shared Projects
+- [Project name] — [Models / Utilities / Clients] — [Purpose]
+
+## Test Projects
+- [Project name] — [Integration / Load / Unit] — [Purpose]
+
+## Total Count
+- **Total Projects**: [Number]
+- **Application**: [Number]
+- **Infrastructure**: [Number]
+- **Shared**: [Number]
+- **Test**: [Number]
+```
+
+## Step 7: Generate Technology Stack Documentation
+
+Create `aidlc-docs/analysis/technology-stack.md`:
+
+```markdown
+# Technology Stack
+
+## Languages & Frameworks
+- [C#/VB.NET version] + [.NET Framework / .NET (Core) version] + [ASP.NET flavor]
+
+## Data Layer
+- [Database type and version, EF/EF Core/ADO.NET/Dapper, stored procedures]
+- [Caches]
+- [Search / vector indexes]
+
+## Infrastructure & Cloud Services
+- [Cloud provider services in use, with role of each — or on-prem]
+
+## Front-end (if any)
+- [Framework, build tool, UI library, or Razor/WebForms views]
+
+## DevOps
+- [VCS, CI/CD, IaC, monitoring, secrets management]
+
+## Test Tooling
+- [Frameworks for unit, integration, end-to-end]
+- [Observed automated test coverage if reported]
+```
+
+## Step 8: Generate Dependencies Documentation
+
+Create `aidlc-docs/analysis/dependencies.md`:
+
+```markdown
+# Dependencies
+
+## Internal Dependencies
+[Mermaid diagram showing project / module dependencies]
+
+### [Project A] depends on [Project B]
+- **Type**: [Compile / Runtime / Test]
+- **Reason**: [Why the dependency exists]
+
+## External Dependencies
+### [Dependency Name]
+- **Version**: [Version]
+- **Purpose**: [Why used]
+- **Risk / Migration concern**: [Windows-only? Framework-only? Deprecated? Linux/Core-compatible replacement]
+
+## Cross-Cutting Concerns
+- Authentication library / pattern
+- Authorization library / pattern
+- Logging
+- Error handling
+- Observability instrumentation (or absence)
+- Configuration / secrets management
+- Session / caching strategy
+```
+
+## Step 9: Generate Code Quality Assessment
+
+Create `aidlc-docs/analysis/code-quality-assessment.md`:
+
+```markdown
+# Code Quality Assessment
+
+## Test Coverage
+- **Overall**: [Percentage or Good / Fair / Poor / None]
+- **Unit Tests**: [Status]
+- **Integration Tests**: [Status]
+- **End-to-End Tests**: [Status]
+
+## Code Quality Indicators
+- **Linting / Analyzers**: [Configured / Not configured]
+- **Code Style**: [Consistent / Inconsistent]
+- **Static Analysis**: [In place / absent]
+- **Documentation**: [Good / Fair / Poor]
+
+## Technical Debt
+- [Issue description and location — fold in ATX technical-debt findings if ingested in Step 0]
+
+## Patterns and Anti-patterns
+- **Good Patterns**: [List]
+- **Anti-patterns**: [List with locations]
+```
+
+## Step 10: Bounded Context Analysis
+
+Identify natural service boundaries in the codebase. Critical input for any
+decomposition, modernization, or feature-slice planning that follows.
+
+Create `aidlc-docs/analysis/bounded-contexts.md`:
+
+```markdown
+# Bounded Context Analysis
+
+## Identified Bounded Contexts
+
+### [Context Name]
+- **Business Capability**: [What business function this context serves]
+- **Controllers / Routes**: [Which entry points belong here]
+- **Services / Application Logic**: [Which service classes belong here]
+- **Repositories / Data Access**: [Which data access components belong here]
+- **Models / Entities**: [Which domain models belong here]
+- **Storage**: [Which tables / collections / buckets / indexes this context owns]
+- **Events**: [Which domain events / queue messages / topics belong here]
+
+## Context Map
+[Mermaid diagram showing bounded contexts and their relationships]
+
+## Shared Kernel
+- **Shared Models**: [Models used across multiple contexts]
+- **Shared Utilities**: [Config, security, common infrastructure]
+- **Shared Storage**: [Tables / data accessed by multiple contexts]
+
+## Cross-Context Dependencies
+### [Context A] → [Context B]
+- **Type**: [Data dependency / API call / Shared storage / Event]
+- **Direction**: [Upstream / Downstream / Bidirectional]
+- **Coupling Level**: [High / Medium / Low]
+- **Description**: [How they interact]
+```
+
+## Step 11: Modernization Readiness Assessment
+
+Create `aidlc-docs/analysis/modernization-readiness.md`:
+
+```markdown
+# Modernization Readiness
+
+## Framework & Portability
+- **Current Target Framework**: [.NET Framework x.x]
+- **Target**: [.NET (Core) x — e.g. net8.0]
+- **AWS Transform Fit**: [Suitable for AWS Transform for .NET? Notes — reconcile with ATX mod-report if ingested]
+- **Windows-Only Blockers**: [System.Web, WCF, MSMQ, System.Drawing, registry, COM, etc.]
+
+## Coupling Matrix
+| Component | Afferent (incoming) | Efferent (outgoing) | Coupling Score |
+|-----------|---------------------|---------------------|----------------|
+| [class / module / project] | [count] | [count] | [High / Med / Low] |
+
+## Statelessness Audit (container readiness)
+- Endpoints relying on in-process session state
+- State cached in process memory / static fields
+- File system writes outside request scope
+- Other implicit shared state that breaks horizontal scaling
+
+## Data Coupling Analysis
+- **Shared Storage Across Contexts**: [Tables / indexes accessed by multiple bounded contexts]
+- **Foreign Key / Reference Dependencies**: [Cross-context relationships]
+- **Transaction Boundaries**: [Operations spanning multiple contexts]
+- **Data Ownership Conflicts**: [Storage with unclear ownership]
+
+## Modernization Difficulty per Bounded Context
+
+### [Context Name]
+- **Modernization Difficulty**: [Easy / Medium / Hard]
+- **Rationale**: [Why this rating]
+- **Blockers**: [Shared state, transactions, Windows-only SDKs, regulatory constraints]
+- **Recommended Order**: [1st, 2nd, 3rd, etc. — reconcile with ATX migration/component-order if ingested]
+
+## Migration / Cutover Readiness
+- **Routing Feasibility**: [Can traffic be redirected per endpoint or per context?]
+- **Stateless Endpoints**: [Which endpoints are stateless and easy to redirect?]
+- **Session / State Dependencies**: [Anything that complicates routing/containerization]
+- **Auth Migration Complexity**: [How hard is it to decouple auth from the legacy host?]
+- **Data Migration**: [SQL Server → Aurora path — SCT/DMS/Babelfish; downtime window]
+
+## Risk Assessment
+- **Containerization Risk**: [Windows-only dependencies, state, file system]
+- **Storage Decomposition Risk**: [Shared schema complexity]
+- **Data Consistency Risk**: [Cross-context transactions]
+- **Auth / Security Risk**: [Centralized security coupling]
+- **Third-Party / SDK Risk**: [Vendor SDKs, deprecated APIs, version constraints]
+- **Compliance Risk**: [Regulatory or contractual constraints affecting modernization]
+```
+
+## Step 12: Create Timestamp File
+
+Create `aidlc-docs/analysis/reverse-engineering-timestamp.md`:
+
+```markdown
+# Reverse Engineering Metadata
+
+**Analysis Date**: [ISO timestamp]
+**Analyzer**: AI-DLC
+**Workspace**: [Workspace path]
+**Total Files Analyzed**: [Number]
+**Pre-existing ATX Analysis Ingested**: [Yes — source path / No]
+
+## Artifacts Generated
+- [x] business-overview.md
+- [x] architecture.md
+- [x] code-structure.md
+- [x] api-documentation.md
+- [x] component-inventory.md
+- [x] technology-stack.md
+- [x] dependencies.md
+- [x] code-quality-assessment.md
+- [x] bounded-contexts.md
+- [x] modernization-readiness.md
+```
+
+## Step 13: Update State Tracking
+
+Update `aidlc-docs/aidlc-state.md`:
+
+```markdown
+## Reverse Engineering Status
+- [x] Reverse Engineering — Completed on [timestamp]
+- **Pre-existing ATX Analysis**: [Ingested from <path> / None found]
+- **Artifacts Location**: aidlc-docs/analysis/
+```
+
+## Step 14: Present Completion Message to User
+
+```markdown
+# 🔍 Reverse Engineering Complete
+
+[AI-generated summary of key findings — framework version, containerization blockers,
+state/config externalization needs, bounded contexts, recommended modernization order,
+major risks. Note whether pre-existing ATX analysis was ingested.]
+
+> **📋 REVIEW REQUIRED**
+> Please examine the reverse engineering artifacts at: `aidlc-docs/analysis/`
+
+> **🚀 WHAT'S NEXT?**
+>
+> 🔧 **Request Changes** — ask for modifications to the analysis
+> ✅ **Approve & Continue** — proceed to **Phase 1: Requirements**
+```
+
+## Step 15: Wait for User Approval
+
+- **MANDATORY**: Do not proceed until the user explicitly approves
+- **MANDATORY**: Log the user's response verbatim in `aidlc-docs/audit.md`
