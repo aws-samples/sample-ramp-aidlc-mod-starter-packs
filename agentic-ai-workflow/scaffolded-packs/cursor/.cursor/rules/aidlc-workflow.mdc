@@ -36,6 +36,14 @@ alwaysApply: true
 - Design phase → `_decisions-design.md` → `design.md`
 - Tasks phase → `_decisions-tasks.md` → `tasks.md`
 
+## Session State & Audit
+
+At the start of every session, before phase work:
+
+1. Check if `aidlc-docs/aidlc-state.md` exists — if yes, **resume** from the recorded phase/step; if no, **create** `aidlc-docs/aidlc-state.md` (progress tracker) and `aidlc-docs/audit.md` (append-only decision log).
+2. Update `aidlc-docs/aidlc-state.md` immediately after each phase/step so a fresh session can resume correctly.
+3. Append every decision, approval, and rationale to `aidlc-docs/audit.md` as you go (append-only — never overwrite prior entries).
+
 ## Core Principles
 
 ### Decision-First Workflow
