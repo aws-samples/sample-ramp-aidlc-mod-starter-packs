@@ -39,13 +39,13 @@ Add `--dry-run` to preview, `--force` to overwrite existing files. Option B alwa
 
 ### Then
 
-1. Update `AWS_PROFILE` in the generated MCP config (`mcp.json` / `.mcp.json`) for the AWS IaC MCP.
+1. The **AWS Knowledge MCP** (default-on) needs no credentials. The bundled **AWS MCP Server** (`aws-mcp-server`) ships **disabled** — enable it in the generated MCP config if you want it. Configure an AWS profile for any live AWS operations (Aurora DSQL MCP, deployments).
 2. (Optional) If you have **AWS Transform / ATX** analysis for your app, drop it in the workspace (or note its path) — the reverse-engineering phase will detect and reuse it.
 3. Open the project in your tool and start a conversation. Try:
    - *"I want to modernize this ASP.NET Framework app onto AWS ECS Fargate. Let's start the AI-DLC workflow."*
    - On Claude Code / Copilot you can also run the **`/aidlc`** command to kick off the workflow.
 
-The workflow runs reverse engineering first (brownfield default), then creates `_decisions-requirements.md` and waits for your input before writing `requirements.md`. The same gate applies before `design.md` and `tasks.md`. Every decision is appended to `aidlc-docs/audit.md`, and progress is tracked in `aidlc-docs/aidlc-state.md` so you can resume across sessions. The `specs/` and `aidlc-docs/` directories are created by the agent on the first run.
+The workflow runs reverse engineering first (brownfield default), then creates `_decisions-requirements.md` and waits for your input before writing `requirements.md`. The same gate applies before `design.md` and `tasks.md`. Every decision is appended to `aidlc-docs/audit.md`, and progress is tracked in `aidlc-docs/aidlc-state.md` so you can resume across sessions. The spec bundle and `aidlc-docs/` are created by the agent on the first run — specs land in **`.kiro/specs/`** on Kiro and in a root **`specs/`** folder on Claude Code / Copilot / Cursor; `aidlc-docs/` is always at the project root.
 
 ## How the workflow works
 
@@ -99,7 +99,7 @@ dotnet-app-modernization-on-aws/
 |---|---|
 | **AWS Knowledge** (`aws-knowledge-mcp-server`) | Validate AWS guidance — service limits, quotas, regional availability, current API behavior, resource shapes. |
 | **Aurora DSQL** (`aurora-dsql`) | Validate Aurora DSQL schemas, connection patterns, and DSQL-specific semantics (for reimagine/greenfield data targets). |
-| **AWS IaC** (`awslabs.aws-iac-mcp-server`) | Validate CloudFormation resource properties and CDK constructs. Update `AWS_PROFILE` to your named profile. |
+| **AWS MCP Server** (`aws-mcp-server`) | Broader AWS tooling via `mcp-proxy-for-aws` (`https://aws-mcp.us-east-1.api.aws/mcp`). **Ships disabled** — enable it in the MCP config if you want it. |
 
 ### Skills
 
@@ -134,7 +134,7 @@ Curated, domain-specific knowledge bundles the agent activates on demand. They f
 
 - One of: [Kiro](https://kiro.dev), [Claude Code](https://claude.com/claude-code), GitHub Copilot, or Cursor — installed and signed in.
 - **Option B (installer) only:** Node.js 18+ (to run `ramp-pack`).
-- An AWS profile configured (for the AWS IaC MCP and any live AWS operations).
+- An AWS profile configured (for the Aurora DSQL MCP and any live AWS operations).
 - `uvx` / `npx` available on your PATH (used to launch the MCP servers).
 - For the transformation path: [AWS Transform for .NET](https://aws.amazon.com/transform/) (optional but recommended for ASP.NET Framework → Core).
 

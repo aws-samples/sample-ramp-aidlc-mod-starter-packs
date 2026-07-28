@@ -7,22 +7,19 @@
         "https://knowledge-mcp.global.api.aws"
       ]
     },
+    "aws-mcp-server": {
+      "command": "uvx",
+      "args": [
+        "mcp-proxy-for-aws@latest",
+        "https://aws-mcp.us-east-1.api.aws/mcp"
+      ]
+    },
     "aurora-dsql": {
       "command": "uvx",
       "args": [
         "awslabs.aurora-dsql-mcp-server@latest"
       ],
       "env": {
-        "FASTMCP_LOG_LEVEL": "ERROR"
-      }
-    },
-    "awslabs.aws-iac-mcp-server": {
-      "command": "uvx",
-      "args": [
-        "awslabs.aws-iac-mcp-server@latest"
-      ],
-      "env": {
-        "AWS_PROFILE": "your-named-profile",
         "FASTMCP_LOG_LEVEL": "ERROR"
       }
     }

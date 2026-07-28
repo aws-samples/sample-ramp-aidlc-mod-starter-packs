@@ -1,10 +1,25 @@
 import { readFileSync } from 'node:fs'
 import { join, basename } from 'node:path'
 
+// Per-tool location for the AI-DLC spec bundle. Kiro has a native spec directory
+// (`.kiro/specs`); the other tools have no equivalent, so specs live at the repo
+// root. Neutral instructions opt in by writing the `{{SPEC_DIR}}` token, which is
+// substituted here. Packs that don't use the token are unaffected.
+const SPEC_DIR = {
+  kiro: '.kiro/specs',
+  'claude-code': 'specs',
+  copilot: 'specs',
+  cursor: 'specs',
+}
+
 // Read an instruction body, trimming surrounding blank lines. Neutral sources
 // can carry a leading blank line (left behind when Kiro frontmatter is stripped);
-// trimming keeps every tool's output starting on real content.
-const body = (packDir, file) => readFileSync(join(packDir, 'instructions', file), 'utf8').trim() + '\n'
+// trimming keeps every tool's output starting on real content. Also substitutes
+// per-tool tokens (currently `{{SPEC_DIR}}`).
+const body = (packDir, file, tool) => {
+  const raw = readFileSync(join(packDir, 'instructions', file), 'utf8').trim() + '\n'
+  return raw.replaceAll('{{SPEC_DIR}}', SPEC_DIR[tool])
+}
 const stem = (file) => basename(file, '.md')
 
 export function renderInstructions(manifest, packDir, tool) {
@@ -14,7 +29,7 @@ export function renderInstructions(manifest, packDir, tool) {
   if (tool === 'kiro') {
     return manifest.instructions.map((i) => ({
       path: `.kiro/steering/${i.file}`,
-      content: `---\ninclusion: ${i.load}\n---\n${body(packDir, i.file)}`,
+      content: `---\ninclusion: ${i.load}\n---\n${body(packDir, i.file, tool)}`,
       kind: 'text',
     }))
   }
@@ -25,9 +40,9 @@ export function renderInstructions(manifest, packDir, tool) {
         companions.map((c) => `- \`.claude/rules/${c.file}\``).join('\n') +
         '\n\n'
       : ''
-    const writes = [{ path: 'CLAUDE.md', content: header + body(packDir, primary.file), kind: 'text' }]
+    const writes = [{ path: 'CLAUDE.md', content: header + body(packDir, primary.file, tool), kind: 'text' }]
     for (const c of companions) {
-      writes.push({ path: `.claude/rules/${c.file}`, content: body(packDir, c.file), kind: 'text' })
+      writes.push({ path: `.claude/rules/${c.file}`, content: body(packDir, c.file, tool), kind: 'text' })
     }
     return writes
   }
@@ -38,7 +53,7 @@ export function renderInstructions(manifest, packDir, tool) {
     // always-on file is not bloated. `applyTo: '**'` mirrors load:always;
     // omitting applyTo mirrors load:auto (Copilot applies it conditionally).
     const writes = [
-      { path: '.github/copilot-instructions.md', content: body(packDir, primary.file), kind: 'text' },
+      { path: '.github/copilot-instructions.md', content: body(packDir, primary.file, tool), kind: 'text' },
     ]
     for (const c of companions) {
       // load:always → applyTo:'**' (attached to every request).
@@ -50,7 +65,7 @@ export function renderInstructions(manifest, packDir, tool) {
           : `---\ndescription: ${c.description ?? stem(c.file)}\n---\n`
       writes.push({
         path: `.github/instructions/${stem(c.file)}.instructions.md`,
-        content: fm + body(packDir, c.file),
+        content: fm + body(packDir, c.file, tool),
         kind: 'text',
       })
     }
@@ -60,7 +75,7 @@ export function renderInstructions(manifest, packDir, tool) {
   if (tool === 'cursor') {
     return manifest.instructions.map((i) => ({
       path: `.cursor/rules/${stem(i.file)}.mdc`,
-      content: `---\nalwaysApply: ${i.role === 'primary'}\n---\n${body(packDir, i.file)}`,
+      content: `---\nalwaysApply: ${i.role === 'primary'}\n---\n${body(packDir, i.file, tool)}`,
       kind: 'text',
     }))
   }

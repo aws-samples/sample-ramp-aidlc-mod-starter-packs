@@ -21,7 +21,7 @@ instrumented. Skills fall into two families:
 
 Activate the skills that match the path chosen in the design decisions — don't assume a single stack.
 
-> **IaC mix — read this:** the `dotnet-*` skills emit **CloudFormation or CDK**; the `ecs-build` skill emits **Terraform**. Pick ONE IaC tool per project, activate the matching skill, and don't blend their outputs. Validate resource shapes via the AWS IaC / Knowledge MCP either way.
+> **IaC mix — read this:** the `dotnet-*` skills emit **CloudFormation or CDK**; the `ecs-build` skill emits **Terraform**. Pick ONE IaC tool per project, activate the matching skill, and don't blend their outputs. Validate resource shapes via the AWS Knowledge MCP either way.
 
 
 ## 🔴 ACTIVATION CHECKLIST (run mentally on EVERY response)
@@ -47,7 +47,7 @@ Activate the skills that match the path chosen in the design decisions — don't
 - Designing/querying **Aurora MySQL**? → **STOP. Activate `amazon-aurora-mysql` FIRST.**
 - Standing up a **new Aurora cluster + instances**? → **STOP. Activate `creating-amazon-aurora-db-cluster-with-instances` FIRST.**
 - Making ANY claim about AWS limits/quotas/features? → **STOP. Search AWS docs via MCP FIRST.**
-- Writing CloudFormation/CDK resource properties? → **STOP. Use the AWS IaC MCP to validate FIRST.**
+- Writing CloudFormation/CDK resource properties? → **STOP. Validate via the AWS Knowledge MCP FIRST.**
 
 
 ## 📚 AWS Knowledge MCP — use proactively
@@ -119,11 +119,11 @@ The most important one. Use whenever validating AWS-specific guidance — servic
 **Triggers:** CloudFormation, `template.yaml`/`json`, cfn-lint, cfn-guard, change set, `DeletionPolicy`, stack failure (`CREATE_FAILED`, `ROLLBACK_COMPLETE`, `UPDATE_ROLLBACK_FAILED`).
 **Activate:** load `aws-cloudformation`. The pack's default raw-IaC skill; pairs with the `dotnet-*` skills' CloudFormation output.
 
-### AWS IaC MCP
+### Validating IaC resource shapes
 **Triggers:** CloudFormation/CDK resource, CFN property, resource type, L2/L3 construct.
-**MCP:** `awslabs.aws-iac-mcp-server`. Use when generating or validating CloudFormation/CDK — including during design when specifying resource configurations. Update `AWS_PROFILE` in the MCP config to your named profile.
+**How:** validate against the **AWS Knowledge MCP** — `aws___search_documentation` / `aws___read_documentation` for resource properties, and `aws___get_regional_availability` for service/resource availability. Don't rely on training data for CFN/CDK resource shapes.
 
-> Terraform IaC is available via `ecs-build`. Keep the IaC-tool choice an explicit design decision.
+> An additional **AWS MCP Server** (`aws-mcp-server`, via `mcp-proxy-for-aws`) ships **disabled** in the MCP config — enable it if you want its broader AWS tooling. Terraform IaC is available via `ecs-build`. Keep the IaC-tool choice an explicit design decision.
 
 
 ## 🗄️ Data

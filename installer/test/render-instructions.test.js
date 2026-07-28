@@ -76,4 +76,31 @@ describe('renderInstructions', () => {
     expect(byPath(w, '.cursor/rules/aidlc-workflow.mdc').content).toBe('---\nalwaysApply: true\n---\nWORKFLOW BODY\n')
     expect(byPath(w, '.cursor/rules/reverse-engineering.mdc').content).toBe('---\nalwaysApply: false\n---\nRE BODY\n')
   })
+
+  it('substitutes the {{SPEC_DIR}} token per tool (.kiro/specs for kiro, specs elsewhere)', () => {
+    writeFileSync(join(packDir, 'instructions/aidlc-workflow.md'), 'Spec bundle lives at {{SPEC_DIR}}/<spec-name>/')
+
+    const kiro = renderInstructions(manifest, packDir, 'kiro')
+    expect(byPath(kiro, '.kiro/steering/aidlc-workflow.md').content).toContain('.kiro/specs/<spec-name>/')
+
+    const claude = renderInstructions(manifest, packDir, 'claude-code')
+    expect(byPath(claude, 'CLAUDE.md').content).toContain('specs/<spec-name>/')
+    expect(byPath(claude, 'CLAUDE.md').content).not.toContain('.kiro/specs')
+
+    const copilot = renderInstructions(manifest, packDir, 'copilot')
+    expect(byPath(copilot, '.github/copilot-instructions.md').content).toContain('specs/<spec-name>/')
+    expect(byPath(copilot, '.github/copilot-instructions.md').content).not.toContain('.kiro/specs')
+
+    const cursor = renderInstructions(manifest, packDir, 'cursor')
+    expect(byPath(cursor, '.cursor/rules/aidlc-workflow.mdc').content).toContain('specs/<spec-name>/')
+
+    // no leftover token in any output
+    expect(byPath(kiro, '.kiro/steering/aidlc-workflow.md').content).not.toContain('{{SPEC_DIR}}')
+  })
+
+  it('leaves content unchanged when the {{SPEC_DIR}} token is absent (opt-in only)', () => {
+    // default fixtures contain no token → bodies pass through verbatim
+    const w = renderInstructions(manifest, packDir, 'kiro')
+    expect(byPath(w, '.kiro/steering/aidlc-workflow.md').content).toBe('---\ninclusion: always\n---\nWORKFLOW BODY\n')
+  })
 })
