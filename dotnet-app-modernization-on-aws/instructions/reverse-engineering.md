@@ -39,7 +39,13 @@ any location the user points you at for folders/files such as:
   report the user provides.
 
 If the user gives you an explicit path to such analysis, read it from there.
-**If none is found, skip this step** and proceed with a from-scratch analysis.
+**If none is found, skip this step and run the full reverse engineering below
+from scratch** (Steps 1–15, scanning the codebase directly). **If ATX analysis
+is found, switch to accelerated "reuse & verify" mode** — treat ATX as the
+primary input and do targeted code verification for gaps/reconciliation only,
+rather than a full from-scratch scan (see `aidlc-workflow.md` → Phase 0 → "Two
+modes"). Either way, the analysis documents in Steps 2–11 are still the
+deliverable.
 
 **How to use it:**
 - Treat ATX output as **source input, not final output** — extract facts

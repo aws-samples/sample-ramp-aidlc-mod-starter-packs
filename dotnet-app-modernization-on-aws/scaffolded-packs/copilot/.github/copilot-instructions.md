@@ -230,12 +230,41 @@ target framework(s), IIS/`web.config` dependencies, `Global.asax` startup,
 in-process session state, `System.Web` coupling, authentication mode, and any
 Windows-only dependencies that affect a move to Linux containers.
 
+### Two modes — depending on pre-existing AWS Transform (ATX) analysis
+
+First run `reverse-engineering.md` **Step 0** to detect any pre-existing AWS
+Transform (ATX) analysis, then choose the mode:
+
+- **No ATX analysis found → FULL reverse engineering (the default).** Run every
+  step of `reverse-engineering.md` from scratch, scanning the codebase directly.
+
+- **ATX analysis found → ACCELERATED "reuse & verify" mode.** Do NOT skip Phase 0
+  and do NOT blindly trust the analysis. Instead:
+  1. Ingest ATX output as the **primary input**.
+  2. Assess its **freshness** (has the code changed since the transform run?) and
+     **coverage** (does it span the whole in-scope app, and does it include what
+     downstream phases need — bounded contexts, statelessness/containerization
+     audit, AI-DLC modernization-readiness — which ATX may not produce?).
+  3. Do **targeted code verification only** — spot-check ATX claims and scan the
+     **gaps**, rather than a full from-scratch pass.
+  4. Reconcile discrepancies and attribute each finding's provenance (ATX vs your
+     own scan) in the `aidlc-docs/analysis/*` docs.
+
 ### Approval Gate
 Present a summary of findings (framework version, containerization blockers,
-state/config externalization needs, recommended modernization order). Wait for
-the user's explicit approval before moving to Phase 1.
+state/config externalization needs, recommended modernization order). When ATX
+analysis was used, also state **what ATX covered, how current it is, and what you
+verified**, and offer the user three choices:
 
-Update `aidlc-state.md`. Append to `audit.md`.
+- **(a)** accept the ATX-based analysis as-is,
+- **(b)** have me fill specific gaps / re-scan specific areas, or
+- **(c)** run a full from-scratch reverse-engineering pass.
+
+Wait for the user's explicit approval (and mode choice, when ATX was used) before
+moving to Phase 1.
+
+Update `aidlc-state.md`. Append to `audit.md` — including which mode was used and
+the user's choice.
 
 
 # PHASE 1: Requirements
