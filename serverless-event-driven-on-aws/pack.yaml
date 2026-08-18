@@ -1,0 +1,42 @@
+name: serverless-event-driven-on-aws
+title: Serverless Event-Driven on AWS
+description: Event-driven serverless systems — real-time streaming, subscription matching, notifications, and third-party integrations.
+
+instructions:
+  - file: aidlc-workflow.md
+    role: primary
+  - file: skill-activation.md
+    role: companion
+    load: always
+  - file: practices-discovery.md
+    role: companion
+    load: auto
+    description: "Team-practices capture — run once at the start of a workflow (before Phase 1) to record the team's tech stack, testing posture (current vs. target), coding conventions, branching model, and compliance constraints into aidlc-docs/team-practices.md. Load when starting a new workflow, on first session, or when capturing/revisiting team conventions."
+  - file: reverse-engineering.md
+    role: companion
+    load: auto
+    description: "Phase 0 reverse-engineering playbook — use when existing or brownfield source code is present, or when productionising an existing POC."
+
+command:
+  name: aidlc
+  description: Start the AI-DLC decision-gated workflow for this pack
+
+mcp:
+  - id: aws-knowledge-mcp-server
+    command: npx
+    args: ["mcp-remote", "https://knowledge-mcp.global.api.aws"]
+    autoApprove:
+      - aws___search_documentation
+      - aws___read_documentation
+      - aws___get_regional_availability
+      - aws___list_regions
+  - id: awslabs.aws-iac-mcp-server
+    command: uvx
+    args: ["awslabs.aws-iac-mcp-server@latest"]
+    env:
+      AWS_PROFILE: your-named-profile
+      FASTMCP_LOG_LEVEL: ERROR
+    autoApprove: []
+    disabled: true   # off by default so first launch never errors — set AWS_PROFILE (see README), then flip to false
+
+skills: all
