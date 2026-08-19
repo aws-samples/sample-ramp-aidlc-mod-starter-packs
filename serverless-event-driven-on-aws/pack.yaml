@@ -12,6 +12,10 @@ instructions:
     role: companion
     load: auto
     description: "Team-practices capture — run once at the start of a workflow (before Phase 1) to record the team's tech stack, testing posture (current vs. target), coding conventions, branching model, and compliance constraints into aidlc-docs/team-practices.md. Load when starting a new workflow, on first session, or when capturing/revisiting team conventions."
+  - file: multi-repo-projects.md
+    role: companion
+    load: auto
+    description: "Repo-model decision gate + multi-repo flow — run the gate at the start (single repo / frontend + backend split / other multi-repo). Load when the system spans more than one repository, to capture system-level requirements and design once, freeze the shared API + event contracts, split into per-repo slices, and fan out. Single-repo projects skip the flow."
   - file: reverse-engineering.md
     role: companion
     load: auto

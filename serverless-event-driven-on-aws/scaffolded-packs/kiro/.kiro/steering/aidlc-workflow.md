@@ -24,8 +24,9 @@ modernize, or change anything that warrants a spec.
 2. If no state file exists, decide if this is **brownfield** (existing code present) or **greenfield** (no existing code)
 3. Create `aidlc-docs/aidlc-state.md` and `aidlc-docs/audit.md`
 4. Run **Practices Discovery** (follow `practices-discovery.md`) — capture the team's stack, testing posture (current vs target), conventions, and compliance constraints into `aidlc-docs/practices.md`. This is a light gate that grounds every later phase.
-5. Brownfield → start at **Phase 0**. Greenfield → start at **Phase 1**.
-6. Follow the workflow sequentially with approval gates. At each decision file, surface **both** the phase's primary decisions **and** the testability/quality decisions (Phase 1 = Product + Testability; Phase 2 = Architecture + Test Architecture; Phase 3 = test sequencing) so quality is shaped in at every gate, not bolted on later.
+5. Run the **repo-model decision gate** (follow `multi-repo-projects.md`) — ask how the system's code is organized: **single repo (monorepo)** / **frontend + backend split** / **other multi-repo (3+)**. Record it in state as **Repo Model**. If **multi-repo**, follow the Multi-Repo Flow in that file (capture system requirements + design, freeze the API/event contracts, split into per-repo slices, then fan out); if **single repo**, run the standard phases below.
+6. Brownfield → start at **Phase 0**. Greenfield → start at **Phase 1** (or, if multi-repo, the system-level Requirements → Design first — see `multi-repo-projects.md`).
+7. Follow the workflow sequentially with approval gates. At each decision file, surface **both** the phase's primary decisions **and** the testability/quality decisions (Phase 1 = Product + Testability; Phase 2 = Architecture + Test Architecture; Phase 3 = test sequencing) so quality is shaped in at every gate, not bolted on later.
 
 
 ## Workflow Overview
@@ -128,6 +129,8 @@ session start, **resume** from the recorded state.
 
 ## Project Info
 - **Project Type**: [Greenfield / Brownfield Modernization / Feature on existing system]
+- **Repo Model**: [Single repo (monorepo) / Frontend + Backend split / Other multi-repo]
+- **Spec Placement** (if multi-repo): [Central specs repo / Co-located / Hybrid]
 - **Existing Stack** (if brownfield): [e.g., language, framework, database, cloud services]
 - **Target Architecture**: [e.g., target platform / runtime / deployment model]
 - **Active Spec**: [name of the spec currently being worked on]

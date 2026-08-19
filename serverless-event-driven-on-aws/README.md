@@ -74,6 +74,8 @@ Phase 1 Requirements → Phase 2 Design → Phase 3 Tasks (independent parallel 
 
 **Practices Discovery:** On first run, a lightweight team-practices capture exercise grounds the AI in your conventions (tech stack, testing posture current→target, coding standards, compliance constraints).
 
+**Multi-repo support:** A repo-model decision gate asks how your code is organized — **single repo (monorepo)**, **frontend + backend split**, or **other multi-repo (3+)**. Single-repo runs the standard flow above. Multi-repo runs a two-level flow — capture the whole system's requirements + design once, **freeze the shared API + event contracts**, split into per-repo slices, then fan out to per-repo Requirements → Design → Tasks in parallel — so independent repos don't drift out of sync. See `multi-repo-projects.md`.
+
 **Invariants:** decision-file before every spec doc · real approval gates · skills/MCP activated before design & code · every decision appended to an append-only audit log; progress tracked for session resume.
 
 ## What's in this pack
@@ -85,6 +87,7 @@ serverless-event-driven-on-aws/
 │   ├── aidlc-workflow.md           # Decision-gated Requirements → Design → Tasks (primary)
 │   ├── skill-activation.md         # When to activate which skill + MCP (companion, always)
 │   ├── practices-discovery.md      # Team context capture, run once before Phase 1 (companion, auto)
+│   ├── multi-repo-projects.md      # Repo-model gate + multi-repo flow (companion, auto)
 │   └── reverse-engineering.md      # Phase 0 playbook (companion, brownfield-only)
 └── skills/                       # AWS + patterns + testing skills (see Skills below)
     ├── aws-event-driven-patterns/    aws-messaging-and-streaming/  amazon-dynamodb/
@@ -106,6 +109,7 @@ The neutral instructions declare a **role** (`primary` / `companion`) and a **lo
 | `aidlc-workflow` (primary) | `.kiro/steering/*` `inclusion: always` | `CLAUDE.md` | `.github/copilot-instructions.md` | `.cursor/rules/*.mdc` `alwaysApply: true` |
 | `skill-activation` (always) | `inclusion: always` | `.claude/rules/*` | `.github/instructions/*` `applyTo: '**'` | `.mdc` `alwaysApply: false` |
 | `practices-discovery` (auto) | `inclusion: auto` | `.claude/rules/*` | `.github/instructions/*` (conditional) | `.mdc` `alwaysApply: false` |
+| `multi-repo-projects` (auto) | `inclusion: auto` | `.claude/rules/*` | `.github/instructions/*` (conditional) | `.mdc` `alwaysApply: false` |
 | `reverse-engineering` (auto) | `inclusion: auto` | `.claude/rules/*` | `.github/instructions/*` (conditional) | `.mdc` `alwaysApply: false` |
 | `/aidlc` command | — | `.claude/commands/aidlc.md` | `.github/prompts/aidlc.prompt.md` | — |
 
