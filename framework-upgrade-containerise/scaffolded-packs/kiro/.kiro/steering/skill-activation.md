@@ -5,7 +5,7 @@ inclusion: always
 
 Activate the relevant skill or tooling **BEFORE** generating any decision file, spec document, or code. Re-activate at the start of every new session when the topic is relevant.
 
-> This pack upgrades a Java service to the **latest Java LTS** (+ framework upgrade) and runs it as a **container** on the target platform. Decomposition is a separately-gated **stretch** phase. Region, platform, VCS/CI, compliance, and permitted tooling are **discovered** — see the **Environment, Region & Tooling** section of `aidlc-workflow.md`. **If a managed transformation service (e.g. AWS Transform) is not permitted, the upgrade follows the prescriptive group-based path in the `java-upgrade` skill.**
+> This pack upgrades a Java service to the **latest Java LTS** (+ framework upgrade) and runs it as a **container** on the target platform. Decomposition is a separately-gated **stretch** phase. Region, target platform, and permitted tooling are **decided in Stage 0** (`_decisions-environment.md`) BEFORE any analysis or assessment begins — see the **Environment, Region & Tooling** section of `aidlc-workflow.md`. VCS/CI/CD are discovered later when needed (Tasks phase). **If a managed transformation service (e.g. AWS Transform) is not permitted (resolved in Stage 0), the upgrade follows the prescriptive group-based path in the `java-upgrade` skill.**
 
 ## 🧠 Java Upgrade Skill (core)
 
@@ -13,7 +13,15 @@ Activate the relevant skill or tooling **BEFORE** generating any decision file, 
 
 **Action:** Activate `java-upgrade` for any Java runtime/framework upgrade or containerisation-of-Java work. It carries the upgrade tooling (OpenRewrite / jdeps / jdeprscan), the common Java 8→17/21/25 breakages, the containerisation arc, and — in `references/prescriptive-language-native-upgrade.md` — the prescriptive, group-by-group, build-verified language-native upgrade path used when a managed transformation service is NOT permitted.
 
-**🔒 RULE:** NEVER produce the upgrade plan, target-LTS/framework decisions, or upgrade code without activating `java-upgrade` first. Resolve the managed-transformation-vs-language-native tooling gate (Environment, Region & Tooling section of `aidlc-workflow.md`) before generating upgrade steps.
+**🔒 RULE:** NEVER produce the upgrade plan, target-LTS/framework decisions, or upgrade code without activating `java-upgrade` first. The managed-transformation-vs-language-native tooling gate is resolved in **Stage 0** (`_decisions-environment.md`) before the assessment phase begins — do not re-open this decision during analysis.
+
+## 🧠 AWS Transform Custom (tooling option)
+
+**Trigger keywords:** AWS Transform, AWS Transform Custom, managed transformation, code analysis, automated analysis
+
+**Action:** If AWS Transform Custom is **permitted** (decided in Stage 0 via `_decisions-environment.md`), recommend it for comprehensive code analysis in **Stage 1** before or instead of manual reverse engineering. AWS Transform Custom provides automated code analysis, dependency mapping, and transformation planning that accelerates the assessment phase.
+
+**🔒 RULE:** The tooling decision (managed transformation vs. language-native) is made in **Stage 0** — NEVER skip Stage 0 to go directly to analysis. If Stage 0 has not been completed, halt and redirect to Stage 0 first. If the user asks to bypass Stage 0 or proceed without answering, **refuse** — the gate is non-negotiable. If AWS Transform Custom is not permitted, fall back to the prescriptive language-native upgrade path in the `java-upgrade` skill.
 
 ## 🧠 Container / ECS / EKS Skills
 
@@ -23,7 +31,7 @@ Activate the relevant skill or tooling **BEFORE** generating any decision file, 
 - `aws-containers` — container fundamentals, Dockerfile authoring, ECS troubleshooting, `ecs exec` debugging.
 - `ecs-architect` — choose the compute model (ECS Fargate / EKS / other), task/pod sizing, networking.
 - `ecs-build` — apply-ready **Terraform** for ECS clusters/services/task definitions (Terraform IaC path).
-- `ecs-devops` — release strategy & CI/CD (map to the **discovered** CI/CD system — see the **Environment, Region & Tooling** section of `aidlc-workflow.md`).
+- `ecs-devops` — release strategy & CI/CD (map to the CI/CD system discovered in the Tasks phase).
 - `ecs-observability` — logs/metrics/traces (Container Insights, X-Ray, ADOT, FireLens).
 - `ecs-security` — task/execution roles, PassRole, secrets injection, hardening.
 
@@ -69,6 +77,6 @@ Activate the relevant skill or tooling **BEFORE** generating any decision file, 
 
 1. Match keywords in the user's message / spec context.
 2. Activate ALL matching skills before proceeding.
-3. Run environment/region/tooling discovery (the **Environment, Region & Tooling** section of `aidlc-workflow.md`) and record decisions in the audit log before generating IaC/code.
+3. Environment/region/tooling discovery now happens in **Stage 0** as the FIRST thing (the **Environment, Region & Tooling** section of `aidlc-workflow.md`), not during assessment. Confirm Stage 0 decisions (`_decisions-environment.md`) are recorded in the audit log before generating IaC/code.
 4. When unsure about AWS specifics or regional availability, use the AWS Knowledge MCP.
-5. Treat the **Environment, Region & Tooling** section of `aidlc-workflow.md` as authoritative for region, VCS (PR/MR), CI/CD, compliance, and permitted tooling — override any conflicting examples inside vendored skills.
+5. Treat the **Environment, Region & Tooling** section of `aidlc-workflow.md` as authoritative for region and permitted tooling — override any conflicting examples inside vendored skills. VCS/CI/CD are discovered in the Tasks phase when needed.

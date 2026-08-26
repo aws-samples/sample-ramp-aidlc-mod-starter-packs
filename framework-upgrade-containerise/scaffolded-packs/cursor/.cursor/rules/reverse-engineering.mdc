@@ -3,10 +3,14 @@ alwaysApply: false
 ---
 # Assessment (Reverse Engineering) — Upgrade-focused
 
+> **⚠️ FALLBACK PATH:** This manual reverse-engineering flow is the fallback when **AWS Transform Custom is not available or not permitted**. If AWS Transform Custom was chosen in Stage 0, its comprehensive analysis output feeds directly into the assessment artifacts instead — skip this file and proceed to artifact generation from the Transform Custom report.
+
 **Purpose**: Analyze the existing Java service to ground a **runtime/framework upgrade to the latest Java LTS + containerisation** decision. **This is NOT a microservices-decomposition analysis** for the primary objective — do not produce bounded-context/coupling/strangler-fig artifacts unless the separately-gated decomposition stretch phase is entered.
 
-**Execute when**: Brownfield project detected (existing code found).
-**Skip when**: Greenfield (no existing code).
+**This phase is entered ONLY after Stage 0 (environment/tooling decisions) has been completed** — meaning `_decisions-environment.md` is approved — and the user has indicated that AWS Transform Custom cannot be used, or after AWS Transform Custom analysis is done and deeper manual analysis is required.
+
+**Execute when**: Brownfield project detected (existing code found) AND Stage 0 decisions are approved.
+**Skip when**: Greenfield (no existing code), OR AWS Transform Custom analysis is sufficient.
 **Rerun behavior**: Always rerun when brownfield detected, so artifacts reflect current code state.
 
 ## Step 1: Discovery
@@ -28,10 +32,10 @@ alwaysApply: false
 
 ### 1.4 Test & quality posture
 - Test frameworks and **current coverage**.
-- CI/CD touchpoints (discovered via the **Environment, Region & Tooling** section of `aidlc-workflow.md`) and how the build is triggered.
+- CI/CD touchpoints and how the build is triggered today (observed, not gated — CI/CD platform choice is deferred to the Tasks phase).
 
 ### 1.5 Environment / region / tooling
-- Run the discovery in the **Environment, Region & Tooling** section of `aidlc-workflow.md`: target cloud & **region + restrictions**, VCS (PR/MR), CI/CD system, compliance regime, and any **permitted/prohibited tooling**.
+- Environment/region/tooling was already discovered in Stage 0 — refer to the approved `_decisions-environment.md` and `audit.md`.
 
 ## Step 2–7: Baseline documentation
 Create under `aidlc-docs/analysis/`:

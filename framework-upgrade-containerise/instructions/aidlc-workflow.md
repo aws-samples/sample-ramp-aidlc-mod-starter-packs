@@ -76,7 +76,8 @@ User Request
 ║  _decisions-requirements.md → requirements.md            ║
 ║  _decisions-design.md → design.md                        ║
 ║  _decisions-tasks.md → tasks.md                          ║
-║  Task sections: Upgrade │ Containerise │ Deploy │ Verify ║
+║  Task sections: Upgrade │ Validate locally │ Containerise║
+║                 │ Deploy │ Verify                        ║
 ╚══════════════════════════════════════════════════════════╝
      |
      v
@@ -317,6 +318,7 @@ Capture into `aidlc-docs/analysis/`:
 **Runtime & framework:** confirm target JDK + base image; framework migration path.
 **Compute target:** **ECS Fargate vs EKS vs other** — validate the choice's regional availability via AWS Knowledge MCP (see the **Environment, Region & Tooling** section).
 **Container & config:** multi-stage build, non-root, config/secrets in a managed store.
+**Local runtime validation (pre-containerisation gate):** how the upgraded app is run natively on the target JDK (build-tool run target / `java -jar`, local port), the health/readiness endpoint to probe, and the smoke/regression checks that must pass before containerisation begins.
 **Infra & ops:** **IaC tool decision** (Terraform vs CloudFormation vs other permitted); observability; identity/least-privilege; **region** (respect discovered restrictions + fallback gate); CI/CD mapped to the discovered pipeline.
 → `design.md`: target-state architecture (Mermaid) for the containerised service; before/after; container/image design; config/secrets; IaC plan; observability & IAM; region/compliance notes; upgrade risk assessment. Approval gate.
 
@@ -340,10 +342,22 @@ Organised by section (users pick what to execute):
 - [ ] Run jdeps / jdeprscan; resolve removed/deprecated API usage
 - [ ] Confirm build + full test suite pass on the target JDK; log every group's outcome in audit.md
 
+## Validate locally (native runtime — CHECKPOINT before containerising)
+> A successful build is not proof the app **runs**. Before adding container packaging (another failure
+> surface), run the upgraded app **natively on the target JDK** and prove it works at runtime — so
+> genuine upgrade/runtime issues are surfaced and fixed here, isolated from container concerns.
+- [ ] Run the upgraded app locally on the target JDK (e.g. `mvn spring-boot:run` / `gradle bootRun` / `java -jar target/<artifact>.jar`)
+- [ ] Confirm clean startup — application context / DI initialises, no runtime errors or unexpected warnings in the startup logs
+- [ ] Hit the health / readiness endpoint and exercise key runtime paths (DB connectivity, external integrations, auth, scheduled jobs)
+- [ ] Run the regression net / smoke tests against the **locally running** app; confirm behaviour parity with the pre-upgrade baseline
+- [ ] Resolve any runtime-only issues surfaced now (reflection, `javax`→`jakarta` runtime bindings, config/property binding, TLS/serialization, GC/flags)
+- [ ] **🔒 GATE — do not containerise until this passes:** present the local run result; on approval, log the outcome in `aidlc-docs/audit.md` and update `aidlc-state.md`
+
 ## Containerise (only if not already containerised)
+> Enter only after the **local runtime validation checkpoint** above has passed and been approved.
 - [ ] Author multi-stage Dockerfile (JDK build → slim JRE), non-root user
 - [ ] Externalise config/secrets to a managed store
-- [ ] Build image; run locally; smoke test
+- [ ] Build image; run the **container** locally; smoke test — confirm parity with the native local run from the checkpoint above
 
 ## Deploy (chosen platform + region)
 - [ ] Author IaC with the chosen tool; validate service availability in the target region (AWS Knowledge MCP)
@@ -444,6 +458,7 @@ Log each gate decision (region fallback, tooling choice) to `aidlc-docs/audit.md
 - **Gate on what matters upfront** — region, permitted tooling, target platform (Stage 0); discover VCS/CI/CD later when they're needed (Design/Tasks phases). Validate AWS choices with the AWS Knowledge MCP.
 - **Security as guardrails, not promises** — enforce least-privilege IAM, encryption, secrets management, non-root containers throughout, rather than asking compliance questions upfront.
 - **Language-native upgrade tooling** (OpenRewrite / jdeps / jdeprscan) — but if the user has a preferred/mandated tool, honour it via the tooling gate.
+- **Validate the runtime locally before containerising** — a green build isn't a running app; prove the upgraded service runs natively on the new JDK and passes smoke/regression checks first, so runtime issues are isolated from container/packaging issues.
 - **Regression-first** — behaviour parity is the safety net for the version jump.
 - **Decision-driven & auditable** — every spec phase and every environment/tooling choice is gated and logged.
 
