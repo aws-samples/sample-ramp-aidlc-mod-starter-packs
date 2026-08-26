@@ -44,6 +44,7 @@ Learn more:
 | [**voice-ai-agent-on-aws**](voice-ai-agent-on-aws/) | Real-time voice AI agents on AWS — e.g. adding a voice channel to an existing text/chat platform | Amazon Nova Sonic speech-to-speech + Strands BidiAgent; text-agent→voice migration (LangChain/OpenAI/custom); voice UX, latency & cost optimization skills |
 | [**ocr-mobile-app-on-serverless**](ocr-mobile-app-on-serverless/) | Mobile capture app + serverless computer-vision extraction pipeline — e.g. digitizing printed/handwritten forms into structured data | Android/Kotlin (Compose + CameraX) + Textract/Bedrock/Step Functions CV pipeline; human-in-the-loop review; Kotlin/Android/serverless/Terraform + PBT skills |
 | [**api-platform-migration-n-modernization**](api-platform-migration-n-modernization/) | API platform migration & modernization — e.g. API Gateway platform / POC with Terraform | Deep API Gateway skill (16 references) + HashiCorp Terraform tooling |
+| [**vulnerability-remediation-pipeline**](vulnerability-remediation-pipeline/) | Build & deploy an agentic vulnerability-remediation pipeline on AWS — ingest a GitLab report, triage/dedupe findings, remediate Node.js deps, raise MRs | Domain skills (triage/CVSS/EPSS/KEV, npm dependency remediation, GitLab MR delivery) + serverless build set (Lambda, durable functions, Step Functions, API Gateway, IAM, observability, SAM/CDK/Terraform); GitLab MCP (opt-in) |
 | [**regression-software-testing**](regression-software-testing/) | Build a regression safety net before a major upgrade | Behavior-first test strategy; steering-only; survives version/framework upgrades |
 | [**qa-automated-testing**](qa-automated-testing/) | Build automated test suites for web and/or mobile apps | Web (Playwright-first) & mobile (Maestro/Appium-first) testing skills; AWS Device Farm CI guidance |
 | [**agentic-ai-workflow**](agentic-ai-workflow/) | Reusable AI-DLC + skills + MCP environment | Agentic-AI & Terraform skills; install script; worked sample guide |
@@ -75,6 +76,7 @@ aidlc-for-modernization-starter-packs/
 ├── voice-ai-agent-on-aws/                    # Real-time voice AI agents on AWS (Amazon Nova Sonic)
 ├── ocr-mobile-app-on-serverless/             # Mobile capture + serverless computer-vision extraction pipeline
 ├── api-platform-migration-n-modernization/   # API platform migration & modernization (Terraform)
+├── vulnerability-remediation-pipeline/       # Agentic vulnerability-remediation pipeline on AWS (Node.js + GitLab)
 ├── regression-software-testing/                    # Pre-upgrade regression testing (steering-only docs)
 ├── qa-automated-testing/                           # Automated web & mobile test suites
 └── agentic-ai-workflow/                            # Reusable AI-DLC + skills + MCP environment
