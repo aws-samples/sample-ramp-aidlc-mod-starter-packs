@@ -16,7 +16,7 @@ path. If not reached, capture it as a documented next step.
 
 **Tooling & environment are discovered, not assumed** — follow the **Environment, Region & Tooling** section: ask for the
 target region and any restrictions, validate AWS services/regional availability with the AWS Knowledge
-MCP, and turn any constraint (region, permitted tools, VCS/CI, compliance) into an audited decision.
+MCP, and turn any constraint (region, permitted tools, target platform) into an audited decision.
 
 ---
 
@@ -29,12 +29,23 @@ MCP, and turn any constraint (region, permitted tools, VCS/CI, compliance) into 
 - DO NOT make architectural / tooling / region decisions without user approval (see the **Environment, Region & Tooling** section)
 - DO NOT skip ahead to code generation
 - DO NOT begin microservice decomposition as part of the primary objective — it is a **stretch** phase entered only after explicit approval
+- DO NOT proceed past Stage 0 without answers to `_decisions-environment.md` — see the hard-block rule below
+
+**🚫 HARD-BLOCK RULE — NO ASSUMPTIONS, NO BYPASSES:**
+> If the user has not answered the Stage 0 decision file (`_decisions-environment.md`), you **CANNOT** proceed. You cannot assume defaults. You cannot infer answers. You cannot offer to "proceed with trade-offs." The gate is absolute.
+>
+> **If the user asks "can you proceed without my answers?" or "what if I skip this?" — the answer is NO.** Respond: *"I need these answers before we can move forward — they determine the analysis approach, tooling, and constraints for the entire engagement. Which questions can I help clarify?"*
+>
+> **If the user says "just assume defaults" or "use your best judgement" — the answer is still NO.** Respond: *"These decisions are yours to make — the audit trail requires explicit human input on environment, region, and tooling. Even quick one-word answers are fine."*
+>
+> The ONLY way past Stage 0 is explicit answers from the user recorded in the decision file.
 
 **MANDATORY FIRST ACTIONS (in order):**
 1. Check if `aidlc-docs/aidlc-state.md` exists — if yes, resume from where we left off.
-2. If no state file exists, start at Stage 1: Assessment.
+2. If no state file exists, start at Stage 0: Environment & Tooling Decisions.
 3. Create `aidlc-docs/aidlc-state.md` and `aidlc-docs/audit.md` FIRST.
 4. Follow the workflow below sequentially, with user approval gates.
+5. **NEVER proceed past a gate without explicit user answers — not assumptions, not defaults, not "best judgement."**
 
 ---
 
@@ -44,10 +55,19 @@ MCP, and turn any constraint (region, permitted tools, VCS/CI, compliance) into 
 User Request
      |
      v
+╔══════════════════════════════════════════════════════════╗
+║  STAGE 0: Environment & Tooling Decisions                ║
+║  _decisions-environment.md → WAIT → region,              ║
+║  permitted tooling, target platform                      ║
+║  → determines analysis approach for Stage 1              ║
+╚══════════════════════════════════════════════════════════╝
+     |
+     v
 ╔══════════════════════════════════════════════╗
 ║  STAGE 1: Assessment (Reverse Engineering)   ║
 ║  Stack, current JDK, build tool, frameworks, ║
-║  deploy/container status + environment/region║
+║  deploy/container status (analysis approach  ║
+║  already decided in Stage 0)                 ║
 ╚══════════════════════════════════════════════╝
      |
      v
@@ -69,7 +89,7 @@ User Request
 ╚══════════════════════════════════════════════╝
 ```
 
-**Total (primary): 1 spec, 6 files, 6 approval gates.** Stretch adds its own gated spec.
+**Total (primary): 1 spec, 7 files, 7 approval gates.** Stretch adds its own gated spec.
 
 ---
 
@@ -128,12 +148,13 @@ Track progress in `aidlc-docs/aidlc-state.md`. If it exists on start, resume. Cr
 - **Target Framework**: [e.g., Spring Boot 3.x / jakarta]
 - **Already containerised?**: [yes/no]
 - **Target Platform**: [ECS Fargate | EKS | other]
-- **Target Region / restrictions**: [discovered via the Environment, Region & Tooling section]
+- **Target Region / restrictions**: [discovered via Stage 0 — Environment & Tooling Decisions]
 - **IaC tool**: [Terraform | CloudFormation | other]
 - **Decomposition (stretch)**: [not started | in progress]
 
 ## Stage Progress
-- [ ] 1. Assessment (Reverse Engineering) + environment discovery
+- [ ] 0. Environment & Tooling Decisions (_decisions-environment.md → approved)
+- [ ] 1. Assessment (Reverse Engineering)
 - [ ] 2. Upgrade + Containerisation Spec
   - [ ] 2a–2c Requirements (decisions → requirements.md → approved)
   - [ ] 2d–2f Design (decisions → design.md → approved)
@@ -186,19 +207,101 @@ every architectural / **environment / region / tooling** decision with rationale
 Rules: 3–4 concrete options; mark one "Recommended" with rationale; validate critical decisions are
 answered before generating the document; questions go in decision files, never in chat.
 
+**🚫 BYPASS PREVENTION:** A decision file is a HARD GATE. The workflow CANNOT advance past it until the user provides explicit answers. If the user asks to skip, asks "can you just proceed?", or says "assume defaults" — **refuse and re-present the unanswered questions.** You are not permitted to assume, infer, or default your way past a decision gate. The user must answer.
+
 ---
 
-# STAGE 1: Assessment (Reverse Engineering) + Environment Discovery
+# STAGE 0: Environment & Tooling Decisions
 
-**MANDATORY**: load and follow `reverse-engineering.md` (upgrade-focused) AND the **Environment, Region & Tooling** section.
+**MANDATORY**: This is the VERY FIRST stage. Do NOT perform any code analysis yet.
+
+## Actions
+
+1. **Create `aidlc-docs/_decisions-environment.md`** as the very first action — before any code scanning or reverse engineering.
+
+The decision file must contain the following questions (use the standard decision file format).
+
+> **Keep it tight.** Only ask what directly affects the next workflow steps. VCS, CI/CD, and requirements tracking are discovered later (Design/Tasks phases) when they actually matter. Compliance is enforced as guardrails in subsequent phases (least-privilege IAM, encryption, secrets management) — not promised upfront.
+
+```markdown
+# Decisions: Environment & Tooling
+
+> Review each decision point. Recommendations are provided. Fill in the "Answer" sections, then confirm.
+> These decisions determine the analysis approach and target constraints — no code analysis begins until they are resolved.
+
+## Target Region
+### AWS Region & Restrictions
+**Question:** Which AWS region should the workload run in? Are there any region restrictions (e.g. must stay in a single region, data-residency mandate)?
+**Options:**
+1. Specific region (specify): _______________________
+2. Multiple regions (specify): _______________________
+3. No preference — recommend based on service availability
+**Answer:**
+
+---
+
+## Tooling Restrictions
+### Analysis & Transformation Tooling
+**Question:** Is **AWS Transform Custom** permitted for comprehensive automated code analysis and transformation? Are there any other tools that are explicitly prohibited?
+**Options:**
+1. AWS Transform Custom IS permitted - Recommended: Provides automated code analysis, dependency mapping, and transformation plans for Java upgrades
+2. AWS Transform Custom is NOT permitted: Will use manual reverse engineering and language-native tooling (OpenRewrite, jdeps, jdeprscan) instead
+3. Other restrictions (specify what is allowed/prohibited): _______________________
+**Answer:**
+
+---
+
+## Target Platform
+### Container Compute Target
+**Question:** What is the target container platform? (This affects skill activation and IaC approach.)
+**Options:**
+1. Amazon ECS on Fargate - Recommended: Serverless containers, lowest operational overhead
+2. Amazon ECS on EC2: Container orchestration with instance control
+3. Amazon EKS: Kubernetes-native
+4. Other (specify): _______________________
+**Answer:**
+
+---
+```
+
+2. **WAIT** for user answers before proceeding. Do not begin code analysis.
+
+   **🚫 THIS IS A HARD BLOCK — NOT A SUGGESTION:**
+   - You CANNOT proceed without explicit answers.
+   - You CANNOT assume defaults, infer from context, or offer to "proceed with trade-offs."
+   - If the user asks to skip, says "just go ahead," or asks if you can proceed without answers → **refuse politely and re-ask**.
+   - The only exit from this wait state is the user providing answers to each decision category.
+   - Unanswered questions remain open — re-present them until answered.
+
+3. **After answers are received**, evaluate the tooling decision:
+   - **If AWS Transform Custom IS permitted:** Record in the audit log. Recommend AWS Transform Custom as the primary analysis approach for Stage 1 — it provides comprehensive automated code analysis, dependency mapping, and transformation planning. Proceed to Stage 1 with the AWS Transform Custom analysis path.
+   - **If AWS Transform Custom is NOT permitted:** Record in the audit log. Stage 1 will use the manual reverse engineering flow — language-native tooling (OpenRewrite recipes, jdeps, jdeprscan) and manual codebase analysis per the `reverse-engineering.md` instructions and the `java-upgrade` skill.
+
+4. Log all environment decisions to `aidlc-docs/audit.md`.
+5. Update `aidlc-state.md` — mark Stage 0 complete.
+
+### Completion Gate — all environment questions answered; analysis approach for Stage 1 determined; update `aidlc-state.md`.
+
+> **Gate validation:** Before marking Stage 0 complete, verify that EVERY decision category in `_decisions-environment.md` has an explicit user-provided answer. If any category is blank or answered only with AI-assumed defaults, the gate is NOT passed. Re-ask the unanswered questions.
+
+---
+
+# STAGE 1: Assessment (Reverse Engineering)
+
+> **Pre-requisite:** Stage 0 (Environment & Tooling Decisions) must be complete. The analysis approach (AWS Transform Custom vs manual reverse engineering), target region, and target platform were already decided in Stage 0.
+
+**MANDATORY**: load and follow `reverse-engineering.md` (upgrade-focused).
+
+**Analysis approach** (decided in Stage 0):
+- If **AWS Transform Custom** was permitted and chosen: use it for comprehensive code analysis, dependency mapping, and transformation planning. Supplement with manual inspection where needed.
+- If **AWS Transform Custom** was NOT permitted: follow the manual reverse engineering flow — use language-native tooling (jdeps, jdeprscan, OpenRewrite discovery recipes) and manual codebase analysis.
 
 Capture into `aidlc-docs/analysis/`:
 1. Language/framework/build tool (Maven vs Gradle) and **current JDK target**.
 2. Framework & library versions and their Java-LTS compatibility → recommended target LTS.
 3. **Java-version risk surface** (removed `javax.*`/JAXB, JDK-internal encapsulation, Nashorn, TLS/serialization, GC/flags, Security Manager) — see the `java-upgrade` skill.
 4. **Deployment & container status** (already containerised? deploy model?).
-5. **Environment/region/tooling** answers via the **Environment, Region & Tooling** section (target region + restrictions, VCS, CI/CD, compliance, permitted/prohibited tools).
-6. **Behaviour baseline** for the regression net (the `regression-testing` skill).
+5. **Behaviour baseline** for the regression net (the `regression-testing` skill).
 
 ### Completion Gate — present the assessment; wait for approval; update `aidlc-state.md`.
 
@@ -273,22 +376,26 @@ coupling observations) as guidance, not implementation.
 
 # Environment, Region & Tooling — Discovery & Decision Gates
 
-> **Do not assume a cloud region, a version-control system, a CI/CD platform, a compliance regime, or which tooling is permitted.** Discover these, validate them against reality with the **AWS Knowledge MCP**, and turn anything constrained into an explicit, audited decision. Every choice here is logged to `aidlc-docs/audit.md`.
+> **Critical decisions are asked in Stage 0** via `aidlc-docs/_decisions-environment.md` — the very first action in the workflow (region, permitted tooling, target platform). Do not assume these. VCS, CI/CD, and requirements tracking are discovered later in the Design/Tasks phases when they become directly relevant. Validate AWS choices against reality with the **AWS Knowledge MCP**. Every choice is logged to `aidlc-docs/audit.md`.
 
-This runs early (Stage 1 assessment) and is revisited whenever a design choice depends on a service, region, or tool.
+This section defines the validation and fallback logic used after Stage 0 answers are received, and revisited whenever a design choice depends on a service, region, or tool.
 
-## 1. Discover the environment (ask — don't assume)
+## 1. Discover the environment (Stage 0 — `_decisions-environment.md`)
 
-Put these as questions in the decision file (never hard-code answers):
+The following are captured in Stage 0's decision file (`aidlc-docs/_decisions-environment.md`):
 
-- **Target cloud & region.** Which cloud and which **region(s)** should the workload run in? Any **data-residency or region restrictions** (e.g. a single mandated region, gov/regulated boundary)?
-- **Version control.** Which VCS/host (GitHub, self-hosted GitLab, Bitbucket, CodeCommit, …)? What is the change-submission unit — **Pull Request** or **Merge Request**?
-- **CI/CD.** Which pipeline system (GitHub Actions, GitLab CI, GoCD, Jenkins, CodePipeline, …)? Map all release guidance to *that* system.
-- **Compliance / governance.** Any regime that constrains services, data handling, or IAM (e.g. gov infosec policy, PCI, HIPAA)? Any **data-egress restrictions** (can code/data be sent to third-party endpoints/MCPs)?
-- **Tooling restrictions.** Are there any **approved/allowed** or **prohibited** tools or managed services (e.g. a specific migration tool is or isn't permitted)? Capture the allow/deny list rather than assuming.
-- **Requirements & tracking.** Where do requirements live (issue tracker, cards, docs)?
+- **Target region.** Which AWS **region(s)** should the workload run in? Any **data-residency or region restrictions**?
+- **Tooling restrictions.** Are there any **prohibited** tools or managed services (e.g. AWS Transform Custom is or isn't permitted)?
+- **Target platform.** What container compute target (ECS Fargate / ECS EC2 / EKS / other)?
 
-> An optional overlay file (e.g. `customer-profile.example.md`) may pre-fill these answers for a specific engagement. If such a file is present and the user points you to it, treat it as the source for these decisions — but still surface the choices in the audit trail. Absent an overlay, always ask.
+The following are discovered **later** (Design/Tasks phases) when they become directly relevant:
+- **Version control.** Which VCS/host and change-submission unit (PR vs MR) — asked in the Tasks phase when raising the change.
+- **CI/CD.** Which pipeline system — asked in the Tasks phase when wiring tests and deployments.
+- **Requirements & tracking.** Where work items live — asked when linking deliverables.
+
+**Compliance & governance** are not asked upfront (asking implies a compliance guarantee we cannot make). Instead, security best practices are enforced as guardrails throughout: least-privilege IAM, encryption in transit/at rest, secrets in managed stores, non-root containers. If specific compliance constraints surface during execution, they are captured in the audit log and addressed in the relevant phase.
+
+> An optional overlay file (e.g. `customer-profile.example.md`) may pre-fill these answers for a specific engagement. If such a file is present and the user points you to it, treat it as the source for these decisions — but still surface the choices in the audit trail. Absent an overlay, always ask via Stage 0.
 
 ## 2. Assess AWS tooling & regional availability (use AWS Knowledge MCP)
 
@@ -320,14 +427,13 @@ When a preferred (AWS or otherwise) service/tool is unavailable, not permitted, 
 
 ## 5. Apply discovered conventions consistently
 
-Once discovered, treat the answers as authoritative and **override any conflicting example inside vendored skills** (skills are reference knowledge and often show one specific VCS/CI/region as an illustration):
+Once discovered (whether in Stage 0 or later phases), treat answers as authoritative and **override any conflicting example inside vendored skills** (skills are reference knowledge and often show one specific VCS/CI/region as an illustration):
 
-- Use the discovered **VCS term** (PR vs MR) and host in all guidance.
-- Map CI/CD to the discovered **pipeline system**.
-- Stay within the discovered **region(s)** and **compliance** constraints; apply least-privilege IAM, encryption in transit/at rest, and secrets in a managed secret store by default.
-- Respect **data-egress** rules — if egress is restricted, use scoped credentials and avoid sending source/data to unapproved endpoints (the AWS Knowledge MCP is read-only public documentation).
+- Stay within the discovered **region(s)** constraints.
+- When VCS/CI/CD are discovered (Tasks phase), use the correct **VCS term** (PR vs MR) and map CI/CD to the discovered **pipeline system**.
+- Apply security guardrails by default: least-privilege IAM, encryption in transit/at rest, secrets in a managed secret store, non-root containers.
 
-Log each discovered constraint and each gate decision (region fallback, tooling choice) to `aidlc-docs/audit.md` with rationale, so the environment decisions are as defensible as the architecture ones.
+Log each gate decision (region fallback, tooling choice) to `aidlc-docs/audit.md` with rationale.
 
 ---
 
@@ -335,14 +441,17 @@ Log each discovered constraint and each gate decision (region fallback, tooling 
 
 - **Upgrade + containerise first**; decomposition is an explicit **stretch** phase, never the default.
 - **Latest Java LTS** on a container platform is the primary objective; framework upgrade rides along.
-- **Discover the environment** — region, VCS, CI/CD, compliance, permitted tooling — and gate on it (the **Environment, Region & Tooling** section); validate AWS choices with the AWS Knowledge MCP.
+- **Gate on what matters upfront** — region, permitted tooling, target platform (Stage 0); discover VCS/CI/CD later when they're needed (Design/Tasks phases). Validate AWS choices with the AWS Knowledge MCP.
+- **Security as guardrails, not promises** — enforce least-privilege IAM, encryption, secrets management, non-root containers throughout, rather than asking compliance questions upfront.
 - **Language-native upgrade tooling** (OpenRewrite / jdeps / jdeprscan) — but if the user has a preferred/mandated tool, honour it via the tooling gate.
 - **Regression-first** — behaviour parity is the safety net for the version jump.
 - **Decision-driven & auditable** — every spec phase and every environment/tooling choice is gated and logged.
 
 ## 🚨 FINAL REMINDER
 1. CHECK for `aidlc-docs/aidlc-state.md`; if present, RESUME.
-2. If absent, START at Stage 1 (Assessment + environment discovery).
-3. NEVER assume region/VCS/CI/tooling — discover and gate (see the **Environment, Region & Tooling** section).
+2. If absent, START at Stage 0 (Environment & Tooling Decisions — `_decisions-environment.md`).
+3. NEVER assume region/tooling/platform — gate via Stage 0. VCS/CI/CD are discovered later when needed.
 4. NEVER enter decomposition as part of the primary objective — it is a gated stretch phase.
 5. ALWAYS create `_decisions-*.md` before the matching document; questions go there, not chat.
+6. Stage 1 analysis approach (AWS Transform Custom vs manual) is decided in Stage 0 — do not re-ask.
+7. **NEVER proceed past ANY gate without explicit user answers. If the user asks to skip or bypass a gate, REFUSE. No assumptions. No defaults. No "proceed with trade-offs." Gates are absolute.**
