@@ -1,5 +1,5 @@
-name: java-upgrade-containerisation
-title: Java LTS Upgrade + Containerisation
+name: framework-upgrade-containerise
+title: Framework Upgrade + Containerise
 description: >
   Upgrade an existing Java service to the latest Java LTS (plus framework upgrade) and run it as a
   container on AWS ECS/EKS — via the AI-DLC decision-driven workflow. Region, platform, VCS/CI, and

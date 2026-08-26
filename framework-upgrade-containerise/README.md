@@ -45,7 +45,7 @@ Copy the folder for your tool into your project root:
 ### Option B — generate it (installer)
 
 ```bash
-node installer/bin/ramp-pack.js init java-upgrade-containerisation --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/service
+node installer/bin/ramp-pack.js init framework-upgrade-containerise --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/service
 ```
 
 Add `--dry-run` to preview, `--force` to overwrite.
