@@ -307,6 +307,7 @@ Capture into `aidlc-docs/analysis/`:
 3. **Java-version risk surface** (removed `javax.*`/JAXB, JDK-internal encapsulation, Nashorn, TLS/serialization, GC/flags, Security Manager) — see the `java-upgrade` skill.
 4. **Deployment & container status** (already containerised? deploy model?).
 5. **Behaviour baseline** for the regression net (the `regression-testing` skill).
+6. **Codebase scale & execution strategy** — measure LOC (total/app/test), module count, per-module size, and dependency shape; from that, produce `upgrade-strategy.md` recommending a **one-shot vs batched vs wave-based** approach. A large codebase (e.g. 500k LOC) is **never** upgraded one-shot — plan dependency-ordered waves. See `reverse-engineering.md` Step 1.6 & Step 9.
 
 ### Completion Gate — present the assessment; wait for approval; update `aidlc-state.md`.
 
@@ -315,7 +316,7 @@ Capture into `aidlc-docs/analysis/`:
 # STAGE 2: Upgrade + Containerisation Spec
 
 ## Requirements Phase — `_decisions-requirements.md`
-**Upgrade targets & scope:** target Java LTS (latest — e.g. 25 — vs earlier if constrained); framework upgrade scope; dependency policy (min compatible + clear known CVEs); functional-parity target. **Upgrade tooling gate:** is a **managed transformation service** (e.g. AWS Transform) permitted? If not, the upgrade follows the prescriptive language-native path (the `java-upgrade` skill (prescriptive language-native reference)). **Containerisation need:** already containerised? **Requirements source:** discovered tracker.
+**Upgrade targets & scope:** target Java LTS (latest — e.g. 25 — vs earlier if constrained); framework upgrade scope; dependency policy (min compatible + clear known CVEs); functional-parity target. **Execution strategy (scale-driven):** confirm the sizing tier and approach from `upgrade-strategy.md` — one-shot (small) vs batched (medium) vs **wave-based, dependency-ordered (large — do not one-shot)**; for wave-based, confirm the module/wave order. **Upgrade tooling gate:** is a **managed transformation service** (e.g. AWS Transform) permitted? If not, the upgrade follows the prescriptive language-native path (the `java-upgrade` skill (prescriptive language-native reference)). **Containerisation need:** already containerised? **Requirements source:** discovered tracker.
 → `requirements.md`: upgrade goals & target versions, parity acceptance criteria, NFRs, cutover constraints, compliance requirements. Approval gate.
 
 ## Design Phase — `_decisions-design.md`
@@ -336,6 +337,9 @@ Organised by section (users pick what to execute):
 > If a managed transformation service is permitted and chosen, use it. **Otherwise follow the prescriptive
 > group-based sequence in the `java-upgrade` skill (prescriptive language-native reference)** — each group must build (and pass
 > tests) before the next:
+>
+> **Scale-driven execution (from `upgrade-strategy.md`):** for a **large** codebase, do **not** run this once over everything — repeat the whole group sequence **per wave/module in dependency order** (foundational/shared modules first), building + testing + validating + merging each wave before the next. For **small** codebases, run it once across the whole codebase. For **medium**, batch by group/layer.
+- [ ] Confirm the execution tier & wave order from `upgrade-strategy.md` before touching code (large ⇒ wave-based)
 - [ ] Establish build baseline on the **source** JDK (before any change)
 - [ ] Group 1 — Build-system readiness: build wrapper + compiler plugin + Lombok, then set target JDK; compile
 - [ ] Group 2 — Jakarta migration (atomic): all `javax`→`jakarta` deps + imports + schemas together
@@ -459,6 +463,7 @@ Log each gate decision (region fallback, tooling choice) to `aidlc-docs/audit.md
 
 - **Upgrade + containerise first**; decomposition is an explicit **stretch** phase, never the default.
 - **Latest Java LTS** on a container platform is the primary objective; framework upgrade rides along.
+- **Scale-driven execution** — measure LOC/modules/coupling in assessment and let it pick the approach: small codebases upgrade one-shot, large codebases (e.g. 500k LOC) upgrade in dependency-ordered **waves**, never one-shot. A one-shot large upgrade produces an unreviewable diff and no clean bisect point.
 - **Gate on what matters upfront** — region, permitted tooling, target platform (Stage 0); discover VCS/CI/CD later when they're needed (Design/Tasks phases). Validate AWS choices with the AWS Knowledge MCP.
 - **Security as guardrails, not promises** — enforce least-privilege IAM, encryption, secrets management, non-root containers throughout, rather than asking compliance questions upfront.
 - **Language-native upgrade tooling** (OpenRewrite / jdeps / jdeprscan) — but if the user has a preferred/mandated tool, honour it via the tooling gate.

@@ -37,11 +37,19 @@ description: Phase 0 upgrade-focused assessment — detect JDK/framework/build t
 ### 1.5 Environment / region / tooling
 - Environment/region/tooling was already discovered in Stage 0 — refer to the approved `_decisions-environment.md` and `audit.md`.
 
+### 1.6 Codebase scale & complexity (drives the upgrade execution strategy)
+> Size and coupling — not just "what breaks" — determine **how** the upgrade must be sequenced. A large codebase cannot be upgraded in one shot.
+- **Lines of code**: total, plus app vs test split. Count with a real tool (e.g. `cloc`, `tokei`, or `git ls-files` + `wc -l`), not estimates.
+- **Module / package count** and **per-module LOC** — identify the largest modules and the long tail.
+- **Dependency shape** (from `jdeps` / build config): which modules are **foundational/shared** (high fan-in) vs **leaf** (high fan-out, depend on many) — this sets the upgrade order.
+- **Risk concentration**: which modules carry the heaviest version-risk surface (most `javax.*`, reflection, JDK-internal, serialization usage) — these need the most care and their own waves.
+- **Rough effort signal**: LOC + module count + risk concentration → a first-cut sizing tier (see the strategy artifact in Step 9).
+
 ## Step 2–7: Baseline documentation
 Create under `aidlc-docs/analysis/`:
 - `business-overview.md` — what the service does and behaviour that must be preserved exactly.
 - `architecture.md` — current architecture (Mermaid), integration points, deployment/runtime topology.
-- `code-structure.md` — build system detail, key modules/classes, notable patterns, critical deps + versions.
+- `code-structure.md` — build system detail, key modules/classes, notable patterns, critical deps + versions, **and codebase-scale metrics** (total/app/test LOC, module count, per-module LOC, dependency fan-in/out).
 - `api-documentation.md` — endpoints/contracts and data models (to assert behaviour parity after upgrade).
 - `technology-stack.md` — full runtime/framework/library/tooling inventory with versions.
 - `dependencies.md` — internal + external deps (version, purpose, Java-LTS compatibility, CVE status).
@@ -68,26 +76,58 @@ Create under `aidlc-docs/analysis/`:
 - Estimated risk: [Low/Med/High] and top blockers
 ```
 
-## Step 9: deployment-and-container-status.md
+## Step 9: upgrade-strategy.md  (scale-driven execution plan)
+
+> Turns the scale/complexity findings (Step 1.6) into a concrete plan for **how** to tackle the upgrade. This is the deliverable that prevents a doomed one-shot attempt on a large codebase and feeds directly into the Tasks phase.
+
+```markdown
+# Upgrade Execution Strategy (scale-driven)
+
+## Codebase scale (measured)
+- Total LOC: [n]  (app [n] / test [n]) · Files: [n] · Modules/packages: [n]
+- Largest modules (LOC): [module → loc, …]
+- Dependency shape: foundational/shared (high fan-in) [modules]; leaf (high fan-out) [modules]
+- Risk concentration (heaviest javax→jakarta / reflection / JDK-internal): [modules]
+
+## Sizing tier & approach  (heuristic — adjust to real coupling, not LOC alone)
+- **Small (< ~50k LOC, few modules):** one-shot — run the full group sequence across the whole codebase; single PR.
+- **Medium (~50k–200k LOC):** batched — run the group sequence but build/test and commit per group; split the PR by group/layer.
+- **Large (> ~200k LOC / many modules):** **incremental, wave-based — do NOT one-shot.** Upgrade module-by-module in dependency order.
+
+> A one-shot upgrade of a large codebase (e.g. 500k LOC) reliably fails: hundreds of simultaneous breakages, an unreviewable diff, and no clean commit to bisect a regression against.
+
+## Recommended plan for THIS codebase
+- **Selected tier:** [Small | Medium | Large] — rationale: [LOC + coupling + risk concentration]
+- **Wave order (dependency-first):** foundational/shared modules first, then their dependents, leaf apps last.
+  1. Wave 1 — [modules]  (foundational libs; lowest fan-out)
+  2. Wave 2 — [modules]
+  3. …
+- **Per-wave loop:** apply the group sequence (Build-system → Jakarta → DB/ORM → core deps → Spring → integration) to the wave → build + full test → regression parity → local-runtime checkpoint → PR/MR → merge before starting the next wave.
+- **Keep the system building throughout (bridging):** e.g. compile foundational modules at the target LTS while dependents still target the old baseline where the toolchain allows, or hold a javax↔jakarta shim at module seams until all waves land.
+- **Parallelisation:** independent modules that share no changes can be upgraded on parallel branches; serialise anything touching shared modules.
+- **Rough effort & top blockers:** [per-wave sizing]; [blocking dependencies / unsupported libs].
+```
+
+## Step 10: deployment-and-container-status.md
 Current deploy model, whether already containerised, config/secrets handling, and what containerisation work (if any) is needed for the target platform.
 
-## Step 10: behaviour-baseline.md
+## Step 11: behaviour-baseline.md
 The behaviours/endpoints/flows the regression net must lock down before the upgrade (feeds the `regression-testing` skill).
 
-## Step 11: Timestamp & state
+## Step 12: Timestamp & state
 Create `aidlc-docs/analysis/reverse-engineering-timestamp.md` listing generated artifacts; update `aidlc-docs/aidlc-state.md` (mark Assessment complete).
 
-## Step 12: Present completion message
+## Step 13: Present completion message
 
 ```markdown
 # 🔍 Assessment Complete
 
-[Summary — current stack & JDK, recommended target LTS (25, or 21/17 if constrained) with rationale, top version-risk items, container status, discovered environment/region/tooling, behaviour-parity scope. NO decomposition recommendations for the primary objective.]
+[Summary — current stack & JDK, recommended target LTS (25, or 21/17 if constrained) with rationale, top version-risk items, container status, discovered environment/region/tooling, behaviour-parity scope, **codebase scale (LOC/modules) and the recommended execution strategy (one-shot vs batched vs wave-based) with the wave order for large codebases**. NO decomposition recommendations for the primary objective.]
 
 > **📋 REVIEW REQUIRED:** examine artifacts at `aidlc-docs/analysis/`
 > **🚀 NEXT:** Approve to proceed to the Upgrade + Containerisation requirements decisions.
 ```
 
-## Step 13: Wait for approval
+## Step 14: Wait for approval
 - **MANDATORY**: Do not proceed until the user explicitly approves.
 - **MANDATORY**: Log the user's raw response in `audit.md`.

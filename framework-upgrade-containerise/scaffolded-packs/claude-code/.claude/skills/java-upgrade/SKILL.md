@@ -25,6 +25,7 @@ For the behaviour-first regression safety net that de-risks the version jump, us
 - Determine the **highest Java LTS** the frameworks/libraries support today (e.g. Spring Boot 3.x supports Java 17–25) → set target to the newest supported LTS (25 preferred), or 21/17 as fallback.
 - Inventory the **Java-version risk surface** (below).
 - Determine **container status** (already containerised or not) and current deploy model.
+- **Measure codebase scale** — LOC (total/app/test), module count, per-module size, and dependency shape (`jdeps` fan-in/out). This decides the **execution strategy**: small ⇒ one-shot; large (e.g. 500k LOC) ⇒ dependency-ordered **waves**, never one-shot (see "Scaling the upgrade" below).
 - Capture the **behaviour baseline** for the regression net (`regression-testing` skill).
 - Discover **environment/region/tooling** (Environment, Region & Tooling section of the AI-DLC workflow) — including whether any preferred or mandated upgrade tooling exists.
 
@@ -44,6 +45,24 @@ Default to **language-native** tooling; if the user has another preferred/mandat
 - **`jdeps`** — analyse dependencies on internal/removed JDK APIs and module boundaries.
 - **`jdeprscan`** — scan for deprecated/removed APIs against the target LTS baseline.
 - **Toolchain / build upgrades** — bump the Maven/Gradle JDK toolchain and compiler `release` to the target LTS; upgrade plugins/dependencies to compatible versions and clear known CVEs.
+
+## Scaling the upgrade (large codebases)
+
+Codebase size dictates **how** the upgrade is sequenced — measured in Phase 0. Treat the LOC bands as heuristics; real module coupling matters more than the raw number.
+
+| Tier | Rough size | Approach |
+|---|---|---|
+| Small | < ~50k LOC, few modules | **One-shot** — run the full group sequence across the whole codebase; single PR. |
+| Medium | ~50k–200k LOC | **Batched** — run the group sequence but build/test and commit per group; split the PR by group/layer. |
+| Large | > ~200k LOC / many modules | **Wave-based, dependency-ordered — do NOT one-shot.** Upgrade module-by-module: foundational/shared modules (high fan-in) first, then dependents, leaf apps last. |
+
+For **wave-based** upgrades:
+- **Repeat the whole group sequence per wave** (Build-system → Jakarta → DB/ORM → core deps → Spring → integration); each wave must build + pass tests + prove regression parity + pass the local-runtime checkpoint, then merge as its own PR/MR before the next wave starts.
+- **Keep the system building throughout** — compile foundational modules at the target LTS while dependents still target the old baseline where the toolchain allows, or hold a `javax`↔`jakarta` shim at module seams until all waves land.
+- **Parallelise** independent modules on separate branches; serialise anything touching shared modules.
+- Order the waves from the `jdeps` dependency graph; concentrate the highest-risk modules (heavy `javax`/reflection/JDK-internal usage) into their own carefully-reviewed waves.
+
+> Why not one-shot a 500k-LOC upgrade? Hundreds of simultaneous breakages, an unreviewable diff, and no clean commit to bisect a regression against. Waves keep every step green, reviewable, and revertable.
 
 ### Common Java 8 → 17/21/25 breakages to check and plan for
 
