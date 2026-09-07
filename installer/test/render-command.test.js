@@ -18,6 +18,22 @@ describe('renderCommand', () => {
     expect(w.content).toContain('decision-gated workflow')
   })
 
+  it('claude-code: uses a custom command body with exactly one trailing newline', () => {
+    const customManifest = {
+      command: {
+        ...manifest.command,
+        body: 'Run the custom Claude workflow.\n\n',
+      },
+    }
+
+    const w = renderCommand(customManifest, 'claude-code')
+
+    expect(w.content).toBe(
+      '---\ndescription: Start the AI-DLC workflow\n---\nRun the custom Claude workflow.\n',
+    )
+    expect(w.content).not.toContain('decision-gated workflow')
+  })
+
   it('copilot: writes .github/prompts/aidlc.prompt.md with a string argument-hint', () => {
     const w = renderCommand(manifest, 'copilot')
     expect(w.path).toBe('.github/prompts/aidlc.prompt.md')
@@ -26,6 +42,36 @@ describe('renderCommand', () => {
     expect(typeof fm['argument-hint']).toBe('string')
     expect(fm['argument-hint']).toBe("describe what you're building")
     expect(fm.description).toBe('Start the AI-DLC workflow')
+  })
+
+  it('copilot: uses a custom command body with exactly one trailing newline', () => {
+    const customManifest = {
+      command: {
+        ...manifest.command,
+        body: 'Run the custom Copilot workflow.',
+      },
+    }
+
+    const w = renderCommand(customManifest, 'copilot')
+
+    expect(w.content).toBe(
+      '---\ndescription: Start the AI-DLC workflow\nargument-hint: "describe what you\'re building"\n---\nRun the custom Copilot workflow.\n',
+    )
+    expect(w.content).not.toContain('decision-gated workflow')
+  })
+
+  it.each([undefined, '', '  \n'])('falls back to the generic body for a non-meaningful body (%j)', (body) => {
+    const fallbackManifest = {
+      command: {
+        ...manifest.command,
+        body,
+      },
+    }
+
+    const w = renderCommand(fallbackManifest, 'claude-code')
+
+    expect(w.content).toContain('decision-gated workflow')
+    expect(w.content).toMatch(/Do not skip ahead\.\n$/)
   })
 
   it('kiro and cursor: no command file', () => {
