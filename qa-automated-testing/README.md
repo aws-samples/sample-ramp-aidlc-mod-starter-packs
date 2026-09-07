@@ -1,6 +1,6 @@
 # QA Automated Testing — AI-DLC Starter Pack
 
-A **tool-agnostic** starter pack for designing and building **automated test suites for web and mobile applications**, driven by the **AI-Driven Development Lifecycle (AI-DLC)** decision-gated workflow. It ships two curated testing skills — one for **web** (Playwright-first) and one for **mobile** (Maestro/Appium-first, with AWS Device Farm guidance) — so the agent proposes current best-practice options instead of guessing.
+A **tool-agnostic** starter pack for designing and building **automated test suites for web and mobile applications**, driven by the **AI-Driven Development Lifecycle (AI-DLC)** decision-gated workflow. It ships two curated testing skills — one for **web** (Playwright-first) and one for **mobile** (Maestro/Appium-first, with AWS Device Farm guidance) — plus a set of **AWS build skills** for standing up the serverless test infrastructure behind the suite (Lambda test runners, Step Functions orchestration, API Gateway trigger/results APIs, IAM roles, Bedrock for AI-assisted testing, and Lambda MicroVMs for isolated executors) — so the agent proposes current best-practice options instead of guessing.
 
 The pack is authored once as tool-neutral source and works with **Kiro, Claude Code, GitHub Copilot, and Cursor**. Whichever agent you use gains deep testing expertise and follows structured, decision-gated workflows — no manual setup needed.
 
@@ -61,7 +61,13 @@ qa-automated-testing/
 │   └── reverse-engineering.md    # Phase 0 playbook (companion, brownfield-only)
 ├── skills/
 │   ├── web-test-automation/      # Playwright-first web testing expertise (SKILL.md + 10 reference topics)
-│   └── mobile-test-automation/   # Maestro/Appium mobile testing expertise (SKILL.md + 10 reference topics)
+│   ├── mobile-test-automation/   # Maestro/Appium mobile testing expertise (SKILL.md + 10 reference topics)
+│   ├── aws-lambda/               # Serverless test runners & event-driven jobs (SKILL.md + references)
+│   ├── aws-step-functions/       # Test/CI orchestration in ASL/JSONata (SKILL.md + references + ASL assets)
+│   ├── connecting-lambda-to-api-gateway/  # Test-trigger & results HTTP APIs (SKILL.md + reference)
+│   ├── aws-iam/                  # CI/execution roles & least-privilege policies (SKILL.md + references)
+│   ├── amazon-bedrock/           # AI-assisted testing (models, RAG, agents, guardrails) (SKILL.md + references)
+│   └── aws-lambda-microvms/      # Isolated / multi-tenant test sandboxes (SKILL.md + references)
 └── scaffolded-packs/         # Pre-generated per-tool configs (Option A above)
     ├── kiro/         # .kiro/{steering,settings,skills}
     ├── claude-code/  # CLAUDE.md, .claude/{rules,commands,skills}, .mcp.json
@@ -82,14 +88,27 @@ The neutral instructions declare a **role** (`primary` / `companion`) and a **lo
 | `reverse-engineering` (auto) | `inclusion: auto` | `.claude/rules/*` | `.github/instructions/*` (conditional) | `.mdc` `alwaysApply: false` |
 | `/aidlc` command | — | `.claude/commands/aidlc.md` | `.github/prompts/aidlc.prompt.md` | — |
 
-### Skills — Web & Mobile Test Automation
+### Skills — Testing + AWS test infrastructure
 
-The pack includes two testing skills that activate based on conversation triggers (web, mobile, Playwright, Appium, etc.). Each skill bundles `SKILL.md` plus a `references/` library with deep-dive guides. Both follow the [Agent Skills open standard](https://agentskills.io/), so they copy verbatim into every supported tool.
+The pack includes eight skills that activate based on conversation triggers. The two **testing skills** cover authoring web and mobile suites; the six **AWS build skills** cover standing up the serverless infrastructure behind those suites (runners, orchestration, APIs, roles, AI assist, and isolated executors). Each skill bundles `SKILL.md` plus a `references/` library with deep-dive guides. All follow the [Agent Skills open standard](https://agentskills.io/), so they copy verbatim into every supported tool.
+
+**Testing skills**
 
 | Skill | Activates on | Covers |
 |---|---|---|
 | `web-test-automation` | web testing, browser/E2E test, Playwright, Cypress, Selenium, page object, locator, flaky test, visual regression, accessibility testing, network mocking, CI sharding | Playwright-first guidance: locators, web-first assertions & flakiness, POM vs fixtures, isolation & auth reuse, API testing & network mocking, accessibility (axe-core), visual regression, CI/parallelization, and Cypress/Selenium → Playwright migration. |
 | `mobile-test-automation` | mobile/app test, iOS/Android, Appium, Maestro, Detox, Espresso, XCUITest, emulator, real device, device farm, AWS Device Farm, deep link, app permissions | Tool selection (Maestro/Appium/Detox/Espresso/XCUITest), per-framework setup, mobile flakiness, gestures/deep links/lifecycle, emulator-vs-real-device strategy, and device-farm CI with an **AWS Device Farm** centerpiece (incl. the no-native-Espresso/Detox/Flutter caveat) plus BrowserStack/Sauce comparison. |
+
+**AWS build skills** (for the test infrastructure behind the suite)
+
+| Skill | Activates on | Covers |
+|---|---|---|
+| `aws-lambda` | Lambda function, serverless test runner, event source, EventBridge/SQS/SNS/Kinesis trigger, webhook handler, result processor, scheduled job, SAM CLI | Designing, building, deploying, and debugging serverless compute — the Lambdas that kick off runs, process results, and react to CI events; event source mappings, Web Adapter, observability, and optimization. |
+| `aws-step-functions` | Step Functions, state machine, ASL, JSONata, orchestrate workflow, Map/Distributed Map, Parallel, retries, saga, waitForTaskToken, human-approval gate, Standard vs Express | Authoring ASL state machines in JSONata to orchestrate multi-stage test/CI pipelines — fan-out across suites/shards/devices, retry/catch, approval callbacks, and large-scale data-driven runs; TestState unit testing. |
+| `connecting-lambda-to-api-gateway` | API Gateway, REST/HTTP API, Lambda proxy integration, expose an endpoint, test-trigger API, results API, CORS, authorizer, API key, throttling | Creating an HTTP endpoint in front of a Lambda — an API to trigger runs on demand or serve results/reports — with CORS, authorization, throttling, access logging, and production hardening. |
+| `aws-iam` | IAM role/policy, trust policy, execution role, service role, least privilege, STS/AssumeRole, permissions for CI, condition operators | Creating and scoping the roles and policies that let test infrastructure run — Lambda/Step Functions execution roles, CI assume-role setups, least-privilege access to artifacts — plus common IAM pitfalls. |
+| `amazon-bedrock` | Bedrock, generative AI, model invocation, Converse/InvokeModel, Knowledge Bases, RAG, Bedrock Agents, AgentCore, Guardrails, model selection | Applying generative AI to the testing workflow — generating test cases from requirements, triaging/summarizing failures, RAG over test docs, and Guardrails; model invocation and selection (Claude/Llama/Nova/Titan). |
+| `aws-lambda-microvms` | Lambda MicroVM, Firecracker, strong isolation, sandbox compute, multi-tenant/untrusted-code execution, long-lived session, suspend/resume, port-listening server | Running test executors that need Firecracker-grade isolation, untrusted/per-tenant code execution, real long-lived servers/sessions, or state preserved across suspend/resume — beyond a standard Lambda function. |
 
 ### MCP servers
 
@@ -104,7 +123,7 @@ Declared once in `pack.yaml`; the installer writes it to each tool's MCP config 
 - One of: [Kiro](https://kiro.dev), [Claude Code](https://claude.com/claude-code), GitHub Copilot, or Cursor — installed and signed in.
 - **Option B (installer) only:** Node.js 18+ (to run `ramp-pack`).
 - Test runtimes as chosen during the Design phase (e.g., Node.js + `npx playwright install` for web; Maestro / Appium / Xcode / Android SDK for mobile).
-- *(Optional)* An AWS account/profile if you adopt **AWS Device Farm** for device-cloud test runs.
+- *(Optional)* An AWS account/profile if you adopt **AWS Device Farm** for device-cloud test runs, or if you build the serverless **test infrastructure** (Lambda, Step Functions, API Gateway, IAM, Bedrock, Lambda MicroVMs) covered by the AWS build skills.
 
 ## License
 
