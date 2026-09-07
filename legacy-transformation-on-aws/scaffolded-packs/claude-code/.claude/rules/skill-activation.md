@@ -1,59 +1,174 @@
 # Mandatory Skill, Tooling & MCP Activation
 
-Activate the relevant skill or tooling **BEFORE** generating any decision file, spec document, or code. Each activation only lasts for the current session — re-activate at the start of every new session when the topic is relevant.
+Activate every relevant bundled skill **before** generating `_decisions-*.md`, design/spec documents, code, or IaC. During reverse engineering, activate a skill only when its discovery or assessment capability applies to the stated scope; do not turn a source scan into target design or implementation. Load a skill once per session at its first matching need, and load multiple skills when the request crosses domains.
 
-> Skills load automatically when relevant; ensure the matching skill's guidance is in play before you write specs or code.
+The 16 sections below are the complete bundled inventory. If work needs a skill that is not bundled, say so and use AWS Knowledge MCP plus authoritative AWS documentation instead of pretending the missing skill is available. In particular, this pack does not bundle standalone general-purpose Lambda or serverless-deployment skills; the durable-functions skill below is narrower and must not be treated as either one.
 
-## 🧠 API Gateway Skill
+## Routing Rules
 
-**Trigger keywords:** API Gateway, REST API, HTTP API, strangler fig routing, traffic splitting, custom domain, Lambda authorizer, JWT authorizer, usage plan, throttling, VPC link, private API, canary deployment, stage variables, CORS
+- **Discover, evaluate, design, then build:** `ecs-recon` inventories current state; `ecs-operation-review` scores a live estate; `ecs-architect` selects the target model; `ecs-build` renders an already-settled ECS design in Terraform.
+- **Separate release, visibility, and protection:** `ecs-devops` owns release strategy and CI/CD; `ecs-observability` owns ECS logs/metrics/traces stack selection; `ecs-security` owns ECS hardening and compliance; `aws-iam` owns IAM policy and role details.
+- **Select data guidance only after target engine intent is known:** route DSQL, Aurora PostgreSQL, and Aurora MySQL to their own skills. Add the cluster-with-instances procedure only when provisioning a complete conventional Aurora cluster and instances.
+- **Choose one IaC path:** `aws-cloudformation` authors plain CloudFormation YAML/JSON; `ecs-build` generates Terraform for ECS. CloudFormation and Terraform may coexist in an estate, but do not silently blend their generated ownership for the same resources.
 
-**Action:** Activate/load the `api-gateway` skill.
+## ECS Discovery and Review
 
-**Why:** The strangler fig pattern routes traffic through API Gateway to either the monolith or new microservices. The 16 reference files (authentication, security, custom domains, observability, performance, governance, deployment, service integrations) are critical for getting the routing layer right.
+### `ecs-recon`
 
-**🔒 RULE:** NEVER configure API Gateway routing, strangler fig patterns, or API migration without first activating this skill.
+**Trigger:** Describe or inventory an existing ECS environment, cluster, service, capacity providers, task definitions, scaling, networking, observability, IaC, or CI/CD before recommendations.
 
-## 🧠 AWS Lambda Skill
+**Action:** Run read-only discovery and report observed facts. It may support reverse engineering when a live ECS estate is in scope.
 
-**Trigger keywords:** Lambda function, serverless, event source, Lambda handler, Lambda Web Adapter, event-driven, SAM init, cold start, Lambda layer, function URL
+**Do not use:** For verdicts or maturity scores (`ecs-operation-review`), target design (`ecs-architect`), release engineering (`ecs-devops`), or resource mutation.
 
-**Action:** Activate/load the `aws-lambda` skill.
+### `ecs-operation-review`
 
-**Why:** Extracted microservices will likely run on Lambda. This skill covers SAM project setup, event sources, web adapter (for migrating Spring Boot controllers), observability, and performance optimization.
+**Trigger:** Audit, health-check, review, score, or GREEN/AMBER/RED a live ECS estate or one operational domain.
 
-**🔒 RULE:** NEVER create Lambda functions or SAM templates for extracted microservices without first activating this skill.
+**Action:** Perform the evidence-based scored operational assessment and produce prioritized findings.
 
-## 🧠 AWS Serverless Deployment Skill
+**Do not use:** For read-only inventory without scoring (`ecs-recon`), Day-0 target design (`ecs-architect`), or deep remediation implementation. Route deep findings to the relevant security, observability, or deployment sibling.
 
-**Trigger keywords:** SAM template, SAM deploy, CDK serverless, CDK Lambda construct, NodejsFunction, PythonFunction, serverless CI/CD, sam build, cdk deploy
+## ECS Architecture, Build, and Deployment
 
-**Action:** Activate/load the `aws-serverless-deployment` skill.
+### `ecs-architect`
 
-**Why:** Each extracted microservice needs independent deployment. This skill covers SAM/CDK project setup, deployment workflows, CI/CD pipelines, and SAM/CDK coexistence patterns.
+**Trigger:** After modernization intent is settled, choose Fargate vs ECS on EC2 vs Managed Instances vs Express Mode vs ECS Anywhere; design capacity providers, task sizing, networking, service parameters, or launch-type/topology migration.
 
-**🔒 RULE:** NEVER write SAM templates, CDK stacks, or deployment configs without first activating this skill.
+**Action:** Activate `ecs-architect` only for downstream ECS deployment-model/design after modernization intent is settled. Produce the target or Day-0 design and rationale, and verify fast-moving capability and regional claims with AWS Knowledge MCP.
 
----
+**Do not use:** For existing-app replatform/refactor assessment. `ecs-modernize` is not bundled; use the pack's reverse-engineering/modernization workflow plus AWS Knowledge MCP for that assessment. Also do not use it for current-state inventory (`ecs-recon`), live-estate scoring (`ecs-operation-review`), Terraform generation (`ecs-build`), CI/CD (`ecs-devops`), or deep security/observability work.
 
-## 📚 AWS Knowledge MCP
+### `ecs-build`
 
-**Trigger:** Use proactively to validate AWS best practices, service limits, and feature behavior — especially when making architectural decisions during decomposition, choosing between DynamoDB vs Aurora, validating migration patterns, or recommending service configurations.
+**Trigger:** Generate apply-ready ECS Terraform for clusters, capacity providers, services, task definitions, private endpoints, autoscaling, Service Connect, or an already-selected deployment configuration.
 
-**Available tools:**
-- `search_documentation` — Search AWS docs (general, reference, troubleshooting, current_awareness, cdk_docs, cloudformation, agent_sops)
-- `read_documentation` — Fetch specific AWS doc pages
-- `get_regional_availability` — Check service/feature availability across regions
+**Action:** Generate Terraform only after the ECS design and capacity model are settled; validate current module/provider versions and AWS behavior first.
 
-**🔒 RULE:** When uncertain about AWS-specific guidance, ALWAYS search AWS docs first before answering. Do not rely solely on training data for service limits, quotas, migration patterns, or current feature behavior.
+**Do not use:** To choose the architecture (`ecs-architect`), design the release process (`ecs-devops`), author CloudFormation (`aws-cloudformation`), or generate ECS Anywhere infrastructure.
 
----
+### `ecs-devops`
+
+**Trigger:** ECS release or deployment strategy, rolling/blue-green/linear/canary traffic shifting, circuit breaker or alarm rollback, lifecycle hooks, stuck deployments, CodeDeploy migration, GitHub Actions, or CodePipeline CI/CD.
+
+**Action:** Design or troubleshoot the release lifecycle and pipeline, scoped to the actual ECS launch type.
+
+**Do not use:** For target compute/network design (`ecs-architect`), Terraform resource generation (`ecs-build`), or monitoring-stack selection (`ecs-observability`). Deployment-failure alarms used as rollback triggers stay here; general service alerting does not.
+
+## ECS and General Observability
+
+### `ecs-observability`
+
+**Trigger:** Select or troubleshoot the ECS-specific logs, metrics, and traces stack: awslogs vs FireLens, Container Insights vs Prometheus, ADOT/OpenTelemetry, X-Ray/Application Signals, third-party routing, or ECS Exec visibility.
+
+**Action:** Design the ECS observability architecture with explicit launch-type, compliance, scale, and log-loss trade-offs.
+
+**Do not use:** For cross-service CloudWatch work unrelated to ECS (`aws-observability`), deployment mechanics (`ecs-devops`), security posture (`ecs-security`), or a scored live-estate audit (`ecs-operation-review`).
+
+### `aws-observability`
+
+**Trigger:** General or cross-service AWS observability using CloudWatch Logs Insights, metrics, alarms, dashboards, EMF, X-Ray, CloudTrail, ADOT, synthetics, or Application Signals onboarding.
+
+**Action:** Build, configure, debug, or optimize the broader AWS monitoring and tracing layer.
+
+**Do not use:** As a replacement for ECS-specific stack selection (`ecs-observability`) or application logging/security threat detection.
+
+## ECS Security and IAM
+
+### `ecs-security`
+
+**Trigger:** ECS hardening or compliance; task role vs execution role; assume-role failures; secrets injection; non-root/read-only containers; network isolation; ECS Exec governance; ECR scanning/signing; GuardDuty runtime monitoring; PCI, HIPAA, FedRAMP, or FIPS questions.
+
+**Action:** Apply the ECS seven-layer security model, first confirming launch type and compliance context. Validate live compliance status and launch-type support before making claims.
+
+**Do not use:** For a broad scored operational audit (`ecs-operation-review`), generic IAM outside an ECS concern (`aws-iam`), or non-ECS compute services.
+
+### `aws-iam`
+
+**Trigger:** Create, review, or troubleshoot IAM roles, trust policies, least-privilege permission policies, service roles, execution roles, `iam:PassRole`, STS, Organizations conditions, bucket policies, or confused-deputy protections.
+
+**Action:** Use the IAM role-management or policy-generation workflow and verify edge-case behavior against current AWS documentation.
+
+**Do not use:** For application-level authentication/authorization such as Cognito user pools or domain RBAC. Pair with `ecs-security` when the IAM work is part of ECS hardening.
+
+## API and Durable Workflows
+
+### `api-gateway`
+
+**Trigger:** Amazon API Gateway REST API, HTTP API, or WebSocket API; custom domains, authorizers, usage plans, throttling, CORS, VPC links, private APIs, routing, service integrations, API Gateway errors, or API Gateway IaC.
+
+**Action:** Select the API type and load the relevant API Gateway reference before design, implementation, or troubleshooting.
+
+**Do not use:** For generic REST design with no API Gateway component. If its IaC output is plain CloudFormation, also load `aws-cloudformation`; if another framework is requested but no matching generator skill is bundled, state that limitation and validate through AWS Knowledge MCP.
+
+### `aws-lambda-durable-functions`
+
+**Trigger:** Lambda durable functions, long-running stateful Lambda workflows, replay and determinism, checkpoint/step operations, wait/callback patterns, saga compensation, human-in-the-loop callbacks, or durable-function testing.
+
+**Action:** Apply the durable execution replay model, language-specific SDK guidance, IAM requirements, and LocalDurableTestRunner patterns.
+
+**Do not use:** For ordinary Lambda functions, generic event sources, or general serverless deployment. This is a specialized durable-workflow skill, not a general Lambda or SAM/CDK skill.
+
+## Infrastructure as Code
+
+### `aws-cloudformation`
+
+**Trigger:** Author, modify, validate, or troubleshoot plain AWS CloudFormation YAML/JSON templates; resource property lookup; cfn-lint, cfn-guard, change sets, or failed stacks.
+
+**Action:** Apply secure authoring defaults and the three-layer validation or failure-diagnosis workflow. Validate resource properties through AWS Knowledge MCP.
+
+**Do not use:** For CDK abstractions or Terraform. ECS Terraform belongs to `ecs-build`; never silently translate or blend ownership between those paths.
+
+## Data Engine Routing
+
+### `aurora-dsql`
+
+**Trigger:** Any Aurora DSQL task: cluster lifecycle, IAM authentication, DSQL connectors, schema/DDL, queries, multi-tenancy, safe SQL construction, MySQL-to-DSQL migration, or query-plan diagnosis.
+
+**Action:** Always load this skill and follow DSQL-specific MCP/documentation semantics. Use DSQL Connectors for application code, safe parameterization, one-DDL-per-transaction rules, and the dedicated DSQL tools or AWS Knowledge MCP when exact limits matter.
+
+**Do not use:** For conventional Aurora PostgreSQL/MySQL clusters. DSQL is PostgreSQL-compatible but has distinct transactions, DDL, connectors, and operational semantics.
+
+### `amazon-aurora-postgresql`
+
+**Trigger:** Aurora PostgreSQL target intent, cluster operations, PostgreSQL compatibility, express configuration, Babelfish, pgvector, Aurora Serverless ACUs, I/O-Optimized analysis, commitment pricing, or PostgreSQL upgrades.
+
+**Action:** Route to the matching PostgreSQL sub-skill and load its reference; use express creation only when its constraints fit.
+
+**Do not use:** For Aurora MySQL (`amazon-aurora-mysql`) or Aurora DSQL (`aurora-dsql`). For full cluster-plus-instance provisioning, pair with the dedicated creation procedure when applicable.
+
+### `amazon-aurora-mysql`
+
+**Trigger:** Aurora MySQL target intent, cluster operations, MySQL compatibility or parallel query, Aurora Serverless ACUs, I/O-Optimized analysis, commitment pricing, or MySQL upgrades.
+
+**Action:** Route to the matching MySQL sub-skill and load its reference; use full VPC-based configuration because PostgreSQL express configuration does not apply.
+
+**Do not use:** For Aurora PostgreSQL (`amazon-aurora-postgresql`) or Aurora DSQL (`aurora-dsql`). For full cluster-plus-instance provisioning, pair with the dedicated creation procedure when applicable.
+
+### `creating-amazon-aurora-db-cluster-with-instances`
+
+**Trigger:** Provision a complete conventional Aurora PostgreSQL or Aurora MySQL cluster with database instances and Secrets Manager-managed credentials in the required sequence.
+
+**Action:** Follow the cluster creation procedure: create the cluster, add compatible instances, and monitor readiness.
+
+**Do not use:** For engine selection, advisory-only sizing/upgrade questions, PostgreSQL express configuration, or Aurora DSQL. Pair with the selected Aurora engine skill for engine-specific decisions and safety guardrails.
+
+## AWS Knowledge MCP — Mandatory Validation Layer
+
+Use AWS Knowledge MCP before any load-bearing claim about current AWS service behavior, limits, quotas, feature support, lifecycle status, or regional availability, and before writing CloudFormation/CDK resource shapes. Skills provide routing and domain workflows; current AWS documentation remains authoritative.
+
+- `search_documentation` — search current general, reference, troubleshooting, current-awareness, CDK, and CloudFormation documentation.
+- `read_documentation` — read the exact AWS documentation page when search context is incomplete.
+- `get_regional_availability` — verify a service, feature, API, or CloudFormation resource in the named Region(s).
+- `list_regions` — resolve current Region names/codes when needed.
+
+Do not rely solely on training data or a bundled skill's dated snapshot. If a required specialized skill is absent, disclose that limitation, use AWS Knowledge MCP for verified guidance, and do not invent an activation.
 
 ## Activation Checklist
 
-1. Read the user's message and spec context for keyword matches
-2. Activate ALL matching skills/powers before proceeding
-3. Skills and powers are independent — activate multiple if multiple are relevant
-4. Only activate once per session — no need to re-activate mid-conversation
-5. When unsure about AWS specifics, use AWS Knowledge MCP tools to verify
-6. For modernization work, expect to activate **multiple skills together** (e.g., Lambda + API Gateway + Serverless Deployment when extracting a service)
+1. Identify the user's actual intent and whether the task is discovery, audit, design, build, deployment, observability, security, API, workflow, IaC, or data.
+2. Activate every matching bundled skill before decisions, design, code, or IaC; during reverse engineering, activate only applicable discovery/assessment skills.
+3. Resolve sibling boundaries explicitly, especially ECS discovery vs audit vs design vs Terraform build.
+4. Confirm the target database engine before activating an engine-specific data skill.
+5. Select CloudFormation or Terraform ownership deliberately and do not blend outputs silently.
+6. Validate current AWS behavior, limits, regional availability, and resource shapes through AWS Knowledge MCP.
