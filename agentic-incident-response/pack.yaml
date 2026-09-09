@@ -1,0 +1,40 @@
+name: agentic-incident-response
+title: Agentic Incident Response & Production Support on AWS
+description: >
+  Design, build, and deploy a governed, agentic AI production-support and incident-analysis capability on AWS
+  serverless — one that ingests incident tickets and monitoring alerts, interprets the symptom and identifies
+  the affected application or business flow, retrieves and correlates evidence (logs, telemetry, source-code
+  context, configuration, deployment history, known issues), and generates an incident summary with
+  evidence-backed root-cause hypotheses, impacted components, recommended diagnostic or remediation steps,
+  confidence indicators, and routing/escalation guidance — always with human review before any production
+  action. Also supports rule/threshold-based anomaly detection that raises alerts or creates incidents. Built
+  via the AI-DLC decision-driven workflow. The reusable domain logic ships as skills (incident triage);
+  the AWS architecture (trigger, orchestration, reasoning model, IaC) is
+  discovered and gated in-flow, not assumed.
+
+instructions:
+  - file: aidlc-workflow.md
+    role: primary
+  - file: skill-activation.md
+    role: companion
+    load: always
+  - file: reverse-engineering.md
+    role: companion
+    load: auto
+    description: "Phase 0 reverse-engineering playbook — use when existing or brownfield source code is present, or when the incident-analysis capability must be grounded in an existing system's codebase (e.g., building the flow-to-component map from the monitored application's source)."
+
+command:
+  name: aidlc
+  description: Start the AI-DLC decision-gated workflow for this pack
+
+mcp:
+  - id: aws-knowledge-mcp-server
+    command: npx
+    args: ["mcp-remote", "https://knowledge-mcp.global.api.aws"]
+    autoApprove:
+      - aws___search_documentation
+      - aws___read_documentation
+      - aws___get_regional_availability
+      - aws___list_regions
+
+skills: all
