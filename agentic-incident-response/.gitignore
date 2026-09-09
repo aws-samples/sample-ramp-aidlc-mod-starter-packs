@@ -1,0 +1,23 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+dist/
+build/
+
+# Incident evidence artifacts (may contain PII / transaction detail) —
+# never commit local copies of production evidence
+incident-evidence/
+*.evidence.json
+logs-export/
+
+# Generated dry-run data (regenerate with dry-run/generate_logs.py)
+dry-run/out/
+
+# AI-DLC working directories — keep specs but not session state if you prefer
+# aidlc-docs/aidlc-state.md
+# aidlc-docs/audit.md
