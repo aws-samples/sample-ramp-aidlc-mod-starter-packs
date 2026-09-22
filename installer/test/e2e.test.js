@@ -11,7 +11,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 const packDir = resolve(here, '..', '..', 'enterprise-app-on-cloudnative')
 
 describe('e2e: enterprise-app-on-cloudnative', () => {
-  it('kiro: steering has inclusion frontmatter, mcp has autoApprove, 15 skills', () => {
+  it('kiro: steering has inclusion frontmatter, mcp has autoApprove, 20 skills', () => {
     const target = mkdtempSync(join(tmpdir(), 'proj-'))
     applyPlan(buildPlan(packDir, 'kiro'), target, { dryRun: false, force: false })
     const wf = readFileSync(join(target, '.kiro/steering/aidlc-workflow.md'), 'utf8')

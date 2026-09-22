@@ -10,7 +10,7 @@
 3. **If in doubt whether a skill applies — activate it anyway.** False activation is harmless; missing activation produces wrong output.
 4. **Activate ONCE per session, at FIRST encounter of a trigger keyword**
 
-This pack targets a **greenfield cloud-native enterprise application** (a line-of-business or transactional system). Its **default lean is serverless — AWS Lambda + API Gateway + Aurora DSQL** — but it now carries the **full compute / data / IaC skill set**, so the design can flex (containers, other Aurora engines, CDK / CloudFormation / Terraform). Activate the skills that match the path chosen in the design decisions — don't assume a single stack.
+This pack targets a **greenfield cloud-native enterprise application** (a line-of-business or transactional system). Its **default lean is serverless — AWS Lambda + API Gateway + Aurora DSQL** — but it now carries the **full compute / data / IaC / eventing / testing skill set**, so the design can flex (containers, other Aurora engines or DynamoDB, Step Functions or durable-function orchestration, event-driven messaging/streaming, CDK / CloudFormation / Terraform, and automated .NET / web testing). Activate the skills that match the path chosen in the design decisions — don't assume a single stack.
 
 
 ## 🔴 ACTIVATION CHECKLIST (run mentally on EVERY response)
@@ -19,6 +19,8 @@ Before responding, ask yourself:
 - Am I about to design for **Lambda**? → **STOP. Activate `aws-lambda` skill FIRST.**
 - Am I about to design an **API**? → **STOP. Activate `api-gateway` skill FIRST.**
 - Am I about to design a **multi-step / long-running workflow**? → **STOP. Activate `aws-lambda-durable-functions` skill FIRST.**
+- Am I about to orchestrate a **multi-service state machine** (Step Functions, ASL, Distributed Map, saga)? → **STOP. Activate `aws-step-functions` skill FIRST.**
+- Am I about to design **eventing/messaging** (EventBridge, SNS, SQS, Kinesis, MSK/Kafka, Flink)? → **STOP. Activate `aws-messaging-and-streaming` skill FIRST.**
 - Am I about to design/deploy **containers** (ECS, Fargate, ECR, task definitions, ALB)? → **STOP. Activate `aws-containers` skill FIRST.**
 - Am I about to write **SAM / serverless CDK deploys / serverless CI-CD**? → **STOP. Activate `aws-serverless-deployment` skill FIRST.**
 - Am I about to write **CDK**? → **STOP. Activate `aws-cdk` skill FIRST.**
@@ -28,6 +30,8 @@ Before responding, ask yourself:
 - Am I about to design/query **Aurora PostgreSQL**? → **STOP. Activate `amazon-aurora-postgresql` skill FIRST.**
 - Am I about to design/query **Aurora MySQL**? → **STOP. Activate `amazon-aurora-mysql` skill FIRST.**
 - Am I standing up a **new Aurora cluster + instances**? → **STOP. Activate `creating-amazon-aurora-db-cluster-with-instances` skill FIRST.**
+- Am I about to design a **NoSQL / key-value store** (DynamoDB tables, GSIs, single-table design, Streams, TTL)? → **STOP. Activate `amazon-dynamodb` skill FIRST.**
+- Am I about to write **automated tests** (.NET/C# or web/browser E2E)? → **STOP. Activate `dotnet-testing` / `web-test-automation` as applicable FIRST.**
 - Am I writing **IAM roles/policies** (service roles, execution roles, trust policies)? → **STOP. Activate `aws-iam` skill FIRST.**
 - Am I designing **logging/metrics/tracing/alarms/dashboards**? → **STOP. Activate `aws-observability` skill FIRST.**
 - Do I need **local AWS credentials** (CLI/SDK, expired token, `AccessDenied`)? → **STOP. Activate `signing-in-to-aws` skill FIRST.**
@@ -79,6 +83,26 @@ Activate during design decisions too — e.g., when comparing API styles or auth
 **Activate:** load the `aws-lambda-durable-functions` skill.
 
 Activate during design decisions too — e.g., when comparing Step Functions vs durable functions vs polling for multi-step business flows (approvals, fulfilment, sagas, etc.).
+
+> **Durable functions vs Step Functions — quick call:** reach for **`aws-lambda-durable-functions`** when the orchestration is *code-centric* and lives inside one Lambda — you want the logic in your language with loops/conditionals, the steps are mostly Lambda work (not many distinct AWS service calls), and you value keeping it in-process. Reach for **`aws-step-functions`** when the workflow *spans multiple AWS services* and benefits from a declarative, independently-observable state machine — visual execution history, per-state retry/catch, `.sync`/`waitForTaskToken` service integrations, `Distributed Map` for large-scale fan-out, or long waits/human approval measured in days. If you need a visible audit trail of each step across services, choose Step Functions; if it's essentially one function's internal long-running logic, choose durable functions. Pick one deliberately per flow rather than mixing them for the same orchestration.
+
+
+## 🔀 AWS Step Functions
+
+**Triggers:** Step Functions, state machine, Amazon States Language (ASL), JSONata, Task/Choice/Map/Parallel/Pass/Wait states, Retry/Catch, `.sync` / `waitForTaskToken` callbacks, Distributed Map, saga/compensation, Standard vs Express, JSONPath→JSONata migration.
+
+**Activate:** load the `aws-step-functions` skill.
+
+Use for orchestrating multi-service workflows as an explicit state machine; unit-test with the TestState API and validate integration shapes via the AWS Knowledge MCP. During design decisions, contrast Step Functions (visible multi-service orchestration) with `aws-lambda-durable-functions` (in-Lambda stateful replay) — pick one deliberately per flow.
+
+
+## 📨 Messaging & Streaming
+
+**Triggers:** EventBridge (bus, rule, Pipes, scheduler), SNS, SQS, DLQ, fan-out, Kinesis Data Streams, MSK / Apache Kafka (topics, partitions, consumer groups), Managed Service for Apache Flink, event bus, message ordering, idempotency, effectively-once processing.
+
+**Activate:** load the `aws-messaging-and-streaming` skill.
+
+This is the pack's authority for all EventBridge / SNS / SQS / Kinesis / MSK / Flink topologies — there is no separate skill for any of those services, so route all messaging and streaming design here. Activate during design decisions when choosing a decoupling or event-distribution pattern.
 
 
 ## 🏗️ Infrastructure as Code
@@ -146,7 +170,15 @@ Aurora DSQL is the default data store for this pack. It has different semantics 
 
 **Activate:** load the `creating-amazon-aurora-db-cluster-with-instances` skill.
 
-> Pick the data skill that matches the engine chosen in design — `aurora-dsql` for DSQL (the default), the Aurora PostgreSQL/MySQL skills for standard Aurora.
+### Amazon DynamoDB
+
+**Triggers:** DynamoDB, NoSQL, key-value store, partition/sort key, GSI/LSI, single- vs multi-table design, DynamoDB Streams, transactional outbox, TTL, Global Tables, on-demand vs provisioned capacity, hot partition, throttling.
+
+**Activate:** load the `amazon-dynamodb` skill.
+
+Use for access-pattern-driven NoSQL design (session/state stores, high-scale key-value workloads) as an alternative or complement to Aurora. Pick DynamoDB vs an Aurora engine as an explicit design decision based on access patterns and consistency needs.
+
+> Pick the data skill that matches the store chosen in design — `aurora-dsql` for DSQL (the default), the Aurora PostgreSQL/MySQL skills for standard Aurora, `amazon-dynamodb` for NoSQL/key-value access patterns.
 
 
 ## 🔐 Identity & Access
@@ -177,6 +209,23 @@ Aurora DSQL is the default data store for this pack. It has different semantics 
 Activate during design decisions too — e.g., when defining the observability strategy (structured logging, alarms, tracing) for the app.
 
 
+## 🧪 Testing
+
+> Activate the testing skill that matches whatever is being built — these are for QA/devs authoring automated test suites alongside feature code.
+
+### .NET / C# Testing
+
+**Triggers:** xUnit (default), NUnit, MSTest, Moq, coverlet coverage, WebApplicationFactory, Testcontainers, `dotnet test`, test-pyramid strategy, CI test gating for .NET backends.
+
+**Activate:** load the `dotnet-testing` skill. Use for backend .NET/C# unit and integration tests. For web/browser E2E use `web-test-automation`.
+
+### Web Test Automation
+
+**Triggers:** Playwright (default, TypeScript), browser E2E/UI tests, page object model, fixtures, in-browser API testing, visual regression, accessibility (axe-core), network mocking, CI sharding.
+
+**Activate:** load the `web-test-automation` skill. Use for automated web/UI test suites.
+
+
 ## Multiple Skills
 
-When multiple skills apply (common in an end-to-end enterprise-app design — e.g. `aws-lambda` + `api-gateway` + `aurora-dsql` + `aws-iam` + `aws-observability`, plus `aws-serverless-deployment` for IaC), activate all of them. This is expected during design decisions where you're proposing an architecture that spans compute, API, data, identity, and operations.
+When multiple skills apply (common in an end-to-end enterprise-app design — e.g. `aws-lambda` + `api-gateway` + `aurora-dsql` + `aws-iam` + `aws-observability`, plus `aws-serverless-deployment` for IaC, and any of `aws-step-functions` / `aws-messaging-and-streaming` / `amazon-dynamodb` when the design adds orchestration, eventing, or NoSQL, plus the relevant testing skills), activate all of them. This is expected during design decisions where you're proposing an architecture that spans compute, API, data, identity, and operations.
