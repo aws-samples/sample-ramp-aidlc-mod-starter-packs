@@ -2,14 +2,41 @@
 
 Activate every relevant bundled skill **before** generating `_decisions-*.md`, design/spec documents, code, or IaC. During reverse engineering, activate a skill only when its discovery or assessment capability applies to the stated scope; do not turn a source scan into target design or implementation. Load a skill once per session at its first matching need, and load multiple skills when the request crosses domains.
 
-The 16 sections below are the complete bundled inventory. If work needs a skill that is not bundled, say so and use AWS Knowledge MCP plus authoritative AWS documentation instead of pretending the missing skill is available. In particular, this pack does not bundle standalone general-purpose Lambda or serverless-deployment skills; the durable-functions skill below is narrower and must not be treated as either one.
+The 19 sections below are the complete bundled inventory. If work needs a skill that is not bundled, say so and use AWS Knowledge MCP plus authoritative AWS documentation instead of pretending the missing skill is available. This pack bundles a general-purpose `aws-lambda` skill alongside the narrower `aws-lambda-durable-functions` skill — keep the two distinct and route to durable-functions only for stateful replay/checkpoint workflows. It does not bundle a standalone serverless-deployment (SAM/CDK) skill; when deployment-framework depth is needed, say so and use AWS Knowledge MCP plus authoritative AWS documentation.
 
 ## Routing Rules
 
+- **Pick the right compute and integration path:** `aws-lambda` builds general event-driven/serverless functions and event-source wiring; `aws-lambda-durable-functions` handles long-running stateful replay/checkpoint workflows; `aws-step-functions` orchestrates multi-service state machines in ASL/JSONata; `connecting-lambda-to-api-gateway` wires an existing Lambda to a new API Gateway endpoint, while `api-gateway` owns full API Gateway design (REST/HTTP/WebSocket). These serverless paths are distinct from the ECS container compute below.
 - **Discover, evaluate, design, then build:** `ecs-recon` inventories current state; `ecs-operation-review` scores a live estate; `ecs-architect` selects the target model; `ecs-build` renders an already-settled ECS design in Terraform.
 - **Separate release, visibility, and protection:** `ecs-devops` owns release strategy and CI/CD; `ecs-observability` owns ECS logs/metrics/traces stack selection; `ecs-security` owns ECS hardening and compliance; `aws-iam` owns IAM policy and role details.
 - **Select data guidance only after target engine intent is known:** route DSQL, Aurora PostgreSQL, and Aurora MySQL to their own skills. Add the cluster-with-instances procedure only when provisioning a complete conventional Aurora cluster and instances.
 - **Choose one IaC path:** `aws-cloudformation` authors plain CloudFormation YAML/JSON; `ecs-build` generates Terraform for ECS. CloudFormation and Terraform may coexist in an estate, but do not silently blend their generated ownership for the same resources.
+
+## Serverless Compute and Workflows
+
+### `aws-lambda`
+
+**Trigger:** Build, deploy, test, or debug general AWS Lambda functions and event-driven serverless applications — event source mappings (DynamoDB, Kinesis, SQS, Kafka, S3, SNS, EventBridge), Lambda Web Adapter for web apps, scheduled invocations, or SAM-based project scaffolding.
+
+**Action:** Apply the Lambda serverless development workflow — project setup, event wiring, observability, and performance/cost optimization — and verify current runtimes, quotas, and limits with AWS Knowledge MCP.
+
+**Do not use:** For long-running stateful replay/checkpoint workflows (`aws-lambda-durable-functions`), multi-service orchestration (`aws-step-functions`), API Gateway wiring (`connecting-lambda-to-api-gateway` or `api-gateway`), ECS container compute, or SAM/CDK deployment-framework depth (not bundled — use AWS Knowledge MCP).
+
+### `aws-step-functions`
+
+**Trigger:** Author or edit Step Functions state machines in Amazon States Language (JSONata) — Task/Choice/Map/Parallel/Pass/Wait states, Retry/Catch, service integrations (`.sync`, `waitForTaskToken` callbacks), Distributed Map for large-scale S3/CSV processing, saga/compensation, Standard vs Express selection, or JSONPath→JSONata migration.
+
+**Action:** Design and write the ASL definition, choosing state types and workflow type deliberately; unit-test with the TestState API and validate integration shapes with AWS Knowledge MCP.
+
+**Do not use:** For general Lambda function code (`aws-lambda`), in-Lambda durable replay (`aws-lambda-durable-functions`), API Gateway wiring (`connecting-lambda-to-api-gateway` / `api-gateway`), or ECS release orchestration (`ecs-devops`).
+
+### `connecting-lambda-to-api-gateway`
+
+**Trigger:** Connect an existing Lambda function to Amazon API Gateway — create a REST or HTTP API with resource/method setup, Lambda proxy integration, permissions, CORS, throttling, access logging, and deployment.
+
+**Action:** Follow the connection procedure exactly, choosing the authorization type (NONE, AWS_IAM, COGNITO_USER_POOLS, CUSTOM) and applying production security hardening.
+
+**Do not use:** For broad API Gateway design across REST/HTTP/WebSocket, custom domains, authorizers, usage plans, or VPC links (`api-gateway`); for the Lambda function logic itself (`aws-lambda`); or when no API Gateway component is involved.
 
 ## ECS Discovery and Review
 

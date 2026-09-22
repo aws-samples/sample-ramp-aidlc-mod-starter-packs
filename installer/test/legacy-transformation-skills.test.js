@@ -33,8 +33,8 @@ function sectionFor(skillName) {
 }
 
 describe('legacy transformation bundled skill activation guidance', () => {
-  it('represents exactly the 16 bundled skills', () => {
-    expect(bundledSkills).toHaveLength(16)
+  it('represents exactly the 19 bundled skills', () => {
+    expect(bundledSkills).toHaveLength(19)
     expect(documentedSkills).toEqual(bundledSkills)
   })
 
@@ -51,10 +51,12 @@ describe('legacy transformation bundled skill activation guidance', () => {
     expect(sectionFor('aws-cloudformation')).toMatch(/YAML|JSON/i)
     expect(sectionFor('aws-iam')).toMatch(/least-privilege|trust polic/i)
     expect(sectionFor('aws-observability')).toMatch(/(?:general|cross-service).*observability/i)
+    expect(sectionFor('aws-lambda')).toMatch(/event source|event-driven|serverless/i)
+    expect(sectionFor('aws-step-functions')).toMatch(/state machine|Amazon States Language|JSONata/i)
+    expect(sectionFor('connecting-lambda-to-api-gateway')).toMatch(/proxy integration|API Gateway/i)
 
-    expect(documentedSkills).not.toContain('aws-lambda')
+    expect(documentedSkills).toContain('aws-lambda')
     expect(documentedSkills).not.toContain('aws-serverless-deployment')
-    expect(activation).not.toMatch(/activate(?:\/load)? (?:the )?`aws-lambda` skill/i)
     expect(activation).not.toMatch(/activate(?:\/load)? (?:the )?`aws-serverless-deployment` skill/i)
   })
 
