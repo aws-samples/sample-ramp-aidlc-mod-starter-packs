@@ -69,7 +69,8 @@ enterprise-app-on-cloudnative/
 ├── instructions/             # Tool-neutral steering (source of truth)
 │   ├── aidlc-workflow.md         # Decision-gated Requirements → Domain Model → Design → Tasks (primary)
 │   ├── skill-activation.md       # When to activate which skill + MCP (companion, always)
-│   └── reverse-engineering.md    # Phase 0 playbook — source code and/or FSDs/docs (companion, auto)
+│   ├── reverse-engineering.md    # Phase 0 playbook — source code and/or FSDs/docs (companion, auto)
+│   └── requirements-traceability.md  # Trace requirements to FSD/screen anchors + coverage gate (companion, auto)
 ├── skills/                   # AWS domain skills + RAMP testing skills (see Skills + Credits below)
 │   ├── aws-lambda/            api-gateway/            aws-lambda-durable-functions/
 │   ├── aws-step-functions/    aws-serverless-deployment/  aws-messaging-and-streaming/
@@ -97,6 +98,7 @@ The neutral instructions declare a **role** (`primary` / `companion`) and a **lo
 | `aidlc-workflow` (primary) | `.kiro/steering/*` `inclusion: always` | `CLAUDE.md` | `.github/copilot-instructions.md` | `.cursor/rules/*.mdc` `alwaysApply: true` |
 | `skill-activation` (always) | `inclusion: always` | `.claude/rules/*` | `.github/instructions/*` `applyTo: '**'` | `.mdc` `alwaysApply: false` |
 | `reverse-engineering` (auto) | `inclusion: auto` | `.claude/rules/*` | `.github/instructions/*` (conditional) | `.mdc` `alwaysApply: false` |
+| `requirements-traceability` (auto) | `inclusion: auto` | `.claude/rules/*` | `.github/instructions/*` (conditional) | `.mdc` `alwaysApply: false` |
 | `/aidlc` command | — | `.claude/commands/aidlc.md` | `.github/prompts/aidlc.prompt.md` | — |
 
 ### MCP servers

@@ -253,7 +253,9 @@ analysis.
 **MANDATORY**: Load and follow the `reverse-engineering` companion instructions.
 Detect the **input mode** (Code / Document / Hybrid) first and adapt each step;
 tag every fact with its evidence source and keep an Assumptions & Open Questions
-list.
+list. **In Document/Hybrid mode, also load and follow the
+`requirements-traceability` companion** — establish stable source anchors and
+emit the screen/anchor inventory that Phase 1 traces requirements against.
 
 ### Outputs (in `aidlc-docs/analysis/`)
 - `business-overview.md`
@@ -304,8 +306,16 @@ Read the completed decisions and generate `requirements.md` covering:
 - Compliance constraints
 - Out-of-scope (explicit)
 
+**MANDATORY (Document/Hybrid mode):** Before generating `requirements.md`, load
+and follow the `requirements-traceability` companion — trace every requirement
+to a **source anchor** (or tag it `NEW` / `NEEDS-CLARIFICATION`), include a
+**Traceability Matrix** with bidirectional coverage, and run its gate check at
+the approval step. (Pure greenfield with no source documents: skip it.)
+
 ### Approval Gate
-Wait for explicit user approval. Update `aidlc-state.md` and `audit.md`.
+Wait for explicit user approval. For document/FSD-driven work, run the
+`requirements-traceability` **gate check** (source/coverage/matrix) before
+approving. Update `aidlc-state.md` and `audit.md`.
 
 
 # PHASE 2: Domain Model & Bounded Contexts

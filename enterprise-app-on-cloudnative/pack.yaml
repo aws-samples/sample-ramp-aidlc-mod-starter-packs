@@ -12,6 +12,10 @@ instructions:
     role: companion
     load: auto
     description: "Phase 0 Reverse Engineering / Input Analysis playbook — use when existing source code is present, or when the user provides functional/design documents (FSDs, platform exports such as OutSystems), or when modernizing, migrating, extending, or reverse-engineering an existing system."
+  - file: requirements-traceability.md
+    role: companion
+    load: auto
+    description: "Requirements traceability & fidelity for document/FSD-driven work. Use whenever generating or reviewing requirements from FSDs, functional specs, screenshots, or a migration/rewrite of an existing app (e.g. OutSystems): ground every requirement in an FSD/screen anchor, produce a Traceability Matrix with bidirectional coverage, and tag NEW / NEEDS-CLARIFICATION instead of inventing or dropping behavior. Applies during Phase 1 requirements.md generation and its approval gate. Skip for pure greenfield with no source documents."
 
 command:
   name: aidlc
