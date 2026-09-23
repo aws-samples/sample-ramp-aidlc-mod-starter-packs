@@ -48,15 +48,16 @@ Every phase is **decision-gated**: the agent writes a `_decisions-*.md`, waits f
 
 **Entry (always):**
 1. Resume from `aidlc-docs/aidlc-state.md` if it exists.
-2. Detect **greenfield vs brownfield**. Greenfield (this pack's default) → skip Phase 0. Brownfield → run reverse-engineering first.
+2. Detect the **input mode**: existing **source code** and/or **functional documents (FSDs**, platform exports such as OutSystems). If either is present → run **Phase 0** (Reverse Engineering / Input Analysis). Pure greenfield (no source, no docs) → skip Phase 0.
 
-**Then the standard single-repo flow:**
+**Then the single-repo flow:**
 ```
-Phase 1 Requirements → Phase 2 Design → Phase 3 Tasks (independent parallel waves) → execute
+Phase 1 Requirements → Phase 2 Domain Model → Phase 3 Design → Phase 4 Tasks (independent parallel waves) → execute
 ```
 - **Phase 1** — user stories + acceptance criteria, functional & non-functional requirements.
-- **Phase 2** — architecture, data model, API contracts, sequence diagrams (Mermaid), cross-cutting concerns.
-- **Phase 3** — an ordered task plan grouped into independent **waves** that can run in parallel.
+- **Phase 2** — bounded contexts, context map, aggregates/entities, domain events, and ubiquitous language. **Always runs** (seeded from Phase 0 when present); it's the domain contract Design and Tasks map onto.
+- **Phase 3** — architecture (components mapped to bounded contexts), data model, API contracts, sequence diagrams (Mermaid), cross-cutting concerns.
+- **Phase 4** — an ordered task plan grouped into independent **waves** that can run in parallel (groups aligned to bounded contexts).
 
 **Invariants:** decision-file before every spec doc · real approval gates · skills/MCP activated before design & code · every decision appended to an append-only audit log; progress tracked for session resume.
 
@@ -66,9 +67,9 @@ Phase 1 Requirements → Phase 2 Design → Phase 3 Tasks (independent parallel 
 enterprise-app-on-cloudnative/
 ├── pack.yaml                 # Manifest: instruction roles, MCP servers, /aidlc command
 ├── instructions/             # Tool-neutral steering (source of truth)
-│   ├── aidlc-workflow.md         # Decision-gated Requirements → Design → Tasks (primary)
+│   ├── aidlc-workflow.md         # Decision-gated Requirements → Domain Model → Design → Tasks (primary)
 │   ├── skill-activation.md       # When to activate which skill + MCP (companion, always)
-│   └── reverse-engineering.md    # Phase 0 playbook (companion, brownfield-only)
+│   └── reverse-engineering.md    # Phase 0 playbook — source code and/or FSDs/docs (companion, auto)
 ├── skills/                   # AWS domain skills + RAMP testing skills (see Skills + Credits below)
 │   ├── aws-lambda/            api-gateway/            aws-lambda-durable-functions/
 │   ├── aws-step-functions/    aws-serverless-deployment/  aws-messaging-and-streaming/

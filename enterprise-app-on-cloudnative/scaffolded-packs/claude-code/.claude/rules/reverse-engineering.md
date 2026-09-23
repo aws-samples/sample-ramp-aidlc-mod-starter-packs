@@ -1,17 +1,67 @@
 # Reverse Engineering
 
-**Purpose**: Analyze an existing codebase and generate comprehensive design
-artifacts that inform downstream modernization, feature, or migration work.
+**Purpose**: Analyze an existing system — from **source code**, from
+**functional/design documents (FSDs)**, or both — and generate comprehensive
+analysis artifacts that inform downstream modernization, feature, or migration
+work.
 
-**Execute when**: Brownfield project detected (existing source code found in
-the workspace).
+**Execute when**: An existing system is in scope and evidence is available —
+i.e. existing **source code** is present in the workspace, **and/or** the user
+provides **functional specification documents, design docs, or platform
+exports** (e.g. an OutSystems application described by FSDs rather than
+buildable source).
 
-**Skip when**: Greenfield project (no existing source code).
+**Skip when**: Pure greenfield — no existing source **and** no descriptive
+documents about a prior system.
 
-**Rerun behavior**: Always rerun when the brownfield codebase has changed
-materially. Stale analysis is worse than no analysis.
+**Rerun behavior**: Always rerun when the inputs change materially (code
+updated, or new/revised FSDs supplied). Stale analysis is worse than no
+analysis.
 
-## Step 1: Workspace Discovery
+## Inputs and Evidence
+
+This playbook works from whatever evidence exists. Detect the **input mode**
+first and adapt every step accordingly.
+
+- **Code mode** — buildable source is in the workspace. Run all steps against
+  the code (the traditional path).
+- **Document mode** — no buildable source, but the user supplies **FSDs** and
+  context: functional specification documents, business/process descriptions,
+  screen flows and wireframes, data dictionaries / ER diagrams, integration or
+  API specs, and platform exports (e.g. **OutSystems** module/entity exports,
+  screenshots, or a solution description). Derive the analysis from these
+  documents plus any narrative context the user gives.
+- **Hybrid mode** — both source and documents are present. Prefer **current
+  source/runtime evidence** when a document and the code disagree, and note the
+  discrepancy.
+
+> **OutSystems / low-code example.** For an OutSystems app you often receive
+> FSDs, entity/module exports, and screen descriptions rather than a normal
+> source tree. Treat those as the corpus: derive the business overview, the
+> data model (from entities/aggregates), the process/screen inventory (as the
+> "API/interaction" surface), and the bounded contexts from the documents. Do
+> not fabricate a code structure that was never provided.
+
+**Evidence tagging (mandatory).** In every generated artifact, tag each
+non-trivial fact with its source: `Evidence: Code (<path>)`,
+`Evidence: Doc (<file/section>)`, or `Evidence: Assumption`. Maintain an
+explicit **Assumptions & Open Questions** list per artifact so document-derived
+inferences (which drift from reality) are visible and can be confirmed with the
+user.
+
+**Adaptive steps.** When a step below depends on artifacts that only exist in
+code (build system, code structure, dependency graphs, test coverage) and the
+input is Document mode, mark that section **"N/A — no source provided"** and,
+where the documents imply the information (e.g. an FSD naming an integration),
+capture it as a document-sourced fact instead.
+
+## Step 1: Workspace & Input Discovery
+
+### 1.0 Inventory the Provided Inputs
+- List every input in scope: source packages/modules **and** each supplied
+  document (FSD, export, diagram, spec) with a one-line description.
+- Record the **input mode** (Code / Document / Hybrid) and a coverage/confidence
+  note (what the inputs do and do not cover).
 
 ### 1.1 Scan the Workspace
 - All packages and modules (not just the ones the user mentioned)
@@ -103,6 +153,10 @@ Create `aidlc-docs/analysis/architecture.md`:
 
 ## Step 4: Generate Code Structure Documentation
 
+> **Document mode:** if no source was provided, mark this artifact
+> **"N/A — no source provided"** and rely on the business, architecture, data,
+> and bounded-context artifacts derived from the FSDs instead.
+
 Create `aidlc-docs/analysis/code-structure.md`:
 
 ```markdown
@@ -135,6 +189,19 @@ Create `aidlc-docs/analysis/code-structure.md`:
 ```
 
 ## Step 5: Generate API Documentation
+
+> **Document mode:** when there is no code to read endpoints from, capture the
+> **interaction surface the FSDs describe** — screens/pages, actions, exposed
+> service actions, integrations, and scheduled processes — using the same
+> fields where they apply, and tag each as `Evidence: Doc`. For OutSystems,
+> service actions and exposed REST/SOAP endpoints named in the FSDs are the API
+> surface.
+>
+> When **screenshots or wireframes** are provided, also record a **UI/screen
+> catalog**: one entry per screen with its purpose and the exact source file it
+> came from (e.g. `Evidence: Doc (screens/checkout.png)`). This catalog is the
+> reference the UI-fidelity decision (Phase 1) points at and that Design and
+> Tasks trace back to when the choice is to adhere.
 
 Create `aidlc-docs/analysis/api-documentation.md`:
 
@@ -229,6 +296,11 @@ Create `aidlc-docs/analysis/technology-stack.md`:
 
 ## Step 8: Generate Dependencies Documentation
 
+> **Document mode:** derive dependencies from the FSDs where stated (named
+> integrations, external systems, shared modules); mark build-derived internal
+> dependency graphs **"N/A — no source provided"** and tag document-sourced
+> integrations as `Evidence: Doc`.
+
 Create `aidlc-docs/analysis/dependencies.md`:
 
 ```markdown
@@ -258,6 +330,10 @@ Create `aidlc-docs/analysis/dependencies.md`:
 
 ## Step 9: Generate Code Quality Assessment
 
+> **Document mode:** mark this artifact **"N/A — no source provided"**. If the
+> FSDs describe known pain points, tech debt, or quality concerns, capture them
+> as document-sourced observations instead.
+
 Create `aidlc-docs/analysis/code-quality-assessment.md`:
 
 ```markdown
@@ -285,8 +361,12 @@ Create `aidlc-docs/analysis/code-quality-assessment.md`:
 
 ## Step 10: Bounded Context Analysis
 
-Identify natural service boundaries in the codebase. Critical input for any
-decomposition, modernization, or feature-slice planning that follows.
+Identify natural service boundaries from the evidence. In **Code mode** derive
+them from packages, routes, services, and storage; in **Document mode** derive
+them from the business capabilities, entities, and processes the FSDs describe.
+This is critical input for any decomposition or modernization that follows, and
+it is the **primary seed for Phase 2 (Domain Model & Bounded Contexts)** — the
+domain phase refines and confirms these boundaries with the user.
 
 Create `aidlc-docs/analysis/bounded-contexts.md`:
 
