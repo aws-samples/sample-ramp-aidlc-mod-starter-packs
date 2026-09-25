@@ -1,6 +1,6 @@
-name: enterprise-app-on-cloudnative
-title: Enterprise App on Cloud-Native
-description: Cloud-native enterprise app — a line-of-business / transactional system.
+name: cots-rewrite-on-cloudnative
+title: COTS Rewrite on Cloud-Native
+description: Rewrite a commercial off-the-shelf or packaged/low-code application (e.g. OutSystems) as a cloud-native system, from source code and/or FSDs.
 
 instructions:
   - file: aidlc-workflow.md

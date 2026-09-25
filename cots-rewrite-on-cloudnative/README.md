@@ -1,12 +1,12 @@
-# Enterprise App on Cloud-Native — AI-DLC Starter Pack
+# COTS Rewrite on Cloud-Native — AI-DLC Starter Pack
 
-A **tool-agnostic** starter pack for **greenfield** development of a cloud-native **enterprise application** — a line-of-business or transactional system (e.g. order management, case management, a customer/operator portal) — built with the **AI-Driven Development Lifecycle (AI-DLC)** decision-driven workflow.
+A **tool-agnostic** starter pack for **rewriting a commercial off-the-shelf (COTS), packaged, or low-code application** — e.g. an **OutSystems** app — as a cloud-native system, built with the **AI-Driven Development Lifecycle (AI-DLC)** decision-driven workflow. The legacy app is the **requirements input**: it works from source code and/or **functional specification documents (FSDs) and screenshots**, reverse-engineers the domain, and rebuilds the in-scope bounded contexts cloud-native.
 
 The pack is authored once as tool-neutral source and works with **Kiro, Claude Code, GitHub Copilot, and Cursor**. Whichever agent you use picks up the instructions automatically and follows a structured, decision-gated workflow — it never writes a spec document until you have filled in your decisions first.
 
 ## Use case
 
-Greenfield build of an end-to-end business workflow, suitable for a working demo. The pack's **default lean is serverless — AWS Lambda + Amazon API Gateway + Aurora DSQL** — but it ships the **full cloud-native skill set** (containers, multiple Aurora engines plus DynamoDB, messaging & streaming, Step Functions orchestration, CDK / CloudFormation / Terraform, IAM, observability) and **automated-testing skills** (web E2E and .NET), so the design phase can flex the stack to fit your domain. This is a **single-repo** pack: one workspace, one spec lifecycle. Greenfield is the default; if existing source is present the workflow runs Phase 0 (reverse engineering) first.
+Rebuild an existing business system as a cloud-native app when you have its **source and/or FSDs/screenshots** (a classic OutSystems/low-code exit), or a greenfield build of an end-to-end business workflow. The pack's **default lean is serverless — AWS Lambda + Amazon API Gateway + Aurora DSQL** — but it ships the **full cloud-native skill set** (containers, multiple Aurora engines plus DynamoDB, messaging & streaming, Step Functions orchestration, CDK / CloudFormation / Terraform, IAM, observability) and **automated-testing skills** (web E2E and .NET), so the design phase can flex the stack to fit your domain. This is a **single-repo** pack: one workspace, one spec lifecycle. When source or FSDs are present the workflow runs **Phase 0 (Reverse Engineering / Input Analysis)** first; pure greenfield skips it.
 
 ## Getting started
 
@@ -28,7 +28,7 @@ Pre-generated, tool-correct configs live under [`scaffolded-packs/`](scaffolded-
 Run the `ramp-pack` installer from the repo root; it reads the neutral source and writes the correct layout into your target project:
 
 ```bash
-node installer/bin/ramp-pack.js init enterprise-app-on-cloudnative --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
+node installer/bin/ramp-pack.js init cots-rewrite-on-cloudnative --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
 ```
 
 Add `--dry-run` to preview, `--force` to overwrite existing files. Option B always works even if `scaffolded-packs/` is missing or out of date — the neutral source is the single source of truth.
@@ -64,7 +64,7 @@ Phase 1 Requirements → Phase 2 Domain Model → Phase 3 Design → Phase 4 Tas
 ## What's in this pack
 
 ```
-enterprise-app-on-cloudnative/
+cots-rewrite-on-cloudnative/
 ├── pack.yaml                 # Manifest: instruction roles, MCP servers, /aidlc command
 ├── instructions/             # Tool-neutral steering (source of truth)
 │   ├── aidlc-workflow.md         # Decision-gated Requirements → Domain Model → Design → Tasks (primary)

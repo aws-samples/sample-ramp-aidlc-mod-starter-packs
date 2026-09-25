@@ -38,7 +38,7 @@ Learn more:
 | Pack | Scenario | Highlights |
 |------|----------|-----------|
 | [**legacy-transformation-on-aws**](legacy-transformation-on-aws/) | Transform a legacy app on AWS — e.g. monolith → microservices | Reverse engineering → decomposition blueprint; 19 bundled skills spanning ECS lifecycle (recon/review/architect/build/devops), serverless (Lambda, Step Functions, API Gateway), Aurora (DSQL/PostgreSQL/MySQL), CloudFormation, IAM & observability |
-| [**enterprise-app-on-cloudnative**](enterprise-app-on-cloudnative/) | Greenfield cloud-native enterprise app — a line-of-business / transactional system | Serverless default (Lambda + API Gateway + Aurora DSQL); full cloud-native skill set (containers, CDK/CloudFormation/Terraform, multi-engine Aurora + DynamoDB, messaging & streaming, Step Functions, IAM, observability) plus web & .NET testing skills; single-repo |
+| [**cots-rewrite-on-cloudnative**](cots-rewrite-on-cloudnative/) | Rewrite a COTS / packaged / low-code app (e.g. OutSystems) as a cloud-native system — from source and/or FSDs | Serverless default (Lambda + API Gateway + Aurora DSQL); full cloud-native skill set (containers, CDK/CloudFormation/Terraform, multi-engine Aurora + DynamoDB, messaging & streaming, Step Functions, IAM, observability) plus web & .NET testing skills; single-repo |
 | [**web-app-on-cloudnative**](web-app-on-cloudnative/) | Multi-tier web app (SPA + BFF over a shared domain service) on cloud-native AWS — e.g. a multi-channel consumer/operator platform | Containers (ECS/Fargate) or serverless; Aurora / Aurora DSQL; Terraform/CDK/CloudFormation; multi-repo spec-splitting; container/IaC/IAM/observability + serverless & Aurora skills |
 | [**genai-on-serverless**](genai-on-serverless/) | GenAI on serverless — e.g. intelligent document processing | Bedrock + Lambda + API Gateway + S3; ingest/classify/extract/search |
 | [**voice-ai-agent-on-aws**](voice-ai-agent-on-aws/) | Real-time voice AI agents on AWS — e.g. adding a voice channel to an existing text/chat platform | Amazon Nova Sonic speech-to-speech + Strands BidiAgent; text-agent→voice migration (LangChain/OpenAI/custom); voice UX, latency & cost optimization skills |
@@ -71,7 +71,7 @@ aidlc-for-modernization-starter-packs/
 ├── README.md                                       # You are here
 ├── installer/                                      # `ramp-pack` — scaffolds a pack into a project per tool
 ├── legacy-transformation-on-aws/             # Legacy transformation — e.g. monolith → microservices
-├── enterprise-app-on-cloudnative/            # Cloud-native enterprise app — line-of-business / transactional system
+├── cots-rewrite-on-cloudnative/            # COTS / packaged / low-code rewrite (e.g. OutSystems) → cloud-native
 ├── web-app-on-cloudnative/                   # Multi-tier web app (SPA + BFF) — e.g. multi-channel consumer/operator platform
 ├── genai-on-serverless/                      # GenAI on serverless — e.g. intelligent document processing
 ├── voice-ai-agent-on-aws/                    # Real-time voice AI agents on AWS (Amazon Nova Sonic)

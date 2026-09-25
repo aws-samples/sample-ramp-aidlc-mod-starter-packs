@@ -119,14 +119,14 @@ Curated, domain-specific knowledge bundles the agent activates on demand. They f
 | `ecs-security` | ECS security & compliance — task/execution roles, PassRole, secrets injection, GuardDuty, hardening | sample-apex-skills |
 | `ecs-recon` | Read-only discovery/documentation of an existing ECS environment (pairs with Phase 0) | sample-apex-skills |
 | `ecs-operation-review` | GREEN/AMBER/RED operational-excellence audit of a live ECS estate | sample-apex-skills |
-| `aws-cloudformation` | Authoring/validating/troubleshooting raw CloudFormation templates | enterprise-app-on-cloudnative |
-| `aws-iam` | IAM roles, trust policies, least-privilege; service/task/execution roles | enterprise-app-on-cloudnative |
-| `aws-observability` | CloudWatch metrics/logs/alarms/dashboards, X-Ray, CloudTrail, ADOT, Application Signals (general) | enterprise-app-on-cloudnative |
-| `api-gateway` | Fronting the modernized service with REST/HTTP/WebSocket APIs, authorizers, custom domains | enterprise-app-on-cloudnative |
-| `aurora-dsql` | Aurora DSQL schemas, IAM auth, safe SQL construction (reimagine/greenfield data target) | enterprise-app-on-cloudnative |
-| `amazon-aurora-postgresql` | Aurora PostgreSQL ops, Babelfish (SQL Server compat), ACU sizing, upgrade planning | enterprise-app-on-cloudnative |
-| `amazon-aurora-mysql` | Aurora MySQL ops, ACU sizing, I/O-Optimized, upgrade planning | enterprise-app-on-cloudnative |
-| `creating-amazon-aurora-db-cluster-with-instances` | Standing up a complete Aurora cluster + instances with Secrets Manager passwords | enterprise-app-on-cloudnative |
+| `aws-cloudformation` | Authoring/validating/troubleshooting raw CloudFormation templates | agent-toolkit-for-aws |
+| `aws-iam` | IAM roles, trust policies, least-privilege; service/task/execution roles | agent-toolkit-for-aws |
+| `aws-observability` | CloudWatch metrics/logs/alarms/dashboards, X-Ray, CloudTrail, ADOT, Application Signals (general) | agent-toolkit-for-aws |
+| `api-gateway` | Fronting the modernized service with REST/HTTP/WebSocket APIs, authorizers, custom domains | agent-plugins |
+| `aurora-dsql` | Aurora DSQL schemas, IAM auth, safe SQL construction (reimagine/greenfield data target) | agent-plugins |
+| `amazon-aurora-postgresql` | Aurora PostgreSQL ops, Babelfish (SQL Server compat), ACU sizing, upgrade planning | agent-plugins |
+| `amazon-aurora-mysql` | Aurora MySQL ops, ACU sizing, I/O-Optimized, upgrade planning | agent-plugins |
+| `creating-amazon-aurora-db-cluster-with-instances` | Standing up a complete Aurora cluster + instances with Secrets Manager passwords | agent-plugins |
 
 > **IaC mix — heads up:** the `dotnet-*` skills generate **CloudFormation or CDK**, while `ecs-build` generates **Terraform**. Pick one IaC tool per project and activate the matching skill; the workflow makes IaC-tool an explicit design decision. `ecs-recon` and `ecs-operation-review` were added beyond the core five ECS skills to round out the discover→…→review lifecycle — remove them if you don't need discovery/audit.
 
@@ -144,6 +144,7 @@ The skills vendored in `skills/` are sourced from the following open-source proj
 
 - **[adisimon217/sample-appmod-skills](https://github.com/adisimon217/sample-appmod-skills)** — Application Modernization Agent Skills, licensed under the **MIT License**. Source of the .NET modernization skills: `dotnet-post-transform`, `dotnet-aws-ecs`, `dotnet-adot-sidecar`, `dotnet-aspnet-sessionstate-aws`, and `dotnet-aws-parameterstore`.
 - **[aws-samples/sample-apex-skills](https://github.com/aws-samples/sample-apex-skills)** — APEX (Agentic Platform Engineering eXperience) skills by AWS, licensed under the **MIT-0 License**. Source of the ECS platform skills: `ecs-architect`, `ecs-build`, `ecs-devops`, `ecs-observability`, `ecs-security`, `ecs-recon`, and `ecs-operation-review`.
-- The **data, identity, IaC, observability, and API** skills (`aws-cloudformation`, `aws-iam`, `aws-observability`, `api-gateway`, `aurora-dsql`, `amazon-aurora-postgresql`, `amazon-aurora-mysql`, `creating-amazon-aurora-db-cluster-with-instances`) are the same tool-agnostic skills used by the sibling [`enterprise-app-on-cloudnative`](../enterprise-app-on-cloudnative/) pack, originally sourced from **[aws/agent-toolkit-for-aws](https://github.com/aws/agent-toolkit-for-aws)** and **[awslabs/agent-plugins](https://github.com/awslabs/agent-plugins)** (Apache License 2.0). See that pack's README for detailed per-skill provenance.
+- **[aws/agent-toolkit-for-aws](https://github.com/aws/agent-toolkit-for-aws)** — `aws-core` plugin (**Apache License 2.0**). Source of the IaC, identity, and observability skills: `aws-cloudformation`, `aws-iam`, and `aws-observability`.
+- **[awslabs/agent-plugins](https://github.com/awslabs/agent-plugins)** — Agent Plugins for AWS (**Apache License 2.0**). Source of the API and data skills: `api-gateway` (`aws-serverless` plugin), and `aurora-dsql`, `amazon-aurora-postgresql`, `amazon-aurora-mysql`, `creating-amazon-aurora-db-cluster-with-instances` (`databases-on-aws` plugin).
 
 Skills are vendored (copied) into this pack so it works offline and pins a known-good version. Refer to the upstream repositories for the latest versions, additional skills, and their `LICENSE` / `NOTICE` files. AI-DLC steering is adapted from [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows) (MIT-0).

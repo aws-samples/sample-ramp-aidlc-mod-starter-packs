@@ -8,9 +8,9 @@ import { buildPlan } from '../src/plan.js'
 import { applyPlan } from '../src/apply.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
-const packDir = resolve(here, '..', '..', 'enterprise-app-on-cloudnative')
+const packDir = resolve(here, '..', '..', 'cots-rewrite-on-cloudnative')
 
-describe('e2e: enterprise-app-on-cloudnative', () => {
+describe('e2e: cots-rewrite-on-cloudnative', () => {
   it('kiro: steering has inclusion frontmatter, mcp has autoApprove, 20 skills', () => {
     const target = mkdtempSync(join(tmpdir(), 'proj-'))
     applyPlan(buildPlan(packDir, 'kiro'), target, { dryRun: false, force: false })
