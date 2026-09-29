@@ -7,7 +7,7 @@ import { renderInstructions } from '../src/render/instructions.js'
 import { renderCommand } from '../src/render/command.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
-const packDir = resolve(here, '..', '..', 'legacy-transformation-on-aws')
+const packDir = resolve(here, '..', '..', 'packs', 'legacy-transformation-on-aws')
 const manifest = loadManifest(packDir)
 const readInstruction = (name) => readFileSync(join(packDir, 'instructions', name), 'utf8')
 const byPath = (writes, path) => writes.find((write) => write.path === path)?.content ?? ''

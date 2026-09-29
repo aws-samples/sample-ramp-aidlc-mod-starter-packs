@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { loadManifest } from '../src/manifest.js'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
-const packDir = join(repoRoot, 'legacy-transformation-on-aws')
+const packDir = join(repoRoot, 'packs', 'legacy-transformation-on-aws')
 const libraryRoot = join(repoRoot, 'skills-library')
 const activationPath = join(packDir, 'instructions/skill-activation.md')
 

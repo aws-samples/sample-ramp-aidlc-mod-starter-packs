@@ -93,9 +93,9 @@ legacy-transformation-on-aws/
 ├── pack.yaml                 # Manifest: instruction roles, MCP servers, skills, /aidlc command
 ├── instructions/             # Tool-neutral steering (source of truth)
 │   ├── aidlc-workflow.md         # Detection → adaptive RE → Requirements → Design → Tasks
-│   ├── skill-activation.md       # Routing for all 16 bundled skills + AWS Knowledge validation
+│   ├── skill-activation.md       # Routing for all 19 bundled skills + AWS Knowledge validation
 │   └── reverse-engineering.md    # Targeted/Full, Orientation, Reuse & Verify playbook
-├── skills/                   # 16 bundled AWS domain and delivery skills
+├── skills/                   # 19 bundled AWS domain and delivery skills
 └── scaffolded-packs/         # Generated per-tool configs
     ├── kiro/         # .kiro/{steering,settings,skills}
     ├── claude-code/  # CLAUDE.md, .claude/{rules,commands,skills}, .mcp.json
@@ -124,9 +124,15 @@ The manifest declares AWS Knowledge once; the installer writes it to each tool's
 |---|---|
 | **AWS Knowledge** (`aws-knowledge-mcp-server`) | Validate current AWS service behavior, limits, regional availability, documentation, and CloudFormation resource shapes before load-bearing recommendations or generated IaC. |
 
-## Bundled skills (16)
+## Bundled skills (19)
 
 Skills are copied into every generated scaffold and activated by intent. During reverse engineering, discovery/assessment skills are used only when their capabilities apply to the approved scope; target design or implementation skills wait for the corresponding decision gate.
+
+### Serverless compute and workflows
+
+- **`aws-lambda`** — general event-driven/serverless Lambda functions: event source mappings, Web Adapter, observability, and performance/cost optimization.
+- **`aws-step-functions`** — Step Functions state machines in Amazon States Language (JSONata): state types, Retry/Catch, service integrations, Distributed Map, and JSONPath→JSONata migration.
+- **`connecting-lambda-to-api-gateway`** — wire an existing Lambda to a new REST/HTTP API Gateway: proxy integration, permissions, CORS, throttling, and access logging.
 
 ### ECS discovery and review
 

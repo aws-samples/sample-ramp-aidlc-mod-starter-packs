@@ -9,8 +9,8 @@ import { buildAll, listPacks, TOOLS as ALL_TOOLS } from '../src/build-all.js'
 
 const TOOLS = ['kiro', 'claude-code', 'copilot', 'cursor']
 const here = dirname(fileURLToPath(import.meta.url))
-// Packs live at the repo root, each in its own directory containing a pack.yaml.
-const packsRoot = resolve(here, '..', '..')
+// Packs live under <repo>/packs/, each in its own directory containing a pack.yaml.
+const packsRoot = resolve(here, '..', '..', 'packs')
 
 const program = new Command()
 program.name('ramp-pack')
