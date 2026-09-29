@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs'
-import { join, basename } from 'node:path'
+import { readFileSync, existsSync } from 'node:fs'
+import { join, basename, resolve } from 'node:path'
 
 // Per-tool location for the AI-DLC spec bundle. Kiro has a native spec directory
 // (`.kiro/specs`); the other tools have no equivalent, so specs live at the repo
@@ -12,12 +12,38 @@ const SPEC_DIR = {
   cursor: 'specs',
 }
 
+// Shared instruction defaults live in <repo>/common/instructions/. A pack may
+// omit an instruction file it declares in pack.yaml and inherit the common
+// default (e.g. the shared reverse-engineering playbook); a pack that ships its
+// own copy overrides it. Walk up from the pack dir so this works whether packs
+// live at <repo>/<pack> or <repo>/packs/<pack>.
+function findCommon(packDir) {
+  let dir = resolve(packDir, '..')
+  for (let i = 0; i < 6; i += 1) {
+    const candidate = join(dir, 'common')
+    if (existsSync(join(candidate, 'instructions'))) return candidate
+    const parent = resolve(dir, '..')
+    if (parent === dir) break
+    dir = parent
+  }
+  return join(resolve(packDir, '..'), 'common') // best-effort fallback
+}
+
+// Resolve an instruction file: pack-local first (override), else common default.
+function resolveInstruction(packDir, file) {
+  const local = join(packDir, 'instructions', file)
+  if (existsSync(local)) return local
+  const shared = join(findCommon(packDir), 'instructions', file)
+  if (existsSync(shared)) return shared
+  throw new Error(`instruction not found in pack or common/: ${file}`)
+}
+
 // Read an instruction body, trimming surrounding blank lines. Neutral sources
 // can carry a leading blank line (left behind when Kiro frontmatter is stripped);
 // trimming keeps every tool's output starting on real content. Also substitutes
 // per-tool tokens (currently `{{SPEC_DIR}}`).
 const body = (packDir, file, tool) => {
-  const raw = readFileSync(join(packDir, 'instructions', file), 'utf8').trim() + '\n'
+  const raw = readFileSync(resolveInstruction(packDir, file), 'utf8').trim() + '\n'
   return raw.replaceAll('{{SPEC_DIR}}', SPEC_DIR[tool])
 }
 const stem = (file) => basename(file, '.md')
