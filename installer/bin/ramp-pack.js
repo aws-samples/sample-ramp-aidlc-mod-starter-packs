@@ -5,6 +5,7 @@ import { dirname, join, resolve } from 'node:path'
 import { existsSync } from 'node:fs'
 import { buildPlan } from '../src/plan.js'
 import { applyPlan } from '../src/apply.js'
+import { buildAll, listPacks, TOOLS as ALL_TOOLS } from '../src/build-all.js'
 
 const TOOLS = ['kiro', 'claude-code', 'copilot', 'cursor']
 const here = dirname(fileURLToPath(import.meta.url))
@@ -12,8 +13,9 @@ const here = dirname(fileURLToPath(import.meta.url))
 const packsRoot = resolve(here, '..', '..')
 
 const program = new Command()
+program.name('ramp-pack')
+
 program
-  .name('ramp-pack')
   .command('init <pack>')
   .requiredOption('--tool <tool>', `target tool: ${TOOLS.join(', ')}`)
   .option('--dry-run', 'print planned writes without touching disk', false)
@@ -26,7 +28,7 @@ program
     }
     const packDir = join(packsRoot, pack)
     // A valid pack is a directory with a pack.yaml — this also prevents non-pack
-    // dirs (installer/, docs/, a generated scaffolded-packs/) being treated as packs.
+    // dirs (installer/, docs/, a generated dist/) being treated as packs.
     if (!existsSync(join(packDir, 'pack.yaml'))) {
       console.error(`Pack not found: ${pack} (no ${pack}/pack.yaml under ${packsRoot})`)
       process.exit(1)
@@ -38,6 +40,32 @@ program
       for (const p of written) console.log(`  ${verb}: ${p}`)
       console.log(`\n${verb} ${written.length} paths for ${pack} → ${opts.tool}.`)
       if (!opts.dryRun) console.log('Next: review generated files; edit AWS_PROFILE in the MCP config if present.')
+    } catch (err) {
+      console.error(err.message)
+      process.exit(1)
+    }
+  })
+
+// build-all: regenerate the per-tool output for every pack (or one) into <out>.
+// Replaces the committed scaffolded-packs/ tree. CI publishes <out> to gh-pages;
+// hand-editors run it locally to preview their changes rendered per tool.
+program
+  .command('build-all')
+  .option('--out <dir>', 'output directory (default: dist)', 'dist')
+  .option('--pack <pack>', 'build a single pack instead of all')
+  .action((opts) => {
+    try {
+      if (opts.pack && !existsSync(join(packsRoot, opts.pack, 'pack.yaml'))) {
+        console.error(`Pack not found: ${opts.pack} (no ${opts.pack}/pack.yaml under ${packsRoot})`)
+        process.exit(1)
+      }
+      const outDir = resolve(process.cwd(), opts.out)
+      const results = buildAll({ packsRoot, outDir, pack: opts.pack })
+      const packs = opts.pack ? [opts.pack] : listPacks(packsRoot)
+      for (const r of results) console.log(`  ${r.pack} → ${r.tool}: ${r.count} paths`)
+      console.log(
+        `\nBuilt ${packs.length} pack(s) × ${ALL_TOOLS.length} tools = ${results.length} bundles → ${outDir}`,
+      )
     } catch (err) {
       console.error(err.message)
       process.exit(1)

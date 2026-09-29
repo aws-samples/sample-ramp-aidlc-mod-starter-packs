@@ -280,15 +280,14 @@ describe('legacy-transformation-on-aws adaptive reverse engineering', () => {
     expectConditionalInputStrategy(manifest.command?.body ?? '', 'pack.yaml command.body')
   })
 
-  it.each([
-    ['claude-code', 'scaffolded-packs/claude-code/.claude/commands/aidlc.md'],
-    ['copilot', 'scaffolded-packs/copilot/.github/prompts/aidlc.prompt.md'],
-  ])('keeps the %s launcher conditional in fresh and generated output', (tool, generatedPath) => {
-    const fresh = renderCommand(manifest, tool)?.content ?? ''
-    const generated = readFileSync(join(packDir, generatedPath), 'utf8')
-
-    expectConditionalInputStrategy(fresh, `${tool} fresh launcher`)
-    expectConditionalInputStrategy(generated, `${tool} generated launcher`)
-    expect(generated, `${tool} generated launcher must byte-match the renderer`).toBe(fresh)
-  })
+  // Generated output is no longer committed (Model B: build-all regenerates it
+  // from source and CI publishes to gh-pages). We therefore assert the contract
+  // on the fresh render only; byte-identity of committed scaffolds is obsolete.
+  it.each([['claude-code'], ['copilot']])(
+    'keeps the %s launcher conditional in fresh render',
+    (tool) => {
+      const fresh = renderCommand(manifest, tool)?.content ?? ''
+      expectConditionalInputStrategy(fresh, `${tool} fresh launcher`)
+    },
+  )
 })

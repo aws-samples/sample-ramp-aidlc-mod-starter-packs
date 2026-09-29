@@ -18,3 +18,9 @@ build/
 
 # Brownfield source brought in for Phase 0 (kept local, not committed)
 existing-codebase/
+
+# Generated per-tool output (Model B): never committed. Regenerate with
+# `node installer/bin/ramp-pack.js build-all` or ./scripts/regenerate.sh.
+# CI renders these from source and publishes them to the gh-pages branch.
+scaffolded-packs/
+dist/

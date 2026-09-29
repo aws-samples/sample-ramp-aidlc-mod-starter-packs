@@ -1,0 +1,60 @@
+name: build-packs
+
+# Model B: rendered per-tool output is never committed. This workflow
+# regenerates it from source and publishes to the gh-pages branch so the
+# "copy a pre-built folder, no tooling" audience can download it.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write # required to push the gh-pages branch on main
+
+jobs:
+  verify:
+    # Generate-before-merge checkpoint: prove source still renders + tests pass.
+    # Runs on every PR and push; publishes nothing.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install installer deps
+        working-directory: installer
+        run: npm ci
+      - name: Run installer test suite
+        working-directory: installer
+        run: npm test
+      - name: Regenerate all packs from source
+        run: node installer/bin/ramp-pack.js build-all --out dist
+      - name: Upload rendered packs (build artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: rendered-packs
+          path: dist/
+
+  publish:
+    # Only publish to gh-pages from main.
+    needs: verify
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install installer deps
+        working-directory: installer
+        run: npm ci
+      - name: Regenerate all packs from source
+        run: node installer/bin/ramp-pack.js build-all --out dist
+      - name: Publish rendered packs to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
+          # dist/<pack>/<tool>/... — users download the folder for their tool.
