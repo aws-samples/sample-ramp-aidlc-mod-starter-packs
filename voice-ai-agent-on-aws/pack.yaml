@@ -38,4 +38,7 @@ mcp:
       - read_documentation
       - recommend
 
-skills: all
+skills:
+  - nova-sonic-best-practices
+  - nova-sonic-optimization
+  - text-agent-to-nova-sonic-voice

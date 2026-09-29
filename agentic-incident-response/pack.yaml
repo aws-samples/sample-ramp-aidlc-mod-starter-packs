@@ -37,4 +37,15 @@ mcp:
       - aws___get_regional_availability
       - aws___list_regions
 
-skills: all
+skills:
+  - api-gateway
+  - aws-event-driven-patterns
+  - aws-iam
+  - aws-lambda
+  - aws-lambda-durable-functions
+  - aws-messaging-and-streaming
+  - aws-observability
+  - aws-serverless-deployment
+  - aws-step-functions
+  - incident-triage
+  - terraform-skill

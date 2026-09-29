@@ -51,4 +51,24 @@ mcp:
     autoApprove: []
     disabled: false
 
-skills: all
+skills:
+  - amazon-aurora-mysql
+  - amazon-aurora-postgresql
+  - amazon-dynamodb
+  - api-gateway
+  - aurora-dsql
+  - aws-cdk
+  - aws-cloudformation
+  - aws-containers
+  - aws-iam
+  - aws-lambda
+  - aws-lambda-durable-functions
+  - aws-messaging-and-streaming
+  - aws-observability
+  - aws-serverless-deployment
+  - aws-step-functions
+  - creating-amazon-aurora-db-cluster-with-instances
+  - dotnet-testing
+  - signing-in-to-aws
+  - terraform-skill
+  - web-test-automation

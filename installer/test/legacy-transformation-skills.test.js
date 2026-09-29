@@ -1,20 +1,24 @@
 import { describe, expect, it } from 'vitest'
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, statSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { loadManifest } from '../src/manifest.js'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
-const skillsRoot = join(repoRoot, 'legacy-transformation-on-aws/skills')
-const activationPath = join(repoRoot, 'legacy-transformation-on-aws/instructions/skill-activation.md')
+const packDir = join(repoRoot, 'legacy-transformation-on-aws')
+const libraryRoot = join(repoRoot, 'skills-library')
+const activationPath = join(packDir, 'instructions/skill-activation.md')
 
-const bundledSkills = readdirSync(skillsRoot)
+// Skills are now declared explicitly in pack.yaml and resolved from the shared
+// skills-library/ (previously they were physical dirs under the pack). Derive
+// the bundled set from the manifest and confirm each resolves to a real library
+// skill (or a pack-local shadow, if one ever exists).
+const bundledSkills = [...loadManifest(packDir).skills]
   .filter((name) => {
-    const skillDir = join(skillsRoot, name)
-    const skillPath = join(skillDir, 'SKILL.md')
-    return existsSync(skillDir)
-      && statSync(skillDir).isDirectory()
-      && existsSync(skillPath)
-      && statSync(skillPath).isFile()
+    const local = join(packDir, 'skills', name, 'SKILL.md')
+    const lib = join(libraryRoot, name, 'SKILL.md')
+    const path = existsSync(local) ? local : lib
+    return existsSync(path) && statSync(path).isFile()
   })
   .sort()
 

@@ -15,4 +15,9 @@ mcp:
     transport: http
     url: https://knowledge-mcp.global.api.aws
 
-skills: all
+skills:
+  - agentic-optimizer
+  - aws-skills
+  - iac
+  - terraform-aws
+  - terraform-skill

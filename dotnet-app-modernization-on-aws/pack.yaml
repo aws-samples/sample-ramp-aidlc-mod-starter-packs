@@ -34,4 +34,24 @@ mcp:
     env:
       FASTMCP_LOG_LEVEL: ERROR
 
-skills: all
+skills:
+  - amazon-aurora-mysql
+  - amazon-aurora-postgresql
+  - api-gateway
+  - aurora-dsql
+  - aws-cloudformation
+  - aws-iam
+  - aws-observability
+  - creating-amazon-aurora-db-cluster-with-instances
+  - dotnet-adot-sidecar
+  - dotnet-aspnet-sessionstate-aws
+  - dotnet-aws-ecs
+  - dotnet-aws-parameterstore
+  - dotnet-post-transform
+  - ecs-architect
+  - ecs-build
+  - ecs-devops
+  - ecs-observability
+  - ecs-operation-review
+  - ecs-recon
+  - ecs-security

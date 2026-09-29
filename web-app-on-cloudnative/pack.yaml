@@ -30,4 +30,19 @@ mcp:
       - aws___get_regional_availability
       - aws___list_regions
 
-skills: all
+skills:
+  - amazon-aurora-mysql
+  - amazon-aurora-postgresql
+  - api-gateway
+  - aurora-dsql
+  - aws-cdk
+  - aws-cloudformation
+  - aws-containers
+  - aws-iam
+  - aws-lambda
+  - aws-lambda-durable-functions
+  - aws-observability
+  - aws-step-functions
+  - creating-amazon-aurora-db-cluster-with-instances
+  - signing-in-to-aws
+  - terraform-skill

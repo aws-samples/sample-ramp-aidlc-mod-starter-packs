@@ -38,4 +38,12 @@ mcp:
       - read_documentation
       - recommend
 
-skills: all
+skills:
+  - android-design-best-practices
+  - api-gateway
+  - aws-lambda
+  - aws-serverless-best-practices
+  - aws-step-functions
+  - kotlin-coding-standards
+  - property-based-testing-guide
+  - terraform-best-practices

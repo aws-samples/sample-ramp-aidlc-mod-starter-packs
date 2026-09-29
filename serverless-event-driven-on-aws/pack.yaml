@@ -43,4 +43,22 @@ mcp:
     autoApprove: []
     disabled: true   # off by default so first launch never errors — set AWS_PROFILE (see README), then flip to false
 
-skills: all
+skills:
+  - amazon-dynamodb
+  - api-gateway
+  - aws-cdk
+  - aws-cloudformation
+  - aws-containers
+  - aws-event-driven-patterns
+  - aws-iam
+  - aws-lambda
+  - aws-lambda-durable-functions
+  - aws-messaging-and-streaming
+  - aws-observability
+  - aws-serverless-deployment
+  - aws-step-functions
+  - dotnet-testing
+  - mobile-test-automation
+  - signing-in-to-aws
+  - terraform-skill
+  - web-test-automation

@@ -32,4 +32,16 @@ mcp:
       - aws___get_regional_availability
       - aws___list_regions
 
-skills: all
+skills:
+  - aws-cloudformation
+  - aws-containers
+  - aws-iam
+  - aws-observability
+  - ecs-architect
+  - ecs-build
+  - ecs-devops
+  - ecs-observability
+  - ecs-security
+  - java-upgrade
+  - regression-testing
+  - web-test-automation
