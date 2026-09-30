@@ -57,6 +57,8 @@ Learn more:
    - **Copy the pre-built folder (no tooling):** each pack ships committed, per-tool steering under `packs/<pack>/scaffolded-packs/<tool>/` (`kiro`, `claude-code`, `copilot`, or `cursor`). Copy that folder into your project root, then run the pack's `add-skills.sh` to port its skills in — no Node required:
      ```bash
      packs/<pack>/add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
+     # or, from the repo root, by pack name:
+     ./add-skills.sh <pack> --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
      ```
      The skill list lives at the top of `add-skills.sh` — edit it to add/remove skills for your use case.
    - **Generate it (installer):** run the `ramp-pack` installer from the repo root — it reads the pack's tool-neutral source and writes the full layout (steering **and** skills) into your project:
