@@ -24,7 +24,7 @@ Pick **one** of the two ways to add this pack to your project.
 
 ### Option A — copy the committed folder (no tooling)
 
-Every pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. Copy the folder for your tool into your project root — no Node required — then run `scaffolded-packs/add-skills.sh` to port this pack's skills from the shared `skills-library/`:
+Every pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. Copy the folder for your tool into your project root — no Node required — then run `add-skills.sh` to port this pack's skills from the shared `skills-library/`:
 
 | Your tool | Copy from | Into your project |
 |---|---|---|
@@ -36,7 +36,7 @@ Every pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. 
 The `scaffolded-packs/<tool>/` folders contain steering/MCP/command files only (no skills). Port this pack's skills separately:
 
 ```bash
-scaffolded-packs/add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
+add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
 ```
 
 The `SKILLS` list at the top of `add-skills.sh` is editable — add or remove skills for your use case.
@@ -97,12 +97,12 @@ serverless-event-driven-on-aws/
 │   ├── practices-discovery.md      # Team context capture, run once before Phase 1 (companion, auto)
 │   ├── multi-repo-projects.md      # Repo-model gate + multi-repo flow (companion, auto)
 │   └── reverse-engineering.md      # Phase 0 playbook (companion, brownfield-only)
+├── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills-library/
 └── scaffolded-packs/             # Committed, regenerated from source
-    ├── kiro/ claude-code/ copilot/ cursor/   # per-tool steering/MCP/command (steering only, no skills)
-    └── add-skills.sh               # editable SKILLS list; ports this pack's skills from skills-library/
+    └── kiro/ claude-code/ copilot/ cursor/   # per-tool steering/MCP/command (steering only, no skills)
 ```
 
-> `instructions/` and `pack.yaml` are the **neutral source** you edit. Skills are referenced **by name** from the shared `skills-library/` at the repo root (see the `skills:` list in `pack.yaml`) — see the Skills table below; a local `skills/` directory appears only when a pack overrides a library skill (a rare 'shadow'). The committed `scaffolded-packs/<tool>/` folders carry steering only; skills are ported in by `scaffolded-packs/add-skills.sh`. Regenerate the committed scaffolds from the neutral source + skills-library with `./scripts/regenerate.sh serverless-event-driven-on-aws`; don't hand-edit generated output.
+> `instructions/` and `pack.yaml` are the **neutral source** you edit. Skills are referenced **by name** from the shared `skills-library/` at the repo root (see the `skills:` list in `pack.yaml`) — see the Skills table below; a local `skills/` directory appears only when a pack overrides a library skill (a rare 'shadow'). The committed `scaffolded-packs/<tool>/` folders carry steering only; skills are ported in by `add-skills.sh`. Regenerate the committed scaffolds from the neutral source + skills-library with `./scripts/regenerate.sh serverless-event-driven-on-aws`; don't hand-edit generated output.
 
 ### How each instruction maps per tool
 

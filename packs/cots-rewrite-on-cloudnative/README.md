@@ -14,7 +14,7 @@ Pick **one** of the two ways to add this pack to your project.
 
 ### Option A — copy the committed folder (no tooling)
 
-This pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. Copy the folder for your tool into your project root — no Node required — then run `scaffolded-packs/add-skills.sh` to port this pack's skills from the shared `skills-library/`:
+This pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. Copy the folder for your tool into your project root — no Node required — then run `add-skills.sh` to port this pack's skills from the shared `skills-library/`:
 
 | Your tool | Copy from | Into your project |
 |---|---|---|
@@ -26,7 +26,7 @@ This pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. C
 The `scaffolded-packs/<tool>/` folders contain **steering/MCP/command files only — no skills**. After copying, port the skills in:
 
 ```bash
-scaffolded-packs/add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
+add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
 ```
 
 This is pure bash + `cp` (no Node). The `SKILLS=()` list at the top of `add-skills.sh` is seeded from `pack.yaml` and is editable — add or remove skills for your use case.
@@ -79,9 +79,9 @@ cots-rewrite-on-cloudnative/
 │   ├── skill-activation.md       # When to activate which skill + MCP (companion, always)
 │   ├── reverse-engineering.md    # Phase 0 playbook — source code and/or FSDs/docs (companion, auto)
 │   └── requirements-traceability.md  # Trace requirements to FSD/screen anchors + coverage gate (companion, auto)
+├── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills-library/
 └── scaffolded-packs/         # Committed per-tool output (regenerated from source)
-    ├── kiro/ claude-code/ copilot/ cursor/   # per-tool steering/MCP/command — NO skills
-    └── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills-library/
+    └── kiro/ claude-code/ copilot/ cursor/   # per-tool steering/MCP/command — NO skills
 ```
 
 > `instructions/` and `pack.yaml` are the **neutral source** you edit. Skills are referenced **by name** from `pack.yaml` (`skills:` list) and live in the shared [`skills-library/`](../../skills-library/) at the repo root — a pack-local `skills/` directory appears only when a pack overrides a library skill. The per-tool `scaffolded-packs/<tool>/` folders are committed (steering only) and are ported the skills via `add-skills.sh`; regenerate them with `./scripts/regenerate.sh cots-rewrite-on-cloudnative` after editing the source — don't hand-edit the generated output.

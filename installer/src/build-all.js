@@ -53,9 +53,11 @@ export function buildAll({
 
     if (emitSkillScript) {
       const manifest = loadManifest(packDir)
-      const scriptPath = join(packOut, 'add-skills.sh')
-      mkdirSync(packOut, { recursive: true })
-      writeFileSync(scriptPath, renderAddSkills(manifest), { mode: 0o755 })
+      // Committed layout: add-skills.sh sits at the pack root, a sibling of
+      // scaffolded-packs/. In --out preview mode it sits beside the tool folders.
+      const scriptDir = inPlace ? packDir : join(outDir, p)
+      mkdirSync(scriptDir, { recursive: true })
+      writeFileSync(join(scriptDir, 'add-skills.sh'), renderAddSkills(manifest), { mode: 0o755 })
       results.push({ pack: p, tool: 'add-skills.sh', count: 1 })
     }
   }

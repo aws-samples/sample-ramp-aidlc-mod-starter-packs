@@ -30,9 +30,9 @@ jobs:
       - name: Regenerate committed scaffolds and fail if stale
         run: |
           node installer/bin/ramp-pack.js build-all --in-place
-          if ! git diff --quiet -- 'packs/*/scaffolded-packs'; then
-            echo "::error::Committed scaffolds are out of date. Run ./scripts/regenerate.sh and commit."
-            git --no-pager diff --stat -- 'packs/*/scaffolded-packs'
+          if ! git diff --quiet -- 'packs/*/scaffolded-packs' 'packs/*/add-skills.sh'; then
+            echo "::error::Committed scaffolds/add-skills.sh are out of date. Run ./scripts/regenerate.sh and commit."
+            git --no-pager diff --stat -- 'packs/*/scaffolded-packs' 'packs/*/add-skills.sh'
             exit 1
           fi
           echo "Committed scaffolds are in sync with source."

@@ -56,7 +56,7 @@ Learn more:
 2. **Add it to your project** in whichever agent you use — two ways:
    - **Copy the pre-built folder (no tooling):** each pack ships committed, per-tool steering under `packs/<pack>/scaffolded-packs/<tool>/` (`kiro`, `claude-code`, `copilot`, or `cursor`). Copy that folder into your project root, then run the pack's `add-skills.sh` to port its skills in — no Node required:
      ```bash
-     packs/<pack>/scaffolded-packs/add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
+     packs/<pack>/add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
      ```
      The skill list lives at the top of `add-skills.sh` — edit it to add/remove skills for your use case.
    - **Generate it (installer):** run the `ramp-pack` installer from the repo root — it reads the pack's tool-neutral source and writes the full layout (steering **and** skills) into your project:
@@ -107,9 +107,9 @@ packs/<pack>/
 ├── pack.yaml                 # Manifest: instruction roles, skill list, MCP servers, /aidlc command
 ├── instructions/             # Tool-neutral steering (pack-specific; may inherit common/ defaults)
 ├── skills/                   # OPTIONAL — only when a pack overrides a library skill ("shadow")
-└── scaffolded-packs/         # Committed, regenerated from source:
-    ├── kiro/ claude-code/ copilot/ cursor/   # per-tool steering/MCP/command (NO skills — kept small)
-    └── add-skills.sh         # editable skill list; copies this pack's skills from skills-library/
+├── add-skills.sh             # editable skill list; ports this pack's skills from skills-library/ (bash, no Node)
+└── scaffolded-packs/         # Committed per-tool steering, regenerated from source:
+    └── kiro/ claude-code/ copilot/ cursor/   # steering/MCP/command only — NO skills (kept small)
 ```
 
 > **Committed scaffolds (Model C):** the per-tool folders under `scaffolded-packs/`

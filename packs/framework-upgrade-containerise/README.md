@@ -33,7 +33,7 @@ Pick **one** of the two ways to add this pack to your project.
 ### Option A — copy the committed folder (no tooling)
 
 Every pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. Copy the folder for your
-tool into your project root — no Node required — then run `scaffolded-packs/add-skills.sh` to port this
+tool into your project root — no Node required — then run `add-skills.sh` to port this
 pack's skills from the shared `skills-library/`:
 
 | Your tool | Copy from | Into your project |
@@ -47,7 +47,7 @@ The `scaffolded-packs/<tool>/` folders contain steering/MCP/command files only (
 pack's skills separately:
 
 ```bash
-scaffolded-packs/add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/service
+add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/service
 ```
 
 The `SKILLS` list at the top of `add-skills.sh` is editable — add or remove skills for your use case.

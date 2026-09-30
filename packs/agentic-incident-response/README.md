@@ -60,7 +60,7 @@ The committed `scaffolded-packs/<tool>/` folders contain **steering/MCP/command 
 copying the folder, port this pack's skills in:
 
 ```bash
-scaffolded-packs/add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
+add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
 ```
 
 `add-skills.sh` is pure bash + `cp` (no Node) and copies this pack's skills from the shared `skills-library/`
@@ -114,16 +114,16 @@ agentic-incident-response/
 │   ├── aidlc-workflow.md                 # Decision-gated Requirements → Design → Tasks (primary)
 │   ├── skill-activation.md               # When to activate skills + MCP (companion, always)
 │   └── reverse-engineering.md            # Phase 0 playbook (companion, auto — brownfield grounding)
+├── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills-library/
 └── scaffolded-packs/                 # Committed, regenerated from source
-    ├── kiro/ claude-code/ copilot/ cursor/   # per-tool steering/MCP/command (steering only, NO skills)
-    └── add-skills.sh                     # editable SKILLS list; ports this pack's skills from skills-library/
+    └── kiro/ claude-code/ copilot/ cursor/   # per-tool steering/MCP/command (steering only, NO skills)
 ```
 
 > `instructions/`, `pack.yaml`, and this README are the **neutral source** you edit. The pack's skills are
 > referenced **by name** from `pack.yaml` (`skills:` list) and resolved from the shared
 > [`skills-library/`](../../skills-library/) at the repo root — the pack has no `skills/` directory of its own
 > (a local `skills/` appears only when a pack overrides a library skill; the full skill list is below). They
-> are ported into a target project by `scaffolded-packs/add-skills.sh`. The committed per-tool scaffolds are
+> are ported into a target project by `add-skills.sh`. The committed per-tool scaffolds are
 > regenerated from the neutral source — rebuild them with the installer or
 > `./scripts/regenerate.sh agentic-incident-response` rather than hand-editing.
 

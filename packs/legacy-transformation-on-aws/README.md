@@ -35,7 +35,7 @@ Each pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. C
 The committed `scaffolded-packs/<tool>/` folders contain **steering/MCP/command files only — no skills**. After copying the folder, port this pack's skills in:
 
 ```bash
-scaffolded-packs/add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/monolith
+add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/monolith
 ```
 
 `add-skills.sh` is pure bash + `cp` (no Node) and copies this pack's skills from the shared `skills-library/` into the target's per-tool skills directory. The `SKILLS=()` list at the top of the script is editable — add or remove skills for your use case.
@@ -103,15 +103,15 @@ legacy-transformation-on-aws/
 │   ├── aidlc-workflow.md         # Detection → adaptive RE → Requirements → Design → Tasks
 │   ├── skill-activation.md       # Routing for all 19 bundled skills + AWS Knowledge validation
 │   └── reverse-engineering.md    # Targeted/Full, Orientation, Reuse & Verify playbook
+├── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills-library/
 └── scaffolded-packs/         # Committed, regenerated from source
-    ├── kiro/ claude-code/ copilot/ cursor/   # per-tool steering/MCP/command (steering only, NO skills)
-    └── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills-library/
+    └── kiro/ claude-code/ copilot/ cursor/   # per-tool steering/MCP/command (steering only, NO skills)
 ```
 
 > The pack's 19 skills are referenced **by name** from `pack.yaml` (`skills:` list) and resolved from the
 > shared [`skills-library/`](../../skills-library/) at the repo root — the pack has no `skills/` directory of
 > its own (a local `skills/` appears only when a pack overrides a library skill). They are ported into a target
-> project by `scaffolded-packs/add-skills.sh`. Edit `instructions/`, `pack.yaml`, and this README as canonical
+> project by `add-skills.sh`. Edit `instructions/`, `pack.yaml`, and this README as canonical
 > source; the committed per-tool scaffolds are regenerated from it — rebuild them with the installer or
 > `./scripts/regenerate.sh legacy-transformation-on-aws` rather than hand-editing.
 

@@ -28,7 +28,7 @@ Pick **one** of the two ways to add this pack to your project.
 
 ### Option A — copy the committed folder (no tooling)
 
-Each pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. Copy the folder for your tool into your project root — no Node required — then run `scaffolded-packs/add-skills.sh` to port this pack's skills from the shared `skills-library/` (the `SKILLS` list at the top of the script is editable):
+Each pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. Copy the folder for your tool into your project root — no Node required — then run `add-skills.sh` to port this pack's skills from the shared `skills-library/` (the `SKILLS` list at the top of the script is editable):
 
 | Your tool | Copy from | Into your project |
 |---|---|---|
@@ -38,7 +38,7 @@ Each pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. C
 | **Cursor** | `scaffolded-packs/cursor/` | `.cursor/` |
 
 ```bash
-scaffolded-packs/add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
+add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
 ```
 
 The `scaffolded-packs/<tool>/` folders contain steering/MCP/command files only (no skills); `add-skills.sh` copies this pack's skills in separately.
@@ -74,12 +74,12 @@ voice-ai-agent-on-aws/
 │   ├── aidlc-workflow.md         # Decision-gated Requirements → Design → Tasks (primary)
 │   ├── skill-activation.md       # When to activate skills + MCP (companion, always)
 │   └── reverse-engineering.md    # Phase 0 playbook (companion, brownfield-only)
+├── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills-library/
 └── scaffolded-packs/         # Committed per-tool steering (regenerated from source)
-    ├── kiro/ claude-code/ copilot/ cursor/   # steering/MCP/command only — NO skills
-    └── add-skills.sh         # editable SKILLS list; ports this pack's skills from skills-library/
+    └── kiro/ claude-code/ copilot/ cursor/   # steering/MCP/command only — NO skills
 ```
 
-> `instructions/` and `pack.yaml` are the **neutral source** you edit. Skills are **not** stored in the pack — they are referenced by name in `pack.yaml` (`skills:`) and live in the shared [`skills-library/`](../../skills-library/) at the repo root (a local `skills/` dir appears only when a pack overrides a library skill). The committed per-tool scaffolds under `scaffolded-packs/` (steering only) are rendered from this neutral source, and `scaffolded-packs/add-skills.sh` ports the named skills from the shared skills-library — regenerate the scaffolds with `./scripts/regenerate.sh voice-ai-agent-on-aws`.
+> `instructions/` and `pack.yaml` are the **neutral source** you edit. Skills are **not** stored in the pack — they are referenced by name in `pack.yaml` (`skills:`) and live in the shared [`skills-library/`](../../skills-library/) at the repo root (a local `skills/` dir appears only when a pack overrides a library skill). The committed per-tool scaffolds under `scaffolded-packs/` (steering only) are rendered from this neutral source, and `add-skills.sh` ports the named skills from the shared skills-library — regenerate the scaffolds with `./scripts/regenerate.sh voice-ai-agent-on-aws`.
 
 ### How each instruction maps per tool
 
