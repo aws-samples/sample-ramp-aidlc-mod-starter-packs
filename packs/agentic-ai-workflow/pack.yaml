@@ -5,6 +5,10 @@ description: Reusable AI-DLC base + MCP environment for building agentic AI work
 instructions:
   - file: aidlc-workflow.md
     role: primary
+  - file: reverse-engineering.md
+    role: companion
+    load: auto
+    description: "Brownfield reverse engineering — use when an existing system or codebase is present and you need to analyze it before designing. Inherits the shared common/ playbook."
 
 command:
   name: aidlc

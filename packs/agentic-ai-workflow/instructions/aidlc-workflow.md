@@ -1,39 +1,32 @@
 # Decision-Driven Document Generation
 
-**APPLIES TO**: Creating or updating requirements.md, design.md, or tasks.md files  
-**DOES NOT APPLY TO**: General coding, debugging, file editing, or conversational queries
+## 🚨 CRITICAL: READ THIS BEFORE DOING ANYTHING 🚨
 
-## 🚨 CRITICAL ENFORCEMENT - READ FIRST
+**This workflow overrides default behavior** when the user asks to plan, build,
+modernize, or change anything that warrants a spec.
 
-**BEFORE creating ANY of these files:**
-- `requirements.md`
-- `design.md`
-- `tasks.md`
+**FORBIDDEN ACTIONS until the appropriate gate is cleared:**
 
-**YOU MUST:**
-1. Check if corresponding decision file exists
-2. If NO → Create decision file (`_decisions-requirements.md`, `_decisions-design.md`, or `_decisions-tasks.md`), then STOP EXECUTION
-3. If YES but empty → Ask user to fill it in, then STOP EXECUTION
-4. If YES and completed → Proceed to create final document
+- DO NOT generate `requirements.md`, `design.md`, or `tasks.md` without first creating and completing the matching `_decisions-*.md`
+- DO NOT skip the Reverse Engineering phase when an existing codebase is present
+- DO NOT proceed past an approval gate without the user's explicit approval
 
-**NEVER EVER:**
-- Create requirements.md without completed `_decisions-requirements.md`
-- Create design.md without completed `_decisions-design.md`
-- Create tasks.md without completed `_decisions-tasks.md`
-- Create both decision file and final document in same turn
+**MANDATORY FIRST ACTIONS (in this exact order):**
 
-**This applies even when:**
-- User clicks "Generate Requirements" button
-- User clicks "Generate Design" button
-- User clicks "Generate Tasks" button
-- User explicitly asks to create the document
+1. Check if `aidlc-docs/aidlc-state.md` exists — if yes, **resume** from where we left off.
+2. If no state file exists, create `aidlc-docs/aidlc-state.md` and `aidlc-docs/audit.md`.
+3. Decide if this is **brownfield** (existing code present) or **greenfield** (no existing code).
+4. **Brownfield → run Phase 0 (Reverse Engineering) FIRST** — load and follow `reverse-engineering.md` and write every analysis document under `aidlc-docs/analysis/`. **Greenfield → skip Phase 0.**
+5. Then proceed through the phases sequentially — Requirements → Design → Tasks — each behind its decision-file gate.
+
+See **Session Entry** and **Phase 0** below for details.
 
 ## Quick Reference
 - Requirements phase → `_decisions-requirements.md` → `requirements.md`
 - Design phase → `_decisions-design.md` → `design.md`
 - Tasks phase → `_decisions-tasks.md` → `tasks.md`
 
-## Session State & Audit
+## Session Entry
 
 At the start of every session, before phase work:
 
@@ -113,7 +106,7 @@ Each decision file is independent:
 
 ## Decision File Format
 
-**Location**: Same directory as spec outputs
+**Location**: The spec directory `{{SPEC_DIR}}/<spec-name>/` (see **Spec Directory Convention** below) — each `_decisions-*.md` sits alongside the spec doc it gates.
 
 **File naming**:
 - `_decisions-requirements.md`
@@ -201,9 +194,70 @@ Each decision file is independent:
 **Key Decision Categories**:
 1. **Implementation Strategy**: How to organize development work
 2. **Task Prioritization**: Which components to build first and why
-3. **Development Phases**: Sprint/milestone breakdown
-4. **Testing Approach**: When and how to test each component
-5. **Deployment Strategy**: How to release and deploy changes
+3. **Parallel Execution Groups**: Which task groups have zero shared state and can run concurrently (drives the wave plan below)
+4. **Development Phases**: Sprint/milestone breakdown
+5. **Testing Approach**: When and how to test each component
+6. **Deployment Strategy**: How to release and deploy changes
+
+## Task Generation: Parallel Waves
+
+`tasks.md` is organized into **independent parallel groups** grouped into **waves**.
+Each group has zero shared-state dependencies with other groups in its wave and can be
+executed by a separate worker (agent instance or developer) simultaneously; within a
+group, tasks run sequentially.
+
+**MANDATORY dependency analysis** — before generating `tasks.md`, analyze every task for:
+1. File/module dependencies (does task B read/write files task A creates?)
+2. API contract dependencies (does task B call an API task A defines?)
+3. Infrastructure dependencies (does task B need infra task A provisions?)
+4. Data dependencies (does task B need schemas/seed data from task A?)
+
+Tasks with no cross-dependencies form independent groups; a group that depends on
+another group's outputs goes into a later wave.
+
+```markdown
+# Tasks: <Spec Name>
+
+## Execution Plan
+
+| Wave | Groups (run in parallel) | Depends On |
+|------|--------------------------|------------|
+| 1    | Group A, Group B, Group C | —          |
+| 2    | Group D, Group E          | Wave 1     |
+| 3    | Group F                   | Wave 2     |
+
+> **How to run:** assign one worker per group within a wave; wait for all groups in a
+> wave to finish before starting the next wave.
+
+## Wave 1 (no dependencies — start all in parallel)
+
+### Group A: [Domain / Feature / Concern]
+- [ ] A.1 [Task]
+- [ ] A.2 [Task]
+
+### Group B: [Domain / Feature / Concern]
+- [ ] B.1 [Task]
+
+## Wave 2 (depends on Wave 1)
+
+### Group D: [Domain / Feature / Concern]
+**Requires:** Group A, Group B outputs
+- [ ] D.1 [Task]
+
+## Wave 3 (integration — depends on Wave 2)
+
+### Group F: Verification & Integration
+**Requires:** all prior waves complete
+- [ ] F.1 End-to-end / smoke verification
+- [ ] F.2 Update README with run/deploy notes
+```
+
+**Rules:**
+- Each group targets a distinct module/boundary with its own files; groups in the same wave MUST NOT touch the same files.
+- The final wave always includes integration + smoke verification.
+- Mark each task `[x]` on completion; a wave is done only when all its groups are `[x]`.
+- Don't start a later wave until every group in the previous wave is `[x]`.
+- Conflicts (two workers on the same file) → stop, flag in `aidlc-docs/audit.md`, ask the user.
 
 ## Implementation Guidelines
 
@@ -250,7 +304,7 @@ Each decision file is independent:
 
 ### File Management
 **Lifecycle**:
-- Decision files and spec documents stored in the same working directory
+- Decision files and spec documents live together under `{{SPEC_DIR}}/<spec-name>/` (see **Spec Directory Convention**)
 - Keep decision files for reference - they record why choices were made
 - For updates: modify decision file first, then regenerate spec documents
 - Maintain consistency across all decision files
@@ -340,4 +394,33 @@ Each decision file is independent:
 **Answer:** 
 
 ---
+```
+
+## Phase 0: Reverse Engineering (brownfield)
+
+When an existing system/codebase is present, run the companion
+`reverse-engineering.md` **before Phase 1** and write every analysis document it
+specifies under **`aidlc-docs/analysis/`**. Skip it for genuine greenfield work.
+Reverse-engineering analysis stays in `aidlc-docs/`; the per-spec decision and
+spec documents live in `{{SPEC_DIR}}/` (see below).
+
+## Spec Directory Convention
+
+State and audit live in `aidlc-docs/`; reverse-engineering analysis in
+`aidlc-docs/analysis/`; the per-spec decision and spec documents live under
+`{{SPEC_DIR}}/<spec-name>/`:
+
+```
+{{SPEC_DIR}}/<spec-name>/
+├── _decisions-requirements.md
+├── requirements.md
+├── _decisions-design.md
+├── design.md
+├── _decisions-tasks.md
+└── tasks.md
+
+aidlc-docs/
+├── aidlc-state.md          # progress tracker (resume across sessions)
+├── audit.md                # append-only decision/approval log
+└── analysis/               # reverse-engineering output (brownfield only)
 ```

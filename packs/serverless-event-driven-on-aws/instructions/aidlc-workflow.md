@@ -480,7 +480,7 @@ When all tasks are `[x]`:
 ## Spec Directory Convention
 
 ```
-.kiro/specs/<spec-name>/
+{{SPEC_DIR}}/<spec-name>/
 ├── _decisions-requirements.md
 ├── requirements.md
 ├── _decisions-design.md
