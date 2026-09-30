@@ -2,7 +2,7 @@
 
 A collection of ready-to-use, **tool-agnostic** starter packs that apply the **AI-Driven Development Lifecycle (AI-DLC)** to real-world application modernization scenarios. Each pack is a pre-configured starting point — instructions, skills, and MCP server registrations — that works with **Kiro, Claude Code, GitHub Copilot, and Cursor**, so you can drop it into your own project and start a structured, decision-driven engagement immediately.
 
-Each pack is authored once as tool-neutral source; the per-tool configs are generated on demand by the installer and published to `gh-pages` by CI — see [How to use a pack](#how-to-use-a-pack).
+Each pack is authored once as tool-neutral source; the per-tool steering configs are pre-generated into each pack's `scaffolded-packs/`, and skills are ported in with a small editable `add-skills.sh` — see [How to use a pack](#how-to-use-a-pack).
 
 These packs are distilled from real modernization engagements and have been generalized for reuse. They contain no customer-identifying information.
 
@@ -54,12 +54,16 @@ Learn more:
 
 1. **Pick the pack** that matches your scenario from the table above.
 2. **Add it to your project** in whichever agent you use — two ways:
-   - **Download a pre-built folder (no tooling):** every pack is rendered by CI and published to the project's **`gh-pages`** site under `<pack>/<tool>/`. Download the folder for your tool (`kiro`, `claude-code`, `copilot`, or `cursor`) and copy it into your project root — no Node required.
-   - **Generate it (installer):** run the `ramp-pack` installer from the repo root — it reads the pack's tool-neutral source and writes the correct layout into your project:
+   - **Copy the pre-built folder (no tooling):** each pack ships committed, per-tool steering under `packs/<pack>/scaffolded-packs/<tool>/` (`kiro`, `claude-code`, `copilot`, or `cursor`). Copy that folder into your project root, then run the pack's `add-skills.sh` to port its skills in — no Node required:
+     ```bash
+     packs/<pack>/scaffolded-packs/add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
+     ```
+     The skill list lives at the top of `add-skills.sh` — edit it to add/remove skills for your use case.
+   - **Generate it (installer):** run the `ramp-pack` installer from the repo root — it reads the pack's tool-neutral source and writes the full layout (steering **and** skills) into your project:
      ```bash
      node installer/bin/ramp-pack.js init <pack> --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
      ```
-     If you hand-edit a pack and want to preview all four tool configs locally, run `./scripts/regenerate.sh <pack>` (requires Node).
+     After editing a pack, regenerate its committed scaffolds with `./scripts/regenerate.sh <pack>` (requires Node).
 3. **Read the pack's README** for the kickoff prompt and any pack-specific setup (e.g., updating an `AWS_PROFILE`, or adding Terraform tooling).
 4. **Start a conversation.** The agent creates decision files first, waits for your input, then generates requirements, design, and tasks — gate by gate. On Claude Code / Copilot you can also run the **`/aidlc`** command to kick off the workflow.
 
@@ -91,24 +95,29 @@ aidlc-for-modernization-starter-packs/
 │   ├── agentic-ai-workflow/                  # Reusable AI-DLC + skills + MCP environment
 │   ├── dotnet-app-modernization-on-aws/      # .NET app modernization to AWS (ECS)
 │   └── serverless-event-driven-on-aws/       # Event-driven serverless on AWS
-└── (generated per-tool output is NOT committed — see below)
+└── (each pack also carries committed, per-tool scaffolds — see below)
 ```
 
 Each tool-agnostic pack is authored as tool-neutral source; skills are referenced
 by name from the shared `skills-library/`, and shared steering is inherited from
-`common/`. Per-tool output is generated on demand (never committed):
+`common/`. Each pack also ships committed per-tool steering plus a skill-porting script:
 
 ```
 packs/<pack>/
 ├── pack.yaml                 # Manifest: instruction roles, skill list, MCP servers, /aidlc command
 ├── instructions/             # Tool-neutral steering (pack-specific; may inherit common/ defaults)
-└── skills/                   # OPTIONAL — only when a pack overrides a library skill ("shadow")
+├── skills/                   # OPTIONAL — only when a pack overrides a library skill ("shadow")
+└── scaffolded-packs/         # Committed, regenerated from source:
+    ├── kiro/ claude-code/ copilot/ cursor/   # per-tool steering/MCP/command (NO skills — kept small)
+    └── add-skills.sh         # editable skill list; copies this pack's skills from skills-library/
 ```
 
-> **Generated output (Model B):** the rendered per-tool folders are **not** stored
-> in git. CI runs `ramp-pack build-all` from source and deploys them to
-> **GitHub Pages** (served at `<pack>/<tool>/`). Regenerate locally with
-> `./scripts/regenerate.sh [pack]` or `node installer/bin/ramp-pack.js build-all`.
+> **Committed scaffolds (Model C):** the per-tool folders under `scaffolded-packs/`
+> are **steering only** (no skills), so they stay small (~3 MB total). Skills are
+> ported separately by each pack's editable `add-skills.sh` from the shared
+> `skills-library/` — so a no-Node user copies the tool folder and runs the script.
+> Regenerate the committed scaffolds from source with `./scripts/regenerate.sh [pack]`
+> (or `node installer/bin/ramp-pack.js build-all --in-place`); CI fails if they drift.
 
 ## Common building blocks
 
@@ -126,7 +135,7 @@ Because instructions and skills are plain Markdown, treat them as code: version 
 
 - One of: [Kiro](https://kiro.dev), [Claude Code](https://claude.com/claude-code), GitHub Copilot, or Cursor — installed and signed in
 - [Git](https://git-scm.com/downloads)
-- [Node.js 18+](https://nodejs.org/) — only if you use the `ramp-pack` installer to generate a pack (downloading a pre-built folder from the `gh-pages` site needs no Node)
+- [Node.js 18+](https://nodejs.org/) — only if you use the `ramp-pack` installer to generate a pack, or regenerate scaffolds. Copying a committed `scaffolded-packs/<tool>/` folder and running its `add-skills.sh` needs no Node.
 - Pack-specific tools as noted in each README (e.g., an AWS profile, Terraform tooling, or `uvx`/`npx` for certain MCP servers)
 
 ## Security

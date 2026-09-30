@@ -19,8 +19,7 @@ build/
 # Brownfield source brought in for Phase 0 (kept local, not committed)
 existing-codebase/
 
-# Generated per-tool output (Model B): never committed. Regenerate with
-# `node installer/bin/ramp-pack.js build-all` or ./scripts/regenerate.sh.
-# CI renders these from source and publishes them to the gh-pages branch.
-scaffolded-packs/
+# Model C: committed scaffolds are steering-only (small) + an editable
+# add-skills.sh; regenerate with `ramp-pack build-all --in-place`. Only the
+# throwaway preview dir is ignored.
 dist/

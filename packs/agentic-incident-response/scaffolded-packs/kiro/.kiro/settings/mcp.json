@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "aws-knowledge-mcp-server": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://knowledge-mcp.global.api.aws"
+      ],
+      "autoApprove": [
+        "aws___search_documentation",
+        "aws___read_documentation",
+        "aws___get_regional_availability",
+        "aws___list_regions"
+      ]
+    }
+  }
+}

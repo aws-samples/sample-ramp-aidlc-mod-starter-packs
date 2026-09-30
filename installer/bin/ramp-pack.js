@@ -5,7 +5,7 @@ import { dirname, join, resolve } from 'node:path'
 import { existsSync } from 'node:fs'
 import { buildPlan } from '../src/plan.js'
 import { applyPlan } from '../src/apply.js'
-import { buildAll, listPacks, TOOLS as ALL_TOOLS } from '../src/build-all.js'
+import { buildAll, listPacks } from '../src/build-all.js'
 
 const TOOLS = ['kiro', 'claude-code', 'copilot', 'cursor']
 const here = dirname(fileURLToPath(import.meta.url))
@@ -53,6 +53,8 @@ program
   .command('build-all')
   .option('--out <dir>', 'output directory (default: dist)', 'dist')
   .option('--pack <pack>', 'build a single pack instead of all')
+  .option('--in-place', 'write committed scaffolds into packs/<pack>/scaffolded-packs/', false)
+  .option('--with-skills', 'also copy skills (default: steering-only + add-skills.sh)', false)
   .action((opts) => {
     try {
       if (opts.pack && !existsSync(join(packsRoot, opts.pack, 'pack.yaml'))) {
@@ -60,12 +62,17 @@ program
         process.exit(1)
       }
       const outDir = resolve(process.cwd(), opts.out)
-      const results = buildAll({ packsRoot, outDir, pack: opts.pack })
+      const results = buildAll({
+        packsRoot,
+        outDir,
+        pack: opts.pack,
+        includeSkills: opts.withSkills,
+        inPlace: opts.inPlace,
+      })
       const packs = opts.pack ? [opts.pack] : listPacks(packsRoot)
       for (const r of results) console.log(`  ${r.pack} → ${r.tool}: ${r.count} paths`)
-      console.log(
-        `\nBuilt ${packs.length} pack(s) × ${ALL_TOOLS.length} tools = ${results.length} bundles → ${outDir}`,
-      )
+      const where = opts.inPlace ? 'packs/<pack>/scaffolded-packs/' : outDir
+      console.log(`\nBuilt ${packs.length} pack(s) → ${where}${opts.withSkills ? ' (with skills)' : ' (steering + add-skills.sh)'}`)
     } catch (err) {
       console.error(err.message)
       process.exit(1)

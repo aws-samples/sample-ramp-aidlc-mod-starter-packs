@@ -1,32 +1,20 @@
-name: build-packs
+name: verify
 
-# Model B: rendered per-tool output is never committed. This workflow
-# regenerates it from source and publishes to GitHub Pages so the
-# "copy a pre-built folder, no tooling" audience can download it.
+# Model C: committed scaffolds are steering-only + an editable add-skills.sh,
+# regenerated from source (no gh-pages publishing). This workflow just proves
+# the source still renders and the tests pass, and flags stale committed
+# scaffolds so they don't drift from source.
 on:
   push:
     branches: [main]
   pull_request:
   workflow_dispatch:
 
-# Least-privilege: the default GITHUB_TOKEN stays read-only. Publishing uses the
-# official Pages deployment (pages:write + id-token:write via OIDC), NOT a branch
-# push — so it works even when the org enforces a read-only GITHUB_TOKEN and the
-# "Read and write permissions" toggle is disabled.
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-# Avoid overlapping Pages deployments.
-concurrency:
-  group: pages
-  cancel-in-progress: false
 
 jobs:
   verify:
-    # Generate-before-merge checkpoint: prove source still renders + tests pass.
-    # Runs on every PR and push; publishes nothing.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,39 +27,12 @@ jobs:
       - name: Run installer test suite
         working-directory: installer
         run: npm test
-      - name: Regenerate all packs from source
-        run: node installer/bin/ramp-pack.js build-all --out dist
-      - name: Upload rendered packs (build artifact — downloadable from the run)
-        uses: actions/upload-artifact@v4
-        with:
-          name: rendered-packs
-          path: dist/
-
-  publish:
-    # Deploy to GitHub Pages from main only, via the official Pages actions.
-    needs: verify
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: Install installer deps
-        working-directory: installer
-        run: npm ci
-      - name: Regenerate all packs from source
-        run: node installer/bin/ramp-pack.js build-all --out dist
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-        # Serves at https://<owner>.github.io/<repo>/<pack>/<tool>/
+      - name: Regenerate committed scaffolds and fail if stale
+        run: |
+          node installer/bin/ramp-pack.js build-all --in-place
+          if ! git diff --quiet -- 'packs/*/scaffolded-packs'; then
+            echo "::error::Committed scaffolds are out of date. Run ./scripts/regenerate.sh and commit."
+            git --no-pager diff --stat -- 'packs/*/scaffolded-packs'
+            exit 1
+          fi
+          echo "Committed scaffolds are in sync with source."
