@@ -30,17 +30,18 @@ proposing an alternative; if a particular tool isn't permitted, it asks for your
 
 Pick **one** of the two ways to add this pack to your project.
 
-### Option A — copy a pre-built folder (no tooling)
+### Option A — download a pre-built folder (no tooling)
 
-Pre-generated, tool-correct configs live under `scaffolded-packs/` (or the generated harness folders).
-Copy the folder for your tool into your project root:
+Every pack is rendered by CI and published to the project's **`gh-pages`** site under
+`framework-upgrade-containerise/<tool>/`. Download the folder for your tool and copy it into your project
+root — no Node required:
 
-| Your tool | Copy from | Into your project |
+| Your tool | Download from (gh-pages) | Into your project |
 |---|---|---|
-| **Kiro** | `kiro/` | `.kiro/` |
-| **Claude Code** | `claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
-| **GitHub Copilot** | `copilot/` | `.github/`, `.vscode/mcp.json` |
-| **Cursor** | `cursor/` | `.cursor/` |
+| **Kiro** | `framework-upgrade-containerise/kiro/` | `.kiro/` |
+| **Claude Code** | `framework-upgrade-containerise/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
+| **GitHub Copilot** | `framework-upgrade-containerise/copilot/` | `.github/`, `.vscode/mcp.json` |
+| **Cursor** | `framework-upgrade-containerise/cursor/` | `.cursor/` |
 
 ### Option B — generate it (installer)
 
@@ -48,7 +49,9 @@ Copy the folder for your tool into your project root:
 node installer/bin/ramp-pack.js init framework-upgrade-containerise --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/service
 ```
 
-Add `--dry-run` to preview, `--force` to overwrite.
+Add `--dry-run` to preview, `--force` to overwrite. To preview all four tool configs locally, run
+`./scripts/regenerate.sh framework-upgrade-containerise` (requires Node). The tool-neutral source plus the
+shared `skills-library/` are the single source of truth — generated per-tool output is never committed to git.
 
 ### Then
 

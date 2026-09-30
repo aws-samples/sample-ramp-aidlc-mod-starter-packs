@@ -21,16 +21,16 @@ Before deep analysis, the workflow records the objective, anchors, in-scope and 
 
 Pick **one** of the two ways to add this pack to your project.
 
-### Option A — copy a pre-built folder (no tooling)
+### Option A — download a pre-built folder (no tooling)
 
-Pre-generated, tool-correct configs live under [`scaffolded-packs/`](scaffolded-packs/). Copy the contents for your tool into your project root:
+Every pack is rendered by CI and published to the project's **`gh-pages`** site under `<pack>/<tool>/`. Download the folder for your tool and copy its contents into your project root — no Node required:
 
-| Your tool | Copy from | Generated project files |
+| Your tool | Download from | Generated project files |
 |---|---|---|
-| **Kiro** | `scaffolded-packs/kiro/` | `.kiro/` |
-| **Claude Code** | `scaffolded-packs/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
-| **GitHub Copilot** | `scaffolded-packs/copilot/` | `.github/`, `.vscode/mcp.json` |
-| **Cursor** | `scaffolded-packs/cursor/` | `.cursor/` |
+| **Kiro** | `legacy-transformation-on-aws/kiro/` | `.kiro/` |
+| **Claude Code** | `legacy-transformation-on-aws/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
+| **GitHub Copilot** | `legacy-transformation-on-aws/copilot/` | `.github/`, `.vscode/mcp.json` |
+| **Cursor** | `legacy-transformation-on-aws/cursor/` | `.cursor/` |
 
 ### Option B — generate it (installer)
 
@@ -40,7 +40,7 @@ Run the `ramp-pack` installer from the repo root; it reads the neutral source an
 node installer/bin/ramp-pack.js init legacy-transformation-on-aws --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/monolith
 ```
 
-Add `--dry-run` to preview or `--force` to overwrite existing generated files. The neutral source is the source of truth.
+Add `--dry-run` to preview or `--force` to overwrite existing generated files. To preview all four tool configs locally, run `./scripts/regenerate.sh legacy-transformation-on-aws` (requires Node). The neutral source plus the shared `skills-library/` are the single source of truth.
 
 ### Then
 
@@ -91,19 +91,18 @@ If critical evidence is unavailable or a time/budget boundary is reached, the wo
 ```text
 legacy-transformation-on-aws/
 ├── pack.yaml                 # Manifest: instruction roles, MCP servers, skills, /aidlc command
-├── instructions/             # Tool-neutral steering (source of truth)
-│   ├── aidlc-workflow.md         # Detection → adaptive RE → Requirements → Design → Tasks
-│   ├── skill-activation.md       # Routing for all 19 bundled skills + AWS Knowledge validation
-│   └── reverse-engineering.md    # Targeted/Full, Orientation, Reuse & Verify playbook
-├── skills/                   # 19 bundled AWS domain and delivery skills
-└── scaffolded-packs/         # Generated per-tool configs
-    ├── kiro/         # .kiro/{steering,settings,skills}
-    ├── claude-code/  # CLAUDE.md, .claude/{rules,commands,skills}, .mcp.json
-    ├── copilot/      # .github/{copilot-instructions.md,instructions,prompts,skills}, .vscode/mcp.json
-    └── cursor/       # .cursor/{rules,skills}, .cursor/mcp.json
+└── instructions/             # Tool-neutral steering (source of truth)
+    ├── aidlc-workflow.md         # Detection → adaptive RE → Requirements → Design → Tasks
+    ├── skill-activation.md       # Routing for all 19 bundled skills + AWS Knowledge validation
+    └── reverse-engineering.md    # Targeted/Full, Orientation, Reuse & Verify playbook
 ```
 
-> Edit `instructions/`, `pack.yaml`, `skills/`, and this README as canonical source. Regenerate `scaffolded-packs/` with the installer; do not hand-edit generated output.
+> The pack's 19 skills are referenced **by name** from `pack.yaml` (`skills:` list) and resolved from the
+> shared [`skills-library/`](../../skills-library/) at the repo root — the pack has no `skills/` directory of
+> its own (a local `skills/` appears only when a pack overrides a library skill). Edit `instructions/`,
+> `pack.yaml`, and this README as canonical source. Per-tool output is generated on demand and **never
+> committed** — regenerate it with the installer or `./scripts/regenerate.sh legacy-transformation-on-aws`; do
+> not hand-edit generated output.
 
 ### How each instruction maps per tool
 
@@ -126,7 +125,7 @@ The manifest declares AWS Knowledge once; the installer writes it to each tool's
 
 ## Bundled skills (19)
 
-Skills are copied into every generated scaffold and activated by intent. During reverse engineering, discovery/assessment skills are used only when their capabilities apply to the approved scope; target design or implementation skills wait for the corresponding decision gate.
+Skills are referenced by name from the shared `skills-library/` and copied into every generated per-tool output, then activated by intent. During reverse engineering, discovery/assessment skills are used only when their capabilities apply to the approved scope; target design or implementation skills wait for the corresponding decision gate.
 
 ### Serverless compute and workflows
 

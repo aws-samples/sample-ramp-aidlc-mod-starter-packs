@@ -43,17 +43,17 @@ monitored application's source).
 
 Pick **one** of the two ways to add this pack to your project.
 
-### Option A — copy a pre-built folder (no tooling)
+### Option A — download a pre-built folder (no tooling)
 
-Pre-generated, tool-correct configs live under [`scaffolded-packs/`](scaffolded-packs/). Copy the folder for
-your tool into your project root:
+Every pack is rendered by CI and published to the project's **`gh-pages`** site under `<pack>/<tool>/`. Download
+the folder for your tool and copy it into your project root — no Node required:
 
-| Your tool | Copy from | Into your project |
+| Your tool | Download from | Into your project |
 |---|---|---|
-| **Kiro** | `scaffolded-packs/kiro/` | `.kiro/` |
-| **Claude Code** | `scaffolded-packs/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
-| **GitHub Copilot** | `scaffolded-packs/copilot/` | `.github/`, `.vscode/mcp.json` |
-| **Cursor** | `scaffolded-packs/cursor/` | `.cursor/` |
+| **Kiro** | `agentic-incident-response/kiro/` | `.kiro/` |
+| **Claude Code** | `agentic-incident-response/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
+| **GitHub Copilot** | `agentic-incident-response/copilot/` | `.github/`, `.vscode/mcp.json` |
+| **Cursor** | `agentic-incident-response/cursor/` | `.cursor/` |
 
 ### Option B — generate it (installer)
 
@@ -64,8 +64,9 @@ into your target project:
 node installer/bin/ramp-pack.js init agentic-incident-response --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
 ```
 
-Add `--dry-run` to preview, `--force` to overwrite. Option B always works even if `scaffolded-packs/` is
-missing or out of date — the neutral source is the single source of truth.
+Add `--dry-run` to preview, `--force` to overwrite. To preview all four tool configs locally, run
+`./scripts/regenerate.sh agentic-incident-response` (requires Node). Generated per-tool output is never
+committed; the neutral source plus the shared `skills-library/` are the single source of truth.
 
 ### Then
 
@@ -96,33 +97,19 @@ progress is tracked in `aidlc-docs/aidlc-state.md` so you can resume across sess
 
 ```
 agentic-incident-response/
-├── pack.yaml                         # Manifest: instruction roles, MCP servers, /aidlc command
-├── instructions/                     # Tool-neutral steering (source of truth)
-│   ├── aidlc-workflow.md                 # Decision-gated Requirements → Design → Tasks (primary)
-│   ├── skill-activation.md               # When to activate skills + MCP (companion, always)
-│   └── reverse-engineering.md            # Phase 0 playbook (companion, auto — brownfield grounding)
-├── skills/
-│   ├── incident-triage/              # DOMAIN: intake → flow ID → evidence correlation → RCA → routing
-│   ├── aws-event-driven-patterns/        # Event-driven composition (intake/alerting side)
-│   ├── aws-messaging-and-streaming/      # EventBridge, SNS/SQS, Kafka/MSK — pipeline + platform signals
-│   ├── aws-lambda/                       # Lambda functions for each pipeline stage
-│   ├── aws-lambda-durable-functions/     # Durable, checkpointed Lambda execution (orchestration option)
-│   ├── aws-step-functions/               # State-machine orchestration + human-approval task-token state
-│   ├── api-gateway/                      # Webhook ingress (ticketing/chat triggers)
-│   ├── aws-serverless-deployment/        # SAM/CDK scaffolding & deployment (default IaC)
-│   ├── terraform-skill/                  # Terraform IaC (alternative path)
-│   ├── aws-iam/                          # Least-privilege + cross-account read-only evidence access
-│   └── aws-observability/                # CloudWatch/X-Ray — instrument the pipeline & query evidence
-└── scaffolded-packs/                 # Pre-generated per-tool configs (Option A above)
-    ├── kiro/         # .kiro/{steering,settings,skills}
-    ├── claude-code/  # CLAUDE.md, .claude/{rules,commands,skills}, .mcp.json
-    ├── copilot/      # .github/{copilot-instructions.md,instructions,prompts,skills}, .vscode/mcp.json
-    └── cursor/       # .cursor/{rules,skills}, .cursor/mcp.json
+├── pack.yaml                         # Manifest: instruction roles, MCP servers, skills, /aidlc command
+└── instructions/                     # Tool-neutral steering (source of truth)
+    ├── aidlc-workflow.md                 # Decision-gated Requirements → Design → Tasks (primary)
+    ├── skill-activation.md               # When to activate skills + MCP (companion, always)
+    └── reverse-engineering.md            # Phase 0 playbook (companion, auto — brownfield grounding)
 ```
 
-> `instructions/`, `skills/`, and `pack.yaml` are the **neutral source** you edit. `scaffolded-packs/` is
-> **generated** from them by the installer — regenerate it after editing the source; don't hand-edit the
-> scaffolded output.
+> `instructions/`, `pack.yaml`, and this README are the **neutral source** you edit. The pack's skills are
+> referenced **by name** from `pack.yaml` (`skills:` list) and resolved from the shared
+> [`skills-library/`](../../skills-library/) at the repo root — the pack has no `skills/` directory of its own
+> (a local `skills/` appears only when a pack overrides a library skill; the full skill list is below).
+> Per-tool output is **generated** on demand and never committed — regenerate it with the installer or
+> `./scripts/regenerate.sh agentic-incident-response`; don't hand-edit generated output.
 
 ### Instructions
 

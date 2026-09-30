@@ -17,16 +17,16 @@ Typical kickoffs:
 
 Pick **one** of the two ways to add this pack to your project.
 
-### Option A — copy a pre-built folder (no tooling)
+### Option A — download a pre-built folder (no tooling)
 
-Pre-generated, tool-correct configs live under [`scaffolded-packs/`](scaffolded-packs/). Copy the folder for your tool into your project root:
+Rendered per-tool output is **not** committed to this repo — CI generates it from source and publishes it to the project's **`gh-pages`** site under `qa-automated-testing/<tool>/`. Download the folder for your tool (no Node required) and copy it into your project root:
 
-| Your tool | Copy from | Into your project |
+| Your tool | Download from (gh-pages) | Into your project |
 |---|---|---|
-| **Kiro** | `scaffolded-packs/kiro/` | `.kiro/` |
-| **Claude Code** | `scaffolded-packs/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
-| **GitHub Copilot** | `scaffolded-packs/copilot/` | `.github/`, `.vscode/mcp.json` |
-| **Cursor** | `scaffolded-packs/cursor/` | `.cursor/` |
+| **Kiro** | `qa-automated-testing/kiro/` | `.kiro/` |
+| **Claude Code** | `qa-automated-testing/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
+| **GitHub Copilot** | `qa-automated-testing/copilot/` | `.github/`, `.vscode/mcp.json` |
+| **Cursor** | `qa-automated-testing/cursor/` | `.cursor/` |
 
 ### Option B — generate it (installer)
 
@@ -36,7 +36,7 @@ Run the `ramp-pack` installer from the repo root; it reads the neutral source an
 node installer/bin/ramp-pack.js init qa-automated-testing --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
 ```
 
-Add `--dry-run` to preview, `--force` to overwrite existing files. Option B always works even if `scaffolded-packs/` is missing or out of date — the neutral source is the single source of truth.
+Add `--dry-run` to preview, `--force` to overwrite existing files. To preview all four tool configs locally, run `./scripts/regenerate.sh qa-automated-testing` (requires Node). The tool-neutral source plus the shared `skills-library/` are the single source of truth — generated output is never committed and is always rendered from them.
 
 ### Then
 
@@ -54,28 +54,14 @@ The workflow guides the agent to ask for your decisions first (writing a `_decis
 
 ```
 qa-automated-testing/
-├── pack.yaml                 # Manifest: instruction roles, MCP servers, /aidlc command
-├── instructions/             # Tool-neutral steering (source of truth)
-│   ├── aidlc-workflow.md         # Decision-gated Requirements → Design → Tasks (primary)
-│   ├── skill-activation.md       # When to activate the testing skills + MCP (companion, always)
-│   └── reverse-engineering.md    # Phase 0 playbook (companion, brownfield-only)
-├── skills/
-│   ├── web-test-automation/      # Playwright-first web testing expertise (SKILL.md + 10 reference topics)
-│   ├── mobile-test-automation/   # Maestro/Appium mobile testing expertise (SKILL.md + 10 reference topics)
-│   ├── aws-lambda/               # Serverless test runners & event-driven jobs (SKILL.md + references)
-│   ├── aws-step-functions/       # Test/CI orchestration in ASL/JSONata (SKILL.md + references + ASL assets)
-│   ├── connecting-lambda-to-api-gateway/  # Test-trigger & results HTTP APIs (SKILL.md + reference)
-│   ├── aws-iam/                  # CI/execution roles & least-privilege policies (SKILL.md + references)
-│   ├── amazon-bedrock/           # AI-assisted testing (models, RAG, agents, guardrails) (SKILL.md + references)
-│   └── aws-lambda-microvms/      # Isolated / multi-tenant test sandboxes (SKILL.md + references)
-└── scaffolded-packs/         # Pre-generated per-tool configs (Option A above)
-    ├── kiro/         # .kiro/{steering,settings,skills}
-    ├── claude-code/  # CLAUDE.md, .claude/{rules,commands,skills}, .mcp.json
-    ├── copilot/      # .github/{copilot-instructions.md,instructions,prompts,skills}, .vscode/mcp.json
-    └── cursor/       # .cursor/{rules,skills}, .cursor/mcp.json
+├── pack.yaml                 # Manifest: instruction roles, skill list, MCP servers, /aidlc command
+└── instructions/             # Tool-neutral steering (source of truth)
+    ├── aidlc-workflow.md         # Decision-gated Requirements → Design → Tasks (primary)
+    ├── skill-activation.md       # When to activate the testing skills + MCP (companion, always)
+    └── reverse-engineering.md    # Phase 0 playbook (companion, brownfield-only)
 ```
 
-> `instructions/`, `skills/`, and `pack.yaml` are the **neutral source** you edit. `scaffolded-packs/` is **generated** from them by the installer — regenerate it after editing the source; don't hand-edit the scaffolded output.
+> `instructions/` and `pack.yaml` are the **neutral source** you edit. Skills are **not** stored in the pack — they are referenced by name in `pack.yaml` (`skills:`) and live in the shared [`skills-library/`](../../skills-library/) at the repo root (a local `skills/` dir appears only when a pack overrides a library skill). Per-tool output is **generated** from the neutral source plus the shared skills-library by the installer / CI — don't hand-edit generated output; regenerate with `./scripts/regenerate.sh qa-automated-testing`.
 
 ### How each instruction maps per tool
 

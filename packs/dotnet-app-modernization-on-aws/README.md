@@ -16,16 +16,16 @@ This is a **brownfield-first** pack: because modernization assumes existing code
 
 Pick **one** of the two ways to add this pack to your project.
 
-### Option A — copy a pre-built folder (no tooling)
+### Option A — download a pre-built folder (no tooling)
 
-Pre-generated, tool-correct configs live under [`scaffolded-packs/`](scaffolded-packs/). Copy the folder for your tool into your project root:
+Every pack is rendered by CI and published to the project's **`gh-pages`** site under `<pack>/<tool>/`. Download the folder for your tool and copy it into your project root — no Node required:
 
-| Your tool | Copy from | Into your project |
+| Your tool | Download from | Into your project |
 |---|---|---|
-| **Kiro** | `scaffolded-packs/kiro/` | `.kiro/` |
-| **Claude Code** | `scaffolded-packs/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
-| **GitHub Copilot** | `scaffolded-packs/copilot/` | `.github/`, `.vscode/mcp.json` |
-| **Cursor** | `scaffolded-packs/cursor/` | `.cursor/` |
+| **Kiro** | `dotnet-app-modernization-on-aws/kiro/` | `.kiro/` |
+| **Claude Code** | `dotnet-app-modernization-on-aws/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
+| **GitHub Copilot** | `dotnet-app-modernization-on-aws/copilot/` | `.github/`, `.vscode/mcp.json` |
+| **Cursor** | `dotnet-app-modernization-on-aws/cursor/` | `.cursor/` |
 
 ### Option B — generate it (installer)
 
@@ -35,7 +35,7 @@ Run the `ramp-pack` installer from the repo root; it reads the neutral source an
 node installer/bin/ramp-pack.js init dotnet-app-modernization-on-aws --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
 ```
 
-Add `--dry-run` to preview, `--force` to overwrite existing files. Option B always works even if `scaffolded-packs/` is missing or out of date — the neutral source is the single source of truth.
+Add `--dry-run` to preview, `--force` to overwrite existing files. To preview all four tool configs locally, run `./scripts/regenerate.sh dotnet-app-modernization-on-aws` (requires Node). Generated per-tool output is never committed; the neutral source plus the shared `skills-library/` are the single source of truth.
 
 ### Then
 
@@ -74,24 +74,19 @@ Phase 1 Requirements → Phase 2 Design → Phase 3 Tasks (independent parallel 
 
 ```
 dotnet-app-modernization-on-aws/
-├── pack.yaml                 # Manifest: instruction roles, MCP servers, /aidlc command
-├── instructions/             # Tool-neutral steering (source of truth)
-│   ├── aidlc-workflow.md         # Decision-gated Requirements → Design → Tasks (primary)
-│   ├── skill-activation.md       # When to activate which skill + MCP (companion, always)
-│   └── reverse-engineering.md    # Phase 0 playbook + ATX ingest (companion, brownfield-first)
-├── skills/                   # Vendored skills (see Skills + Credits below)
-│   ├── dotnet-post-transform/  dotnet-aws-ecs/  dotnet-adot-sidecar/
-│   ├── dotnet-aspnet-sessionstate-aws/  dotnet-aws-parameterstore/
-│   ├── ecs-architect/  ecs-build/  ecs-devops/  ecs-observability/  ecs-security/
-│   ├── ecs-recon/  ecs-operation-review/
-│   ├── aws-cloudformation/  aws-iam/  aws-observability/  api-gateway/
-│   ├── aurora-dsql/  amazon-aurora-postgresql/  amazon-aurora-mysql/
-│   └── creating-amazon-aurora-db-cluster-with-instances/
-└── scaffolded-packs/         # Pre-generated per-tool configs (Option A above)
-    ├── kiro/  claude-code/  copilot/  cursor/
+├── pack.yaml                 # Manifest: instruction roles, MCP servers, skills, /aidlc command
+└── instructions/             # Tool-neutral steering (source of truth)
+    ├── aidlc-workflow.md         # Decision-gated Requirements → Design → Tasks (primary)
+    ├── skill-activation.md       # When to activate which skill + MCP (companion, always)
+    └── reverse-engineering.md    # Phase 0 playbook + ATX ingest (companion, brownfield-first)
 ```
 
-> `instructions/`, `skills/`, and `pack.yaml` are the **neutral source** you edit. `scaffolded-packs/` is **generated** from them by the installer — regenerate it after editing the source; don't hand-edit the scaffolded output.
+> `instructions/`, `pack.yaml`, and this README are the **neutral source** you edit. The pack's skills are
+> referenced **by name** from `pack.yaml` (`skills:` list) and resolved from the shared
+> [`skills-library/`](../../skills-library/) at the repo root — the pack has no `skills/` directory of its own
+> (a local `skills/` appears only when a pack overrides a library skill). Per-tool output is **generated** on
+> demand and never committed — regenerate it with the installer or
+> `./scripts/regenerate.sh dotnet-app-modernization-on-aws`; don't hand-edit generated output.
 
 ### MCP servers
 
@@ -140,11 +135,11 @@ Curated, domain-specific knowledge bundles the agent activates on demand. They f
 
 ## Credits & attribution
 
-The skills vendored in `skills/` are sourced from the following open-source projects. Full credit to their authors and maintainers:
+The skills this pack uses — referenced **by name** from `pack.yaml` and resolved from the shared `skills-library/` at the repo root — are sourced from the following open-source projects. Full credit to their authors and maintainers:
 
 - **[adisimon217/sample-appmod-skills](https://github.com/adisimon217/sample-appmod-skills)** — Application Modernization Agent Skills, licensed under the **MIT License**. Source of the .NET modernization skills: `dotnet-post-transform`, `dotnet-aws-ecs`, `dotnet-adot-sidecar`, `dotnet-aspnet-sessionstate-aws`, and `dotnet-aws-parameterstore`.
 - **[aws-samples/sample-apex-skills](https://github.com/aws-samples/sample-apex-skills)** — APEX (Agentic Platform Engineering eXperience) skills by AWS, licensed under the **MIT-0 License**. Source of the ECS platform skills: `ecs-architect`, `ecs-build`, `ecs-devops`, `ecs-observability`, `ecs-security`, `ecs-recon`, and `ecs-operation-review`.
 - **[aws/agent-toolkit-for-aws](https://github.com/aws/agent-toolkit-for-aws)** — `aws-core` plugin (**Apache License 2.0**). Source of the IaC, identity, and observability skills: `aws-cloudformation`, `aws-iam`, and `aws-observability`.
 - **[awslabs/agent-plugins](https://github.com/awslabs/agent-plugins)** — Agent Plugins for AWS (**Apache License 2.0**). Source of the API and data skills: `api-gateway` (`aws-serverless` plugin), and `aurora-dsql`, `amazon-aurora-postgresql`, `amazon-aurora-mysql`, `creating-amazon-aurora-db-cluster-with-instances` (`databases-on-aws` plugin).
 
-Skills are vendored (copied) into this pack so it works offline and pins a known-good version. Refer to the upstream repositories for the latest versions, additional skills, and their `LICENSE` / `NOTICE` files. AI-DLC steering is adapted from [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows) (MIT-0).
+Skills are vendored (copied) into the shared `skills-library/` so packs work offline and pin a known-good version. Refer to the upstream repositories for the latest versions, additional skills, and their `LICENSE` / `NOTICE` files. AI-DLC steering is adapted from [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows) (MIT-0).

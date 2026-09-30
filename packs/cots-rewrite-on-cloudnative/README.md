@@ -12,16 +12,16 @@ Rebuild an existing business system as a cloud-native app when you have its **so
 
 Pick **one** of the two ways to add this pack to your project.
 
-### Option A — copy a pre-built folder (no tooling)
+### Option A — download a pre-built folder (no tooling)
 
-Pre-generated, tool-correct configs live under [`scaffolded-packs/`](scaffolded-packs/). Copy the folder for your tool into your project root:
+Every pack is rendered by CI and published to the project's **`gh-pages`** site under `cots-rewrite-on-cloudnative/<tool>/`. Download the folder for your tool and copy it into your project root — no Node required:
 
-| Your tool | Copy from | Into your project |
+| Your tool | Download from (gh-pages) | Into your project |
 |---|---|---|
-| **Kiro** | `scaffolded-packs/kiro/` | `.kiro/` |
-| **Claude Code** | `scaffolded-packs/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
-| **GitHub Copilot** | `scaffolded-packs/copilot/` | `.github/`, `.vscode/mcp.json` |
-| **Cursor** | `scaffolded-packs/cursor/` | `.cursor/` |
+| **Kiro** | `cots-rewrite-on-cloudnative/kiro/` | `.kiro/` |
+| **Claude Code** | `cots-rewrite-on-cloudnative/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
+| **GitHub Copilot** | `cots-rewrite-on-cloudnative/copilot/` | `.github/`, `.vscode/mcp.json` |
+| **Cursor** | `cots-rewrite-on-cloudnative/cursor/` | `.cursor/` |
 
 ### Option B — generate it (installer)
 
@@ -31,7 +31,7 @@ Run the `ramp-pack` installer from the repo root; it reads the neutral source an
 node installer/bin/ramp-pack.js init cots-rewrite-on-cloudnative --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
 ```
 
-Add `--dry-run` to preview, `--force` to overwrite existing files. Option B always works even if `scaffolded-packs/` is missing or out of date — the neutral source is the single source of truth.
+Add `--dry-run` to preview, `--force` to overwrite existing files. To preview all four tool configs locally, run `./scripts/regenerate.sh cots-rewrite-on-cloudnative` (requires Node). The neutral source (`instructions/`, `pack.yaml`) plus the shared `skills-library/` are the single source of truth; generated per-tool output is never committed.
 
 ### Then
 
@@ -65,29 +65,15 @@ Phase 1 Requirements → Phase 2 Domain Model → Phase 3 Design → Phase 4 Tas
 
 ```
 cots-rewrite-on-cloudnative/
-├── pack.yaml                 # Manifest: instruction roles, MCP servers, /aidlc command
-├── instructions/             # Tool-neutral steering (source of truth)
-│   ├── aidlc-workflow.md         # Decision-gated Requirements → Domain Model → Design → Tasks (primary)
-│   ├── skill-activation.md       # When to activate which skill + MCP (companion, always)
-│   ├── reverse-engineering.md    # Phase 0 playbook — source code and/or FSDs/docs (companion, auto)
-│   └── requirements-traceability.md  # Trace requirements to FSD/screen anchors + coverage gate (companion, auto)
-├── skills/                   # AWS domain skills + RAMP testing skills (see Skills + Credits below)
-│   ├── aws-lambda/            api-gateway/            aws-lambda-durable-functions/
-│   ├── aws-step-functions/    aws-serverless-deployment/  aws-messaging-and-streaming/
-│   ├── aws-containers/        aws-cdk/                aws-cloudformation/
-│   ├── terraform-skill/       aws-iam/                aws-observability/
-│   ├── signing-in-to-aws/     aurora-dsql/            amazon-dynamodb/
-│   ├── amazon-aurora-postgresql/   amazon-aurora-mysql/
-│   ├── creating-amazon-aurora-db-cluster-with-instances/
-│   └── web-test-automation/   dotnet-testing/
-└── scaffolded-packs/         # Pre-generated per-tool configs (Option A above)
-    ├── kiro/         # .kiro/{steering,settings,skills}
-    ├── claude-code/  # CLAUDE.md, .claude/{rules,commands,skills}, .mcp.json
-    ├── copilot/      # .github/{copilot-instructions.md,instructions,prompts,skills}, .vscode/mcp.json
-    └── cursor/       # .cursor/{rules,skills}, .cursor/mcp.json
+├── pack.yaml                 # Manifest: instruction roles, skill list, MCP servers, /aidlc command
+└── instructions/             # Tool-neutral steering (source of truth)
+    ├── aidlc-workflow.md         # Decision-gated Requirements → Domain Model → Design → Tasks (primary)
+    ├── skill-activation.md       # When to activate which skill + MCP (companion, always)
+    ├── reverse-engineering.md    # Phase 0 playbook — source code and/or FSDs/docs (companion, auto)
+    └── requirements-traceability.md  # Trace requirements to FSD/screen anchors + coverage gate (companion, auto)
 ```
 
-> `instructions/`, `skills/`, and `pack.yaml` are the **neutral source** you edit. `scaffolded-packs/` is **generated** from them by the installer — regenerate it after editing the source; don't hand-edit the scaffolded output.
+> `instructions/` and `pack.yaml` are the **neutral source** you edit. Skills are referenced **by name** from `pack.yaml` (`skills:` list) and live in the shared [`skills-library/`](../../skills-library/) at the repo root — a pack-local `skills/` directory appears only when a pack overrides a library skill. The per-tool output is **generated** from this source (never committed) — regenerate it with `./scripts/regenerate.sh cots-rewrite-on-cloudnative` after editing; don't hand-edit generated output.
 
 ### How each instruction maps per tool
 
@@ -147,7 +133,7 @@ Curated, domain-specific knowledge bundles the agent activates on demand — spa
 
 ## Credits & attribution
 
-Most skills vendored in `skills/` are sourced from three open-source projects licensed under **Apache License 2.0**; two automated-testing skills are authored by this repository under **MIT-0**. Full credit to their authors and maintainers:
+Most skills this pack references (by name from `pack.yaml`, resolved from the shared `skills-library/`) are sourced from three open-source projects licensed under **Apache License 2.0**; two automated-testing skills are authored by this repository under **MIT-0**. Full credit to their authors and maintainers:
 
 - **[aws/agent-toolkit-for-aws](https://github.com/aws/agent-toolkit-for-aws)** — `aws-core` plugin. Source of the compute, data, messaging, orchestration, IaC, identity, and operations skills: `aws-containers`, `aws-cdk`, `aws-cloudformation`, `aws-iam`, `aws-observability`, `signing-in-to-aws`, `amazon-dynamodb`, `aws-messaging-and-streaming`, and `aws-step-functions`.
 - **[awslabs/agent-plugins](https://github.com/awslabs/agent-plugins)** — Agent Plugins for AWS. Source of the serverless and database skills:
@@ -156,4 +142,4 @@ Most skills vendored in `skills/` are sourced from three open-source projects li
 - **[antonbabenko/terraform-skill](https://github.com/antonbabenko/terraform-skill)** by Anton Babenko — source of the `terraform-skill` (Terraform / OpenTofu authoring, testing, CI, state, and security).
 - **RAMP AI-DLC Starter Packs** (this repository, **MIT-0**) — authored testing skills: `web-test-automation` (web E2E/UI, Playwright-first) and `dotnet-testing` (.NET / C# unit & integration testing).
 
-Skills are vendored (copied) into this pack so it works offline and pins a known-good version. Refer to the upstream repositories for the latest versions, additional skills, and their `LICENSE` and `NOTICE` files. AI-DLC steering is adapted from [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows) (MIT-0).
+Skills are vendored (copied) into the shared `skills-library/` so the packs work offline and pin a known-good version. Refer to the upstream repositories for the latest versions, additional skills, and their `LICENSE` and `NOTICE` files. AI-DLC steering is adapted from [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows) (MIT-0).
