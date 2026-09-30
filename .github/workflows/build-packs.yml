@@ -1,0 +1,38 @@
+name: verify
+
+# Model C: committed scaffolds are steering-only + an editable add-skills.sh,
+# regenerated from source (no gh-pages publishing). This workflow just proves
+# the source still renders and the tests pass, and flags stale committed
+# scaffolds so they don't drift from source.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install installer deps
+        working-directory: installer
+        run: npm ci
+      - name: Run installer test suite
+        working-directory: installer
+        run: npm test
+      - name: Regenerate committed scaffolds and fail if stale
+        run: |
+          node installer/bin/ramp-pack.js build-all --in-place
+          if ! git diff --quiet -- 'packs/*/scaffolded-packs' 'packs/*/add-skills.sh'; then
+            echo "::error::Committed scaffolds/add-skills.sh are out of date. Run ./scripts/regenerate.sh and commit."
+            git --no-pager diff --stat -- 'packs/*/scaffolded-packs' 'packs/*/add-skills.sh'
+            exit 1
+          fi
+          echo "Committed scaffolds are in sync with source."

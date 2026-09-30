@@ -104,3 +104,44 @@ describe('renderInstructions', () => {
     expect(byPath(w, '.kiro/steering/aidlc-workflow.md').content).toBe('---\ninclusion: always\n---\nWORKFLOW BODY\n')
   })
 })
+
+describe('renderInstructions: common/ instruction fallback', () => {
+  it('inherits a common default when the pack omits the file, and a local copy overrides it', () => {
+    // Build <root>/common/instructions/reverse-engineering.md + <root>/pack/instructions/aidlc-workflow.md
+    const root = mkdtempSync(join(tmpdir(), 'repo-'))
+    mkdirSync(join(root, 'common', 'instructions'), { recursive: true })
+    writeFileSync(join(root, 'common', 'instructions', 'reverse-engineering.md'), 'COMMON RE')
+    const pack = join(root, 'mypack')
+    mkdirSync(join(pack, 'instructions'), { recursive: true })
+    writeFileSync(join(pack, 'instructions', 'aidlc-workflow.md'), 'WORKFLOW BODY')
+
+    const m = {
+      instructions: [
+        { file: 'aidlc-workflow.md', role: 'primary', load: 'always' },
+        { file: 'reverse-engineering.md', role: 'companion', load: 'auto' },
+      ],
+    }
+
+    // pack has no local reverse-engineering.md → resolves from common/
+    const w = renderInstructions(m, pack, 'kiro')
+    expect(byPath(w, '.kiro/steering/reverse-engineering.md').content).toBe('---\ninclusion: auto\n---\nCOMMON RE\n')
+
+    // now the pack ships its own copy → it overrides the common default
+    writeFileSync(join(pack, 'instructions', 'reverse-engineering.md'), 'LOCAL RE OVERRIDE')
+    const w2 = renderInstructions(m, pack, 'kiro')
+    expect(byPath(w2, '.kiro/steering/reverse-engineering.md').content).toBe('---\ninclusion: auto\n---\nLOCAL RE OVERRIDE\n')
+  })
+
+  it('throws when an instruction is missing from both the pack and common/', () => {
+    const pack = mkdtempSync(join(tmpdir(), 'pack-'))
+    mkdirSync(join(pack, 'instructions'), { recursive: true })
+    writeFileSync(join(pack, 'instructions', 'aidlc-workflow.md'), 'WF')
+    const m = {
+      instructions: [
+        { file: 'aidlc-workflow.md', role: 'primary', load: 'always' },
+        { file: 'nonexistent.md', role: 'companion', load: 'auto' },
+      ],
+    }
+    expect(() => renderInstructions(m, pack, 'kiro')).toThrow(/not found in pack or common/)
+  })
+})
