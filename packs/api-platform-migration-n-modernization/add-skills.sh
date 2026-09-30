@@ -61,7 +61,16 @@ if [ -z "$skills_src" ] || [ ! -d "$skills_src" ]; then
 fi
 
 dest="$target/$dest_sub"
+
+# Resolve to an absolute path and surface it, so a relative/typo'd --target
+# (e.g. missing leading '/') is obvious instead of silently creating a nested dir.
+if [ ! -d "$target" ]; then
+  echo "note: target directory '$target' does not exist yet — creating it." >&2
+  echo "      (if you meant an absolute path, re-run with a leading '/'.)" >&2
+fi
 mkdir -p "$dest"
+dest="$(cd "$dest" && pwd)"
+
 echo "Installing ${#SKILLS[@]} skills for '$PACK_NAME' -> $dest"
 missing=0
 for s in "${SKILLS[@]}"; do
