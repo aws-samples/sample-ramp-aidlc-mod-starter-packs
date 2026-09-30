@@ -106,8 +106,8 @@ packs/<pack>/
 ```
 
 > **Generated output (Model B):** the rendered per-tool folders are **not** stored
-> in git. CI runs `ramp-pack build-all` from source and publishes them to the
-> **`gh-pages`** branch (`<pack>/<tool>/`). Regenerate locally with
+> in git. CI runs `ramp-pack build-all` from source and deploys them to
+> **GitHub Pages** (served at `<pack>/<tool>/`). Regenerate locally with
 > `./scripts/regenerate.sh [pack]` or `node installer/bin/ramp-pack.js build-all`.
 
 ## Common building blocks

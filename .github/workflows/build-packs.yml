@@ -1,7 +1,7 @@
 name: build-packs
 
 # Model B: rendered per-tool output is never committed. This workflow
-# regenerates it from source and publishes to the gh-pages branch so the
+# regenerates it from source and publishes to GitHub Pages so the
 # "copy a pre-built folder, no tooling" audience can download it.
 on:
   push:
@@ -9,8 +9,19 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Least-privilege: the default GITHUB_TOKEN stays read-only. Publishing uses the
+# official Pages deployment (pages:write + id-token:write via OIDC), NOT a branch
+# push — so it works even when the org enforces a read-only GITHUB_TOKEN and the
+# "Read and write permissions" toggle is disabled.
 permissions:
-  contents: write # required to push the gh-pages branch on main
+  contents: read
+  pages: write
+  id-token: write
+
+# Avoid overlapping Pages deployments.
+concurrency:
+  group: pages
+  cancel-in-progress: false
 
 jobs:
   verify:
@@ -30,17 +41,20 @@ jobs:
         run: npm test
       - name: Regenerate all packs from source
         run: node installer/bin/ramp-pack.js build-all --out dist
-      - name: Upload rendered packs (build artifact)
+      - name: Upload rendered packs (build artifact — downloadable from the run)
         uses: actions/upload-artifact@v4
         with:
           name: rendered-packs
           path: dist/
 
   publish:
-    # Only publish to gh-pages from main.
+    # Deploy to GitHub Pages from main only, via the official Pages actions.
     needs: verify
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -51,10 +65,13 @@ jobs:
         run: npm ci
       - name: Regenerate all packs from source
         run: node installer/bin/ramp-pack.js build-all --out dist
-      - name: Publish rendered packs to gh-pages
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          publish_branch: gh-pages
-          # dist/<pack>/<tool>/... — users download the folder for their tool.
+          path: dist
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        # Serves at https://<owner>.github.io/<repo>/<pack>/<tool>/
