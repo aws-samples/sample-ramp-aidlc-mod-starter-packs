@@ -21,16 +21,24 @@ Before deep analysis, the workflow records the objective, anchors, in-scope and 
 
 Pick **one** of the two ways to add this pack to your project.
 
-### Option A — download a pre-built folder (no tooling)
+### Option A — copy the committed scaffold (no tooling)
 
-Every pack is rendered by CI and published to the project's **`gh-pages`** site under `<pack>/<tool>/`. Download the folder for your tool and copy its contents into your project root — no Node required:
+Each pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. Copy the folder for your tool into your project root — no Node required — then run the pack's `add-skills.sh` to port its skills in from the shared `skills-library/`:
 
-| Your tool | Download from | Generated project files |
+| Your tool | Copy from | Lands as |
 |---|---|---|
-| **Kiro** | `legacy-transformation-on-aws/kiro/` | `.kiro/` |
-| **Claude Code** | `legacy-transformation-on-aws/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
-| **GitHub Copilot** | `legacy-transformation-on-aws/copilot/` | `.github/`, `.vscode/mcp.json` |
-| **Cursor** | `legacy-transformation-on-aws/cursor/` | `.cursor/` |
+| **Kiro** | `scaffolded-packs/kiro/` | `.kiro/` |
+| **Claude Code** | `scaffolded-packs/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
+| **GitHub Copilot** | `scaffolded-packs/copilot/` | `.github/`, `.vscode/mcp.json` |
+| **Cursor** | `scaffolded-packs/cursor/` | `.cursor/` |
+
+The committed `scaffolded-packs/<tool>/` folders contain **steering/MCP/command files only — no skills**. After copying the folder, port this pack's skills in:
+
+```bash
+scaffolded-packs/add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/monolith
+```
+
+`add-skills.sh` is pure bash + `cp` (no Node) and copies this pack's skills from the shared `skills-library/` into the target's per-tool skills directory. The `SKILLS=()` list at the top of the script is editable — add or remove skills for your use case.
 
 ### Option B — generate it (installer)
 
@@ -40,7 +48,7 @@ Run the `ramp-pack` installer from the repo root; it reads the neutral source an
 node installer/bin/ramp-pack.js init legacy-transformation-on-aws --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/monolith
 ```
 
-Add `--dry-run` to preview or `--force` to overwrite existing generated files. To preview all four tool configs locally, run `./scripts/regenerate.sh legacy-transformation-on-aws` (requires Node). The neutral source plus the shared `skills-library/` are the single source of truth.
+Add `--dry-run` to preview or `--force` to overwrite existing generated files; this installs steering **and** skills in one step. To rebuild the committed per-tool scaffolds in place, run `./scripts/regenerate.sh legacy-transformation-on-aws` (requires Node). The neutral source plus the shared `skills-library/` are the single source of truth.
 
 ### Then
 
@@ -91,18 +99,21 @@ If critical evidence is unavailable or a time/budget boundary is reached, the wo
 ```text
 legacy-transformation-on-aws/
 ├── pack.yaml                 # Manifest: instruction roles, MCP servers, skills, /aidlc command
-└── instructions/             # Tool-neutral steering (source of truth)
-    ├── aidlc-workflow.md         # Detection → adaptive RE → Requirements → Design → Tasks
-    ├── skill-activation.md       # Routing for all 19 bundled skills + AWS Knowledge validation
-    └── reverse-engineering.md    # Targeted/Full, Orientation, Reuse & Verify playbook
+├── instructions/             # Tool-neutral steering (source of truth)
+│   ├── aidlc-workflow.md         # Detection → adaptive RE → Requirements → Design → Tasks
+│   ├── skill-activation.md       # Routing for all 19 bundled skills + AWS Knowledge validation
+│   └── reverse-engineering.md    # Targeted/Full, Orientation, Reuse & Verify playbook
+└── scaffolded-packs/         # Committed, regenerated from source
+    ├── kiro/ claude-code/ copilot/ cursor/   # per-tool steering/MCP/command (steering only, NO skills)
+    └── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills-library/
 ```
 
 > The pack's 19 skills are referenced **by name** from `pack.yaml` (`skills:` list) and resolved from the
 > shared [`skills-library/`](../../skills-library/) at the repo root — the pack has no `skills/` directory of
-> its own (a local `skills/` appears only when a pack overrides a library skill). Edit `instructions/`,
-> `pack.yaml`, and this README as canonical source. Per-tool output is generated on demand and **never
-> committed** — regenerate it with the installer or `./scripts/regenerate.sh legacy-transformation-on-aws`; do
-> not hand-edit generated output.
+> its own (a local `skills/` appears only when a pack overrides a library skill). They are ported into a target
+> project by `scaffolded-packs/add-skills.sh`. Edit `instructions/`, `pack.yaml`, and this README as canonical
+> source; the committed per-tool scaffolds are regenerated from it — rebuild them with the installer or
+> `./scripts/regenerate.sh legacy-transformation-on-aws` rather than hand-editing.
 
 ### How each instruction maps per tool
 

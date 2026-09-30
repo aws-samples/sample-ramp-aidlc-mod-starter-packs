@@ -12,16 +12,24 @@ Build agentic AI workflows on AWS with infrastructure-as-code (Terraform/OpenTof
 
 Pick **one** of the two ways to add this pack to your project.
 
-### Option A — download a pre-built folder (no tooling)
+### Option A — copy the committed folder (no tooling)
 
-CI renders every pack and publishes the tool-correct configs to the project's **`gh-pages`** site under `agentic-ai-workflow/<tool>/`. Download the folder for your tool and copy it into your project root — no Node required:
+Each pack ships committed, per-tool steering under `scaffolded-packs/<tool>/` (steering/MCP/command files only — no skills). Copy the folder for your tool into your project root — no Node required — then run `add-skills.sh` to port this pack's skills from the shared `skills-library/`:
 
-| Your tool | Download from (gh-pages) | Into your project |
+| Your tool | Copy from | Into your project |
 |---|---|---|
-| **Kiro** | `agentic-ai-workflow/kiro/` | `.kiro/` |
-| **Claude Code** | `agentic-ai-workflow/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
-| **GitHub Copilot** | `agentic-ai-workflow/copilot/` | `.github/`, `.vscode/mcp.json` |
-| **Cursor** | `agentic-ai-workflow/cursor/` | `.cursor/` |
+| **Kiro** | `scaffolded-packs/kiro/` | `.kiro/` |
+| **Claude Code** | `scaffolded-packs/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
+| **GitHub Copilot** | `scaffolded-packs/copilot/` | `.github/`, `.vscode/mcp.json` |
+| **Cursor** | `scaffolded-packs/cursor/` | `.cursor/` |
+
+Then port this pack's skills into your project (pure bash + `cp`, no Node):
+
+```bash
+scaffolded-packs/add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
+```
+
+The `SKILLS=()` list at the top of `add-skills.sh` is editable — add or remove skills for your use case.
 
 ### Option B — generate it (installer)
 
@@ -31,7 +39,7 @@ Run the `ramp-pack` installer from the repo root; it reads the neutral source an
 node installer/bin/ramp-pack.js init agentic-ai-workflow --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
 ```
 
-Add `--dry-run` to preview, `--force` to overwrite existing files. To preview all four tool configs locally, run `./scripts/regenerate.sh agentic-ai-workflow` (requires Node). The neutral source plus the shared `skills-library/` are the single source of truth — generated output is never committed to git.
+Add `--dry-run` to preview, `--force` to overwrite existing files. To regenerate all four committed tool scaffolds locally, run `./scripts/regenerate.sh agentic-ai-workflow` (requires Node). The neutral source plus the shared `skills-library/` are the single source of truth — the committed `scaffolded-packs/` output is regenerated from it.
 
 ### Then
 
@@ -49,11 +57,14 @@ The workflow guides the agent to ask for your decisions first (writing a `_decis
 ```
 agentic-ai-workflow/
 ├── pack.yaml                 # Manifest: instruction roles, skill list, MCP servers, /aidlc command
-└── instructions/             # Tool-neutral steering (source of truth)
-    └── aidlc-workflow.md         # Decision-gated Requirements → Design → Tasks (primary)
+├── instructions/             # Tool-neutral steering (source of truth)
+│   └── aidlc-workflow.md         # Decision-gated Requirements → Design → Tasks (primary)
+└── scaffolded-packs/         # Committed, per-tool output (regenerated from source)
+    ├── kiro/ claude-code/ copilot/ cursor/   # steering/MCP/command only — no skills
+    └── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills-library/
 ```
 
-> `instructions/` and `pack.yaml` are the **neutral source** you edit. Skills are referenced **by name** from the shared `skills-library/` at the repo root (see `pack.yaml`'s `skills:` list, and the Skills table below) — a pack-local `skills/` directory appears only when a pack overrides a library skill. Per-tool output is **generated** from this source (plus the shared skills-library) by the installer and is never committed — regenerate it with the installer or `./scripts/regenerate.sh`; don't hand-edit generated output.
+> `instructions/` and `pack.yaml` are the **neutral source** you edit. Skills are referenced **by name** from the shared `skills-library/` at the repo root (see `pack.yaml`'s `skills:` list, and the Skills table below) — a pack-local `skills/` directory appears only when a pack overrides a library skill. The committed `scaffolded-packs/<tool>/` folders hold per-tool steering only (no skills) and are regenerated from this source with the installer or `./scripts/regenerate.sh`; skills are ported separately by `add-skills.sh`. Don't hand-edit generated output.
 
 ### How each instruction maps per tool
 

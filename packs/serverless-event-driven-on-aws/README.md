@@ -22,16 +22,24 @@ Supports **greenfield** (new event-driven system) and **brownfield** (existing P
 
 Pick **one** of the two ways to add this pack to your project.
 
-### Option A — download a pre-built folder (no tooling)
+### Option A — copy the committed folder (no tooling)
 
-Every pack is rendered by CI and published to the project's **`gh-pages`** site under `serverless-event-driven-on-aws/<tool>/`. Download the folder for your tool and copy it into your project root — no Node required:
+Every pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. Copy the folder for your tool into your project root — no Node required — then run `scaffolded-packs/add-skills.sh` to port this pack's skills from the shared `skills-library/`:
 
-| Your tool | Download from (gh-pages) | Into your project |
+| Your tool | Copy from | Into your project |
 |---|---|---|
-| **Kiro** | `serverless-event-driven-on-aws/kiro/` | `.kiro/` |
-| **Claude Code** | `serverless-event-driven-on-aws/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
-| **GitHub Copilot** | `serverless-event-driven-on-aws/copilot/` | `.github/`, `.vscode/mcp.json` |
-| **Cursor** | `serverless-event-driven-on-aws/cursor/` | `.cursor/` |
+| **Kiro** | `scaffolded-packs/kiro/` | `.kiro/` |
+| **Claude Code** | `scaffolded-packs/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
+| **GitHub Copilot** | `scaffolded-packs/copilot/` | `.github/`, `.vscode/mcp.json` |
+| **Cursor** | `scaffolded-packs/cursor/` | `.cursor/` |
+
+The `scaffolded-packs/<tool>/` folders contain steering/MCP/command files only (no skills). Port this pack's skills separately:
+
+```bash
+scaffolded-packs/add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
+```
+
+The `SKILLS` list at the top of `add-skills.sh` is editable — add or remove skills for your use case.
 
 ### Option B — generate it (installer)
 
@@ -41,7 +49,7 @@ Run the `ramp-pack` installer from the repo root; it reads the neutral source an
 node installer/bin/ramp-pack.js init serverless-event-driven-on-aws --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
 ```
 
-Add `--dry-run` to preview, `--force` to overwrite existing files. To preview all four tool configs locally, run `./scripts/regenerate.sh serverless-event-driven-on-aws` (requires Node). The tool-neutral source plus the shared `skills-library/` are the single source of truth — generated per-tool output is never committed to git.
+Add `--dry-run` to preview, `--force` to overwrite existing files. To regenerate all four tool configs locally, run `./scripts/regenerate.sh serverless-event-driven-on-aws` (requires Node), which rebuilds the committed scaffolds in place. The tool-neutral source plus the shared `skills-library/` are the single source of truth.
 
 ### Then
 
@@ -83,15 +91,18 @@ Phase 1 Requirements → Phase 2 Design → Phase 3 Tasks (independent parallel 
 ```
 serverless-event-driven-on-aws/
 ├── pack.yaml                     # Manifest: instruction roles, skill list, MCP servers, /aidlc command
-└── instructions/                 # Tool-neutral steering (source of truth)
-    ├── aidlc-workflow.md           # Decision-gated Requirements → Design → Tasks (primary)
-    ├── skill-activation.md         # When to activate which skill + MCP (companion, always)
-    ├── practices-discovery.md      # Team context capture, run once before Phase 1 (companion, auto)
-    ├── multi-repo-projects.md      # Repo-model gate + multi-repo flow (companion, auto)
-    └── reverse-engineering.md      # Phase 0 playbook (companion, brownfield-only)
+├── instructions/                 # Tool-neutral steering (source of truth)
+│   ├── aidlc-workflow.md           # Decision-gated Requirements → Design → Tasks (primary)
+│   ├── skill-activation.md         # When to activate which skill + MCP (companion, always)
+│   ├── practices-discovery.md      # Team context capture, run once before Phase 1 (companion, auto)
+│   ├── multi-repo-projects.md      # Repo-model gate + multi-repo flow (companion, auto)
+│   └── reverse-engineering.md      # Phase 0 playbook (companion, brownfield-only)
+└── scaffolded-packs/             # Committed, regenerated from source
+    ├── kiro/ claude-code/ copilot/ cursor/   # per-tool steering/MCP/command (steering only, no skills)
+    └── add-skills.sh               # editable SKILLS list; ports this pack's skills from skills-library/
 ```
 
-> `instructions/` and `pack.yaml` are the **neutral source** you edit. Skills are referenced **by name** from the shared `skills-library/` at the repo root (see the `skills:` list in `pack.yaml`) — see the Skills table below; a local `skills/` directory appears only when a pack overrides a library skill (a rare 'shadow'). Per-tool output is **generated** from the neutral source + skills-library by the installer and is never committed — regenerate it locally with `./scripts/regenerate.sh serverless-event-driven-on-aws`; don't hand-edit generated output.
+> `instructions/` and `pack.yaml` are the **neutral source** you edit. Skills are referenced **by name** from the shared `skills-library/` at the repo root (see the `skills:` list in `pack.yaml`) — see the Skills table below; a local `skills/` directory appears only when a pack overrides a library skill (a rare 'shadow'). The committed `scaffolded-packs/<tool>/` folders carry steering only; skills are ported in by `scaffolded-packs/add-skills.sh`. Regenerate the committed scaffolds from the neutral source + skills-library with `./scripts/regenerate.sh serverless-event-driven-on-aws`; don't hand-edit generated output.
 
 ### How each instruction maps per tool
 

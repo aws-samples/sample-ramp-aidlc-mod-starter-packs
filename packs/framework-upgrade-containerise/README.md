@@ -30,18 +30,27 @@ proposing an alternative; if a particular tool isn't permitted, it asks for your
 
 Pick **one** of the two ways to add this pack to your project.
 
-### Option A — download a pre-built folder (no tooling)
+### Option A — copy the committed folder (no tooling)
 
-Every pack is rendered by CI and published to the project's **`gh-pages`** site under
-`framework-upgrade-containerise/<tool>/`. Download the folder for your tool and copy it into your project
-root — no Node required:
+Every pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. Copy the folder for your
+tool into your project root — no Node required — then run `scaffolded-packs/add-skills.sh` to port this
+pack's skills from the shared `skills-library/`:
 
-| Your tool | Download from (gh-pages) | Into your project |
+| Your tool | Copy from | Into your project |
 |---|---|---|
-| **Kiro** | `framework-upgrade-containerise/kiro/` | `.kiro/` |
-| **Claude Code** | `framework-upgrade-containerise/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
-| **GitHub Copilot** | `framework-upgrade-containerise/copilot/` | `.github/`, `.vscode/mcp.json` |
-| **Cursor** | `framework-upgrade-containerise/cursor/` | `.cursor/` |
+| **Kiro** | `scaffolded-packs/kiro/` | `.kiro/` |
+| **Claude Code** | `scaffolded-packs/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
+| **GitHub Copilot** | `scaffolded-packs/copilot/` | `.github/`, `.vscode/mcp.json` |
+| **Cursor** | `scaffolded-packs/cursor/` | `.cursor/` |
+
+The `scaffolded-packs/<tool>/` folders contain steering/MCP/command files only (no skills). Port this
+pack's skills separately:
+
+```bash
+scaffolded-packs/add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/service
+```
+
+The `SKILLS` list at the top of `add-skills.sh` is editable — add or remove skills for your use case.
 
 ### Option B — generate it (installer)
 
@@ -49,9 +58,9 @@ root — no Node required:
 node installer/bin/ramp-pack.js init framework-upgrade-containerise --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/service
 ```
 
-Add `--dry-run` to preview, `--force` to overwrite. To preview all four tool configs locally, run
-`./scripts/regenerate.sh framework-upgrade-containerise` (requires Node). The tool-neutral source plus the
-shared `skills-library/` are the single source of truth — generated per-tool output is never committed to git.
+Add `--dry-run` to preview, `--force` to overwrite. To regenerate all four tool configs locally, run
+`./scripts/regenerate.sh framework-upgrade-containerise` (requires Node), which rebuilds the committed
+scaffolds in place. The tool-neutral source plus the shared `skills-library/` are the single source of truth.
 
 ### Then
 

@@ -25,16 +25,22 @@ A reference target stack: **Android/Kotlin (Jetpack Compose + CameraX)** on the 
 
 Pick **one** of the two ways to add this pack to your project.
 
-### Option A — download a pre-built folder (no tooling)
+### Option A — copy the committed folder (no tooling)
 
-Rendered per-tool output is **not** committed to this repo — CI generates it from source and publishes it to the project's **`gh-pages`** site under `ocr-mobile-app-on-serverless/<tool>/`. Download the folder for your tool (no Node required) and copy it into your project root:
+Each pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. Copy the folder for your tool into your project root — no Node required — then run `scaffolded-packs/add-skills.sh` to port this pack's skills from the shared `skills-library/` (the `SKILLS` list at the top of the script is editable):
 
-| Your tool | Download from (gh-pages) | Into your project |
+| Your tool | Copy from | Into your project |
 |---|---|---|
-| **Kiro** | `ocr-mobile-app-on-serverless/kiro/` | `.kiro/` |
-| **Claude Code** | `ocr-mobile-app-on-serverless/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
-| **GitHub Copilot** | `ocr-mobile-app-on-serverless/copilot/` | `.github/`, `.vscode/mcp.json` |
-| **Cursor** | `ocr-mobile-app-on-serverless/cursor/` | `.cursor/` |
+| **Kiro** | `scaffolded-packs/kiro/` | `.kiro/` |
+| **Claude Code** | `scaffolded-packs/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
+| **GitHub Copilot** | `scaffolded-packs/copilot/` | `.github/`, `.vscode/mcp.json` |
+| **Cursor** | `scaffolded-packs/cursor/` | `.cursor/` |
+
+```bash
+scaffolded-packs/add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
+```
+
+The `scaffolded-packs/<tool>/` folders contain steering/MCP/command files only (no skills); `add-skills.sh` copies this pack's skills in separately.
 
 ### Option B — generate it (installer)
 
@@ -44,7 +50,7 @@ Run the `ramp-pack` installer from the repo root; it reads the neutral source an
 node installer/bin/ramp-pack.js init ocr-mobile-app-on-serverless --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
 ```
 
-Add `--dry-run` to preview, `--force` to overwrite existing files. To preview all four tool configs locally, run `./scripts/regenerate.sh ocr-mobile-app-on-serverless` (requires Node). The tool-neutral source plus the shared `skills-library/` are the single source of truth — generated output is never committed and is always rendered from them.
+Add `--dry-run` to preview, `--force` to overwrite existing files. To rebuild all four committed tool scaffolds in place, run `./scripts/regenerate.sh ocr-mobile-app-on-serverless` (requires Node). The tool-neutral source plus the shared `skills-library/` are the single source of truth for both the committed `scaffolded-packs/` and the installer output.
 
 ### Then
 
@@ -66,10 +72,13 @@ ocr-mobile-app-on-serverless/
 │   ├── aidlc-workflow.md         # Decision-gated Requirements → Design → Tasks (primary)
 │   ├── skill-activation.md       # When to activate skills + MCP (companion, always)
 │   └── reverse-engineering.md    # Phase 0 playbook (companion, brownfield-only)
-└── reference-architecture.md # Sanitized reference CV-pipeline diagram + workstreams
+├── reference-architecture.md # Sanitized reference CV-pipeline diagram + workstreams
+└── scaffolded-packs/         # Committed per-tool steering (regenerated from source)
+    ├── kiro/ claude-code/ copilot/ cursor/   # steering/MCP/command only — NO skills
+    └── add-skills.sh         # editable SKILLS list; ports this pack's skills from skills-library/
 ```
 
-> `instructions/`, `reference-architecture.md`, and `pack.yaml` are the **neutral source** you edit. Skills are **not** stored in the pack — they are referenced by name in `pack.yaml` (`skills:`) and live in the shared [`skills-library/`](../../skills-library/) at the repo root (a local `skills/` dir appears only when a pack overrides a library skill). Per-tool output is **generated** from the neutral source plus the shared skills-library by the installer / CI — don't hand-edit generated output; regenerate with `./scripts/regenerate.sh ocr-mobile-app-on-serverless`.
+> `instructions/`, `reference-architecture.md`, and `pack.yaml` are the **neutral source** you edit. Skills are **not** stored in the pack — they are referenced by name in `pack.yaml` (`skills:`) and live in the shared [`skills-library/`](../../skills-library/) at the repo root (a local `skills/` dir appears only when a pack overrides a library skill). The committed per-tool scaffolds under `scaffolded-packs/` (steering only) are rendered from this neutral source, and `scaffolded-packs/add-skills.sh` ports the named skills from the shared skills-library — regenerate the scaffolds with `./scripts/regenerate.sh ocr-mobile-app-on-serverless`.
 
 ### How each instruction maps per tool
 

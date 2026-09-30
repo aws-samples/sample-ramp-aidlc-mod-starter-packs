@@ -43,17 +43,29 @@ monitored application's source).
 
 Pick **one** of the two ways to add this pack to your project.
 
-### Option A — download a pre-built folder (no tooling)
+### Option A — copy the committed scaffold (no tooling)
 
-Every pack is rendered by CI and published to the project's **`gh-pages`** site under `<pack>/<tool>/`. Download
-the folder for your tool and copy it into your project root — no Node required:
+Each pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. Copy the folder for your tool
+into your project root — no Node required — then run the pack's `add-skills.sh` to port its skills in from the
+shared `skills-library/`:
 
-| Your tool | Download from | Into your project |
+| Your tool | Copy from | Into your project |
 |---|---|---|
-| **Kiro** | `agentic-incident-response/kiro/` | `.kiro/` |
-| **Claude Code** | `agentic-incident-response/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
-| **GitHub Copilot** | `agentic-incident-response/copilot/` | `.github/`, `.vscode/mcp.json` |
-| **Cursor** | `agentic-incident-response/cursor/` | `.cursor/` |
+| **Kiro** | `scaffolded-packs/kiro/` | `.kiro/` |
+| **Claude Code** | `scaffolded-packs/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
+| **GitHub Copilot** | `scaffolded-packs/copilot/` | `.github/`, `.vscode/mcp.json` |
+| **Cursor** | `scaffolded-packs/cursor/` | `.cursor/` |
+
+The committed `scaffolded-packs/<tool>/` folders contain **steering/MCP/command files only — no skills**. After
+copying the folder, port this pack's skills in:
+
+```bash
+scaffolded-packs/add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
+```
+
+`add-skills.sh` is pure bash + `cp` (no Node) and copies this pack's skills from the shared `skills-library/`
+into the target's per-tool skills directory. The `SKILLS=()` list at the top of the script is editable — add or
+remove skills for your use case.
 
 ### Option B — generate it (installer)
 
@@ -64,9 +76,9 @@ into your target project:
 node installer/bin/ramp-pack.js init agentic-incident-response --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
 ```
 
-Add `--dry-run` to preview, `--force` to overwrite. To preview all four tool configs locally, run
-`./scripts/regenerate.sh agentic-incident-response` (requires Node). Generated per-tool output is never
-committed; the neutral source plus the shared `skills-library/` are the single source of truth.
+Add `--dry-run` to preview, `--force` to overwrite; this installs steering **and** skills in one step. To
+rebuild the committed per-tool scaffolds in place, run `./scripts/regenerate.sh agentic-incident-response`
+(requires Node). The neutral source plus the shared `skills-library/` are the single source of truth.
 
 ### Then
 
@@ -98,18 +110,22 @@ progress is tracked in `aidlc-docs/aidlc-state.md` so you can resume across sess
 ```
 agentic-incident-response/
 ├── pack.yaml                         # Manifest: instruction roles, MCP servers, skills, /aidlc command
-└── instructions/                     # Tool-neutral steering (source of truth)
-    ├── aidlc-workflow.md                 # Decision-gated Requirements → Design → Tasks (primary)
-    ├── skill-activation.md               # When to activate skills + MCP (companion, always)
-    └── reverse-engineering.md            # Phase 0 playbook (companion, auto — brownfield grounding)
+├── instructions/                     # Tool-neutral steering (source of truth)
+│   ├── aidlc-workflow.md                 # Decision-gated Requirements → Design → Tasks (primary)
+│   ├── skill-activation.md               # When to activate skills + MCP (companion, always)
+│   └── reverse-engineering.md            # Phase 0 playbook (companion, auto — brownfield grounding)
+└── scaffolded-packs/                 # Committed, regenerated from source
+    ├── kiro/ claude-code/ copilot/ cursor/   # per-tool steering/MCP/command (steering only, NO skills)
+    └── add-skills.sh                     # editable SKILLS list; ports this pack's skills from skills-library/
 ```
 
 > `instructions/`, `pack.yaml`, and this README are the **neutral source** you edit. The pack's skills are
 > referenced **by name** from `pack.yaml` (`skills:` list) and resolved from the shared
 > [`skills-library/`](../../skills-library/) at the repo root — the pack has no `skills/` directory of its own
-> (a local `skills/` appears only when a pack overrides a library skill; the full skill list is below).
-> Per-tool output is **generated** on demand and never committed — regenerate it with the installer or
-> `./scripts/regenerate.sh agentic-incident-response`; don't hand-edit generated output.
+> (a local `skills/` appears only when a pack overrides a library skill; the full skill list is below). They
+> are ported into a target project by `scaffolded-packs/add-skills.sh`. The committed per-tool scaffolds are
+> regenerated from the neutral source — rebuild them with the installer or
+> `./scripts/regenerate.sh agentic-incident-response` rather than hand-editing.
 
 ### Instructions
 

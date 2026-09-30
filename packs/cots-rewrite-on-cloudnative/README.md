@@ -12,16 +12,24 @@ Rebuild an existing business system as a cloud-native app when you have its **so
 
 Pick **one** of the two ways to add this pack to your project.
 
-### Option A — download a pre-built folder (no tooling)
+### Option A — copy the committed folder (no tooling)
 
-Every pack is rendered by CI and published to the project's **`gh-pages`** site under `cots-rewrite-on-cloudnative/<tool>/`. Download the folder for your tool and copy it into your project root — no Node required:
+This pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. Copy the folder for your tool into your project root — no Node required — then run `scaffolded-packs/add-skills.sh` to port this pack's skills from the shared `skills-library/`:
 
-| Your tool | Download from (gh-pages) | Into your project |
+| Your tool | Copy from | Into your project |
 |---|---|---|
-| **Kiro** | `cots-rewrite-on-cloudnative/kiro/` | `.kiro/` |
-| **Claude Code** | `cots-rewrite-on-cloudnative/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
-| **GitHub Copilot** | `cots-rewrite-on-cloudnative/copilot/` | `.github/`, `.vscode/mcp.json` |
-| **Cursor** | `cots-rewrite-on-cloudnative/cursor/` | `.cursor/` |
+| **Kiro** | `scaffolded-packs/kiro/` | `.kiro/` |
+| **Claude Code** | `scaffolded-packs/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
+| **GitHub Copilot** | `scaffolded-packs/copilot/` | `.github/`, `.vscode/mcp.json` |
+| **Cursor** | `scaffolded-packs/cursor/` | `.cursor/` |
+
+The `scaffolded-packs/<tool>/` folders contain **steering/MCP/command files only — no skills**. After copying, port the skills in:
+
+```bash
+scaffolded-packs/add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
+```
+
+This is pure bash + `cp` (no Node). The `SKILLS=()` list at the top of `add-skills.sh` is seeded from `pack.yaml` and is editable — add or remove skills for your use case.
 
 ### Option B — generate it (installer)
 
@@ -31,7 +39,7 @@ Run the `ramp-pack` installer from the repo root; it reads the neutral source an
 node installer/bin/ramp-pack.js init cots-rewrite-on-cloudnative --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
 ```
 
-Add `--dry-run` to preview, `--force` to overwrite existing files. To preview all four tool configs locally, run `./scripts/regenerate.sh cots-rewrite-on-cloudnative` (requires Node). The neutral source (`instructions/`, `pack.yaml`) plus the shared `skills-library/` are the single source of truth; generated per-tool output is never committed.
+Add `--dry-run` to preview, `--force` to overwrite existing files. To regenerate all four tool configs locally, run `./scripts/regenerate.sh cots-rewrite-on-cloudnative` (requires Node) — it rebuilds the committed `scaffolded-packs/` in place. The neutral source (`instructions/`, `pack.yaml`) plus the shared `skills-library/` are the single source of truth.
 
 ### Then
 
@@ -66,14 +74,17 @@ Phase 1 Requirements → Phase 2 Domain Model → Phase 3 Design → Phase 4 Tas
 ```
 cots-rewrite-on-cloudnative/
 ├── pack.yaml                 # Manifest: instruction roles, skill list, MCP servers, /aidlc command
-└── instructions/             # Tool-neutral steering (source of truth)
-    ├── aidlc-workflow.md         # Decision-gated Requirements → Domain Model → Design → Tasks (primary)
-    ├── skill-activation.md       # When to activate which skill + MCP (companion, always)
-    ├── reverse-engineering.md    # Phase 0 playbook — source code and/or FSDs/docs (companion, auto)
-    └── requirements-traceability.md  # Trace requirements to FSD/screen anchors + coverage gate (companion, auto)
+├── instructions/             # Tool-neutral steering (source of truth)
+│   ├── aidlc-workflow.md         # Decision-gated Requirements → Domain Model → Design → Tasks (primary)
+│   ├── skill-activation.md       # When to activate which skill + MCP (companion, always)
+│   ├── reverse-engineering.md    # Phase 0 playbook — source code and/or FSDs/docs (companion, auto)
+│   └── requirements-traceability.md  # Trace requirements to FSD/screen anchors + coverage gate (companion, auto)
+└── scaffolded-packs/         # Committed per-tool output (regenerated from source)
+    ├── kiro/ claude-code/ copilot/ cursor/   # per-tool steering/MCP/command — NO skills
+    └── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills-library/
 ```
 
-> `instructions/` and `pack.yaml` are the **neutral source** you edit. Skills are referenced **by name** from `pack.yaml` (`skills:` list) and live in the shared [`skills-library/`](../../skills-library/) at the repo root — a pack-local `skills/` directory appears only when a pack overrides a library skill. The per-tool output is **generated** from this source (never committed) — regenerate it with `./scripts/regenerate.sh cots-rewrite-on-cloudnative` after editing; don't hand-edit generated output.
+> `instructions/` and `pack.yaml` are the **neutral source** you edit. Skills are referenced **by name** from `pack.yaml` (`skills:` list) and live in the shared [`skills-library/`](../../skills-library/) at the repo root — a pack-local `skills/` directory appears only when a pack overrides a library skill. The per-tool `scaffolded-packs/<tool>/` folders are committed (steering only) and are ported the skills via `add-skills.sh`; regenerate them with `./scripts/regenerate.sh cots-rewrite-on-cloudnative` after editing the source — don't hand-edit the generated output.
 
 ### How each instruction maps per tool
 
