@@ -33,6 +33,12 @@ The committed `scaffolded-packs/<tool>/` folders contain **steering/MCP/command 
 add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
 ```
 
+On Windows (PowerShell), use the equivalent `add-skills.ps1`:
+
+```powershell
+add-skills.ps1 -Tool <kiro|claude-code|copilot|cursor> -Target C:\path\to\your\project
+```
+
 `add-skills.sh` is pure bash + `cp` (no Node) and copies this pack's skills from the shared `skills-library/` into the target's per-tool skills directory. The `SKILLS=()` list at the top of the script is editable — add or remove skills for your use case.
 
 ### Option B — generate it (installer)
@@ -88,6 +94,7 @@ dotnet-app-modernization-on-aws/
 │   ├── skill-activation.md       # When to activate which skill + MCP (companion, always)
 │   └── reverse-engineering.md    # Phase 0 playbook + ATX ingest (companion, brownfield-first)
 ├── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills-library/
+├── add-skills.ps1            # Windows/PowerShell equivalent of add-skills.sh (no Node)
 └── scaffolded-packs/         # Committed, regenerated from source
     └── kiro/ claude-code/ copilot/ cursor/   # per-tool steering/MCP/command (steering only, NO skills)
 ```

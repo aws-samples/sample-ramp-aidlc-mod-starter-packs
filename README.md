@@ -54,13 +54,21 @@ Learn more:
 
 1. **Pick the pack** that matches your scenario from the table above.
 2. **Add it to your project** in whichever agent you use — two ways:
-   - **Copy the pre-built folder (no tooling):** each pack ships committed, per-tool steering under `packs/<pack>/scaffolded-packs/<tool>/` (`kiro`, `claude-code`, `copilot`, or `cursor`). Copy that folder into your project root, then run the pack's `add-skills.sh` to port its skills in — no Node required:
+   - **Copy the pre-built folder (no tooling):** each pack ships committed, per-tool steering under `packs/<pack>/scaffolded-packs/<tool>/` (`kiro`, `claude-code`, `copilot`, or `cursor`). Copy that folder into your project root, then run the pack's skill-porting script to port its skills in — no Node required.
+
+     On macOS / Linux (bash), use `add-skills.sh`:
      ```bash
      packs/<pack>/add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
      # or, from the repo root, by pack name:
      ./add-skills.sh <pack> --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
      ```
-     The skill list lives at the top of `add-skills.sh` — edit it to add/remove skills for your use case.
+     On Windows (PowerShell), use the equivalent `add-skills.ps1`:
+     ```powershell
+     .\packs\<pack>\add-skills.ps1 -Tool <kiro|claude-code|copilot|cursor> -Target C:\path\to\your\project
+     # or, from the repo root, by pack name:
+     .\add-skills.ps1 <pack> -Tool <kiro|claude-code|copilot|cursor> -Target C:\path\to\your\project
+     ```
+     The skill list lives at the top of each script (the `SKILLS` array in `add-skills.sh`, the `$Skills` array in `add-skills.ps1`) — edit it to add/remove skills for your use case.
    - **Generate it (installer):** run the `ramp-pack` installer from the repo root — it reads the pack's tool-neutral source and writes the full layout (steering **and** skills) into your project:
      ```bash
      node installer/bin/ramp-pack.js init <pack> --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
@@ -110,13 +118,15 @@ packs/<pack>/
 ├── instructions/             # Tool-neutral steering (pack-specific; may inherit common/ defaults)
 ├── skills/                   # OPTIONAL — only when a pack overrides a library skill ("shadow")
 ├── add-skills.sh             # editable skill list; ports this pack's skills from skills-library/ (bash, no Node)
+├── add-skills.ps1            # Windows/PowerShell equivalent of add-skills.sh (no Node)
 └── scaffolded-packs/         # Committed per-tool steering, regenerated from source:
     └── kiro/ claude-code/ copilot/ cursor/   # steering/MCP/command only — NO skills (kept small)
 ```
 
 > **Committed scaffolds (Model C):** the per-tool folders under `scaffolded-packs/`
 > are **steering only** (no skills), so they stay small (~3 MB total). Skills are
-> ported separately by each pack's editable `add-skills.sh` from the shared
+> ported separately by each pack's editable `add-skills.sh` (bash) or `add-skills.ps1`
+> (Windows/PowerShell) from the shared
 > `skills-library/` — so a no-Node user copies the tool folder and runs the script.
 > Regenerate the committed scaffolds from source with `./scripts/regenerate.sh [pack]`
 > (or `node installer/bin/ramp-pack.js build-all --in-place`); CI fails if they drift.
@@ -137,7 +147,7 @@ Because instructions and skills are plain Markdown, treat them as code: version 
 
 - One of: [Kiro](https://kiro.dev), [Claude Code](https://claude.com/claude-code), GitHub Copilot, or Cursor — installed and signed in
 - [Git](https://git-scm.com/downloads)
-- [Node.js 18+](https://nodejs.org/) — only if you use the `ramp-pack` installer to generate a pack, or regenerate scaffolds. Copying a committed `scaffolded-packs/<tool>/` folder and running its `add-skills.sh` needs no Node.
+- [Node.js 18+](https://nodejs.org/) — only if you use the `ramp-pack` installer to generate a pack, or regenerate scaffolds. Copying a committed `scaffolded-packs/<tool>/` folder and running its `add-skills.sh` (bash) or `add-skills.ps1` (Windows/PowerShell) needs no Node.
 - Pack-specific tools as noted in each README (e.g., an AWS profile, Terraform tooling, or `uvx`/`npx` for certain MCP servers)
 
 ## Security

@@ -29,6 +29,12 @@ Then port this pack's skills into your project (pure bash + `cp`, no Node):
 add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
 ```
 
+On Windows (PowerShell), use the equivalent `add-skills.ps1`:
+
+```powershell
+add-skills.ps1 -Tool <kiro|claude-code|copilot|cursor> -Target C:\path\to\your\project
+```
+
 The `SKILLS=()` list at the top of `add-skills.sh` is editable — add or remove skills for your use case.
 
 ### Option B — generate it (installer)
@@ -60,6 +66,7 @@ agentic-ai-workflow/
 ├── instructions/             # Tool-neutral steering (source of truth)
 │   └── aidlc-workflow.md         # Decision-gated Requirements → Design → Tasks (primary)
 ├── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills-library/
+├── add-skills.ps1            # Windows/PowerShell equivalent of add-skills.sh (no Node)
 └── scaffolded-packs/         # Committed, per-tool output (regenerated from source)
     └── kiro/ claude-code/ copilot/ cursor/   # steering/MCP/command only — no skills
 ```

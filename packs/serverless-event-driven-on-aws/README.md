@@ -39,6 +39,12 @@ The `scaffolded-packs/<tool>/` folders contain steering/MCP/command files only (
 add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
 ```
 
+On Windows (PowerShell), use the equivalent `add-skills.ps1`:
+
+```powershell
+add-skills.ps1 -Tool <kiro|claude-code|copilot|cursor> -Target C:\path\to\your\project
+```
+
 The `SKILLS` list at the top of `add-skills.sh` is editable — add or remove skills for your use case.
 
 ### Option B — generate it (installer)
@@ -98,6 +104,7 @@ serverless-event-driven-on-aws/
 │   ├── multi-repo-projects.md      # Repo-model gate + multi-repo flow (companion, auto)
 │   └── reverse-engineering.md      # Phase 0 playbook (companion, brownfield-only)
 ├── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills-library/
+├── add-skills.ps1            # Windows/PowerShell equivalent of add-skills.sh (no Node)
 └── scaffolded-packs/             # Committed, regenerated from source
     └── kiro/ claude-code/ copilot/ cursor/   # per-tool steering/MCP/command (steering only, no skills)
 ```

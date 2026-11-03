@@ -50,6 +50,12 @@ pack's skills separately:
 add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/service
 ```
 
+On Windows (PowerShell), use the equivalent `add-skills.ps1`:
+
+```powershell
+add-skills.ps1 -Tool <kiro|claude-code|copilot|cursor> -Target C:\path\to\your\service
+```
+
 The `SKILLS` list at the top of `add-skills.sh` is editable — add or remove skills for your use case.
 
 ### Option B — generate it (installer)

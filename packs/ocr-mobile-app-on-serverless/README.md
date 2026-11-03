@@ -40,6 +40,12 @@ Each pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. C
 add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
 ```
 
+On Windows (PowerShell), use the equivalent `add-skills.ps1`:
+
+```powershell
+add-skills.ps1 -Tool <kiro|claude-code|copilot|cursor> -Target C:\path\to\your\project
+```
+
 The `scaffolded-packs/<tool>/` folders contain steering/MCP/command files only (no skills); `add-skills.sh` copies this pack's skills in separately.
 
 ### Option B — generate it (installer)
@@ -74,6 +80,7 @@ ocr-mobile-app-on-serverless/
 │   └── reverse-engineering.md    # Phase 0 playbook (companion, brownfield-only)
 ├── reference-architecture.md # Sanitized reference CV-pipeline diagram + workstreams
 ├── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills-library/
+├── add-skills.ps1            # Windows/PowerShell equivalent of add-skills.sh (no Node)
 └── scaffolded-packs/         # Committed per-tool steering (regenerated from source)
     └── kiro/ claude-code/ copilot/ cursor/   # steering/MCP/command only — NO skills
 ```
