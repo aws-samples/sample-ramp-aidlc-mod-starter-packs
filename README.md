@@ -69,8 +69,9 @@ Learn more:
      .\add-skills.ps1 <pack> -Tool <kiro|claude-code|copilot|cursor> -Target C:\path\to\your\project
      ```
      The skill list lives at the top of each script (the `SKILLS` array in `add-skills.sh`, the `$Skills` array in `add-skills.ps1`) — edit it to add/remove skills for your use case.
-   - **Generate it (installer):** run the `ramp-pack` installer from the repo root — it reads the pack's tool-neutral source and writes the full layout (steering **and** skills) into your project:
+   - **Generate it (installer):** run the `ramp-pack` installer from the repo root — it reads the pack's tool-neutral source and writes the full layout (steering **and** skills) into your project. The installer is a small Node app, so install its dependencies once first:
      ```bash
+     npm install --prefix installer     # one-time: installs the installer's dependencies
      node installer/bin/ramp-pack.js init <pack> --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
      ```
      After editing a pack, regenerate its committed scaffolds with `./scripts/regenerate.sh <pack>` (requires Node).
