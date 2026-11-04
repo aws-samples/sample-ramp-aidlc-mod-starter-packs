@@ -1,42 +1,15 @@
-import { readFileSync, existsSync } from 'node:fs'
-import { join, basename, resolve } from 'node:path'
+import { basename } from 'node:path'
 import { getAdapter } from '../adapters/index.js'
-
-// Shared instruction defaults live in <repo>/common/instructions/. A pack may
-// omit an instruction file it declares in pack.yaml and inherit the common
-// default (e.g. the shared reverse-engineering playbook); a pack that ships its
-// own copy overrides it. Walk up from the pack dir so this works whether packs
-// live at <repo>/<pack> or <repo>/packs/<pack>.
-function findCommon(packDir) {
-  let dir = resolve(packDir, '..')
-  for (let i = 0; i < 6; i += 1) {
-    const candidate = join(dir, 'common')
-    if (existsSync(join(candidate, 'instructions'))) return candidate
-    const parent = resolve(dir, '..')
-    if (parent === dir) break
-    dir = parent
-  }
-  return join(resolve(packDir, '..'), 'common') // best-effort fallback
-}
-
-// Resolve an instruction file: pack-local first (override), else common default.
-function resolveInstruction(packDir, file) {
-  const local = join(packDir, 'instructions', file)
-  if (existsSync(local)) return local
-  const shared = join(findCommon(packDir), 'instructions', file)
-  if (existsSync(shared)) return shared
-  throw new Error(`instruction not found in pack or common/: ${file}`)
-}
+import { resolveInstructionBody } from '../instructions/compose.js'
+import { applyInstructionTokens } from '../instructions/tokens.js'
 
 // Read an instruction body, trimming surrounding blank lines. Neutral sources
 // can carry a leading blank line (left behind when Kiro frontmatter is stripped);
 // trimming keeps every tool's output starting on real content. Also substitutes
 // workspace tokens (`{{SPEC_DIR}}` and `{{STATE_DIR}}`).
-const body = (packDir, file, workspace) => {
-  const raw = readFileSync(resolveInstruction(packDir, file), 'utf8').trim() + '\n'
-  return raw
-    .replaceAll('{{SPEC_DIR}}', workspace.specRoot)
-    .replaceAll('{{STATE_DIR}}', workspace.stateRoot)
+const body = (manifest, packDir, file, tool, workspace) => {
+  const raw = resolveInstructionBody(manifest, packDir, file)
+  return applyInstructionTokens(raw, { manifest, tool, workspace })
 }
 const stem = (file) => basename(file, '.md')
 
@@ -55,7 +28,7 @@ export function renderInstructions(manifest, packDir, tool, workspace) {
       path: i.role === 'primary'
         ? instructions.primaryPath(i.file)
         : instructions.companionPath(i.file),
-      content: `---\ninclusion: ${i.load}\n---\n${body(packDir, i.file, resolvedWorkspace)}`,
+      content: `---\ninclusion: ${i.load}\n---\n${body(manifest, packDir, i.file, tool, resolvedWorkspace)}`,
       kind: 'text',
     }))
   }
@@ -68,13 +41,13 @@ export function renderInstructions(manifest, packDir, tool, workspace) {
       : ''
     const writes = [{
       path: instructions.primaryPath(primary.file),
-      content: header + body(packDir, primary.file, resolvedWorkspace),
+      content: header + body(manifest, packDir, primary.file, tool, resolvedWorkspace),
       kind: 'text',
     }]
     for (const c of companions) {
       writes.push({
         path: instructions.companionPath(c.file),
-        content: body(packDir, c.file, resolvedWorkspace),
+        content: body(manifest, packDir, c.file, tool, resolvedWorkspace),
         kind: 'text',
       })
     }
@@ -89,7 +62,7 @@ export function renderInstructions(manifest, packDir, tool, workspace) {
     const writes = [
       {
         path: instructions.primaryPath(primary.file),
-        content: body(packDir, primary.file, resolvedWorkspace),
+        content: body(manifest, packDir, primary.file, tool, resolvedWorkspace),
         kind: 'text',
       },
     ]
@@ -103,7 +76,7 @@ export function renderInstructions(manifest, packDir, tool, workspace) {
           : `---\ndescription: ${c.description ?? stem(c.file)}\n---\n`
       writes.push({
         path: instructions.companionPath(c.file),
-        content: fm + body(packDir, c.file, resolvedWorkspace),
+        content: fm + body(manifest, packDir, c.file, tool, resolvedWorkspace),
         kind: 'text',
       })
     }
@@ -115,7 +88,7 @@ export function renderInstructions(manifest, packDir, tool, workspace) {
       path: i.role === 'primary'
         ? instructions.primaryPath(i.file)
         : instructions.companionPath(i.file),
-      content: `---\nalwaysApply: ${i.role === 'primary'}\n---\n${body(packDir, i.file, resolvedWorkspace)}`,
+      content: `---\nalwaysApply: ${i.role === 'primary'}\n---\n${body(manifest, packDir, i.file, tool, resolvedWorkspace)}`,
       kind: 'text',
     }))
   }

@@ -135,6 +135,26 @@ describe('renderInstructions', () => {
       'Spec specs',
     )
   })
+
+  it.each([
+    ['kiro', '.kiro/steering/aidlc-workflow.md', '.kiro/steering/reverse-engineering.md'],
+    ['claude-code', 'CLAUDE.md', '.claude/rules/reverse-engineering.md'],
+    [
+      'copilot',
+      '.github/copilot-instructions.md',
+      '.github/instructions/reverse-engineering.instructions.md',
+    ],
+    ['cursor', '.cursor/rules/aidlc-workflow.mdc', '.cursor/rules/reverse-engineering.mdc'],
+  ])('renders native instruction tokens for %s', (tool, primaryPath, companionPath) => {
+    writeFileSync(
+      join(packDir, 'instructions/aidlc-workflow.md'),
+      'Load {{INSTRUCTION:reverse-engineering.md}}.',
+    )
+
+    const writes = renderInstructions(manifest, packDir, tool)
+
+    expect(byPath(writes, primaryPath).content).toContain(`Load ${companionPath}.`)
+  })
 })
 
 describe('renderInstructions: common/ instruction fallback', () => {
