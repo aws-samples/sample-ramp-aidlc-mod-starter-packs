@@ -20,7 +20,7 @@ modernize, or change anything that warrants a spec.
 1. Check if `aidlc-docs/aidlc-state.md` exists — if yes, **resume** from where we left off.
 2. If no state file exists, create `aidlc-docs/aidlc-state.md` and `aidlc-docs/audit.md`.
 3. Decide if this is **brownfield** (existing code present) or **greenfield** (no existing code).
-4. **Brownfield → run Phase 0 (Reverse Engineering) FIRST** — load and follow `reverse-engineering.md` and write every analysis document under `aidlc-docs/analysis/`. **Greenfield → skip Phase 0.**
+4. **Brownfield → run Phase 0 (Reverse Engineering) FIRST** — load and follow `.claude/rules/reverse-engineering.md` and write every analysis document under `aidlc-docs/analysis/`. **Greenfield → skip Phase 0.**
 5. Then proceed through the phases sequentially — Requirements → Design → Tasks — each behind its decision-file gate.
 
 See **Session Entry** and **Phase 0** below for details.
@@ -108,7 +108,7 @@ Before any phase work, at the start of every session:
 **When to run:** existing/brownfield source code is present. **Skip** for greenfield.
 **Rerun:** re-run when the brownfield codebase has changed materially.
 
-**🔒 MANDATORY:** Load and follow the **`reverse-engineering.md`** instruction.
+**🔒 MANDATORY:** Load and follow the **`.claude/rules/reverse-engineering.md`** instruction.
 Execute its steps and **write every analysis document it specifies** under
 `aidlc-docs/analysis/` (business-overview, architecture, code-structure,
 api-documentation, component-inventory, technology-stack, dependencies,

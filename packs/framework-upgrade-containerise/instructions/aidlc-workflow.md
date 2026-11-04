@@ -41,9 +41,9 @@ MCP, and turn any constraint (region, permitted tools, target platform) into an 
 > The ONLY way past Stage 0 is explicit answers from the user recorded in the decision file.
 
 **MANDATORY FIRST ACTIONS (in order):**
-1. Check if `aidlc-docs/aidlc-state.md` exists — if yes, resume from where we left off.
+1. Check if `{{STATE_DIR}}/aidlc-state.md` exists — if yes, resume from where we left off.
 2. If no state file exists, start at Stage 0: Environment & Tooling Decisions.
-3. Create `aidlc-docs/aidlc-state.md` and `aidlc-docs/audit.md` FIRST.
+3. Create `{{STATE_DIR}}/aidlc-state.md` and `{{STATE_DIR}}/audit.md` FIRST.
 4. Follow the workflow below sequentially, with user approval gates.
 5. **NEVER proceed past a gate without explicit user answers — not assumptions, not defaults, not "best judgement."**
 
@@ -96,10 +96,10 @@ User Request
 
 ## Spec File Structure
 
-One specification directory: `upgrade-containerisation/`.
+One specification directory: `{{SPEC_DIR}}/upgrade-containerisation/`.
 
 ```
-upgrade-containerisation/
+{{SPEC_DIR}}/upgrade-containerisation/
 ├── _decisions-requirements.md   # Decisions before requirements
 ├── requirements.md              # WHAT: upgrade targets, parity, NFRs, constraints
 ├── _decisions-design.md         # Decisions before design
@@ -137,7 +137,7 @@ Each decision file is independent; never carry preferences between phases withou
 
 ## MANDATORY: State Tracking
 
-Track progress in `aidlc-docs/aidlc-state.md`. If it exists on start, resume. Create it at workflow start:
+Track progress in `{{STATE_DIR}}/aidlc-state.md`. If it exists on start, resume. Create it at workflow start:
 
 ```markdown
 # AI-DLC Upgrade + Containerisation State
@@ -173,7 +173,7 @@ Update `aidlc-state.md` immediately after each stage/phase; mark checkboxes in t
 
 ## MANDATORY: Audit Logging
 
-Append-only `aidlc-docs/audit.md`. Log every raw user input, every approval/decision (timestamp), and
+Append-only `{{STATE_DIR}}/audit.md`. Log every raw user input, every approval/decision (timestamp), and
 every architectural / **environment / region / tooling** decision with rationale.
 
 ```markdown
@@ -218,7 +218,7 @@ answered before generating the document; questions go in decision files, never i
 
 ## Actions
 
-1. **Create `aidlc-docs/_decisions-environment.md`** as the very first action — before any code scanning or reverse engineering.
+1. **Create `{{STATE_DIR}}/_decisions-environment.md`** as the very first action — before any code scanning or reverse engineering.
 
 The decision file must contain the following questions (use the standard decision file format).
 
@@ -276,9 +276,9 @@ The decision file must contain the following questions (use the standard decisio
 
 3. **After answers are received**, evaluate the tooling decision:
    - **If AWS Transform Custom IS permitted:** Record in the audit log. Recommend AWS Transform Custom as the primary analysis approach for Stage 1 — it provides comprehensive automated code analysis, dependency mapping, and transformation planning. Proceed to Stage 1 with the AWS Transform Custom analysis path.
-   - **If AWS Transform Custom is NOT permitted:** Record in the audit log. Stage 1 will use the manual reverse engineering flow — language-native tooling (OpenRewrite recipes, jdeps, jdeprscan) and manual codebase analysis per the `reverse-engineering.md` instructions and the `java-upgrade` skill.
+   - **If AWS Transform Custom is NOT permitted:** Record in the audit log. Stage 1 will use the manual reverse engineering flow — language-native tooling (OpenRewrite recipes, jdeps, jdeprscan) and manual codebase analysis per the `{{INSTRUCTION:reverse-engineering.md}}` instructions and the `java-upgrade` skill.
 
-4. Log all environment decisions to `aidlc-docs/audit.md`.
+4. Log all environment decisions to `{{STATE_DIR}}/audit.md`.
 5. Update `aidlc-state.md` — mark Stage 0 complete.
 
 ### Completion Gate — all environment questions answered; analysis approach for Stage 1 determined; update `aidlc-state.md`.
@@ -291,19 +291,19 @@ The decision file must contain the following questions (use the standard decisio
 
 > **Pre-requisite:** Stage 0 (Environment & Tooling Decisions) must be complete. The analysis approach (AWS Transform Custom vs manual reverse engineering), target region, and target platform were already decided in Stage 0.
 
-**MANDATORY**: load and follow `reverse-engineering.md` (upgrade-focused).
+**MANDATORY**: load and follow `{{INSTRUCTION:reverse-engineering.md}}` (upgrade-focused).
 
 **Analysis approach** (decided in Stage 0):
 - If **AWS Transform Custom** was permitted and chosen: use it for comprehensive code analysis, dependency mapping, and transformation planning. Supplement with manual inspection where needed.
 - If **AWS Transform Custom** was NOT permitted: follow the manual reverse engineering flow — use language-native tooling (jdeps, jdeprscan, OpenRewrite discovery recipes) and manual codebase analysis.
 
-Capture into `aidlc-docs/analysis/`:
+Capture into `{{STATE_DIR}}/analysis/`:
 1. Language/framework/build tool (Maven vs Gradle) and **current JDK target**.
 2. Framework & library versions and their Java-LTS compatibility → recommended target LTS.
 3. **Java-version risk surface** (removed `javax.*`/JAXB, JDK-internal encapsulation, Nashorn, TLS/serialization, GC/flags, Security Manager) — see the `java-upgrade` skill.
 4. **Deployment & container status** (already containerised? deploy model?).
 5. **Behaviour baseline** for the regression net (the `regression-testing` skill).
-6. **Codebase scale & execution strategy** — measure LOC (total/app/test), module count, per-module size, and dependency shape; from that, produce `upgrade-strategy.md` recommending a **one-shot vs batched vs wave-based** approach. A large codebase (e.g. 500k LOC) is **never** upgraded one-shot — plan dependency-ordered waves. See `reverse-engineering.md` Step 1.6 & Step 9.
+6. **Codebase scale & execution strategy** — measure LOC (total/app/test), module count, per-module size, and dependency shape; from that, produce `upgrade-strategy.md` recommending a **one-shot vs batched vs wave-based** approach. A large codebase (e.g. 500k LOC) is **never** upgraded one-shot — plan dependency-ordered waves. See `{{INSTRUCTION:reverse-engineering.md}}` Step 1.6 & Step 9.
 
 ### Completion Gate — present the assessment; wait for approval; update `aidlc-state.md`.
 
@@ -355,7 +355,7 @@ Organised by section (users pick what to execute):
 - [ ] Hit the health / readiness endpoint and exercise key runtime paths (DB connectivity, external integrations, auth, scheduled jobs)
 - [ ] Run the regression net / smoke tests against the **locally running** app; confirm behaviour parity with the pre-upgrade baseline
 - [ ] Resolve any runtime-only issues surfaced now (reflection, `javax`→`jakarta` runtime bindings, config/property binding, TLS/serialization, GC/flags)
-- [ ] **🔒 GATE — do not containerise until this passes:** present the local run result; on approval, log the outcome in `aidlc-docs/audit.md` and update `aidlc-state.md`
+- [ ] **🔒 GATE — do not containerise until this passes:** present the local run result; on approval, log the outcome in `{{STATE_DIR}}/audit.md` and update `aidlc-state.md`
 
 ## Containerise (only if not already containerised)
 > Enter only after the **local runtime validation checkpoint** above has passed and been approved.
@@ -394,13 +394,13 @@ coupling observations) as guidance, not implementation.
 
 # Environment, Region & Tooling — Discovery & Decision Gates
 
-> **Critical decisions are asked in Stage 0** via `aidlc-docs/_decisions-environment.md` — the very first action in the workflow (region, permitted tooling, target platform). Do not assume these. VCS, CI/CD, and requirements tracking are discovered later in the Design/Tasks phases when they become directly relevant. Validate AWS choices against reality with the **AWS Knowledge MCP**. Every choice is logged to `aidlc-docs/audit.md`.
+> **Critical decisions are asked in Stage 0** via `{{STATE_DIR}}/_decisions-environment.md` — the very first action in the workflow (region, permitted tooling, target platform). Do not assume these. VCS, CI/CD, and requirements tracking are discovered later in the Design/Tasks phases when they become directly relevant. Validate AWS choices against reality with the **AWS Knowledge MCP**. Every choice is logged to `{{STATE_DIR}}/audit.md`.
 
 This section defines the validation and fallback logic used after Stage 0 answers are received, and revisited whenever a design choice depends on a service, region, or tool.
 
 ## 1. Discover the environment (Stage 0 — `_decisions-environment.md`)
 
-The following are captured in Stage 0's decision file (`aidlc-docs/_decisions-environment.md`):
+The following are captured in Stage 0's decision file (`{{STATE_DIR}}/_decisions-environment.md`):
 
 - **Target region.** Which AWS **region(s)** should the workload run in? Any **data-residency or region restrictions**?
 - **Tooling restrictions.** Are there any **prohibited** tools or managed services (e.g. AWS Transform Custom is or isn't permitted)?
@@ -451,7 +451,7 @@ Once discovered (whether in Stage 0 or later phases), treat answers as authorita
 - When VCS/CI/CD are discovered (Tasks phase), use the correct **VCS term** (PR vs MR) and map CI/CD to the discovered **pipeline system**.
 - Apply security guardrails by default: least-privilege IAM, encryption in transit/at rest, secrets in a managed secret store, non-root containers.
 
-Log each gate decision (region fallback, tooling choice) to `aidlc-docs/audit.md` with rationale.
+Log each gate decision (region fallback, tooling choice) to `{{STATE_DIR}}/audit.md` with rationale.
 
 ---
 
@@ -468,7 +468,7 @@ Log each gate decision (region fallback, tooling choice) to `aidlc-docs/audit.md
 - **Decision-driven & auditable** — every spec phase and every environment/tooling choice is gated and logged.
 
 ## 🚨 FINAL REMINDER
-1. CHECK for `aidlc-docs/aidlc-state.md`; if present, RESUME.
+1. CHECK for `{{STATE_DIR}}/aidlc-state.md`; if present, RESUME.
 2. If absent, START at Stage 0 (Environment & Tooling Decisions — `_decisions-environment.md`).
 3. NEVER assume region/tooling/platform — gate via Stage 0. VCS/CI/CD are discovered later when needed.
 4. NEVER enter decomposition as part of the primary objective — it is a gated stretch phase.

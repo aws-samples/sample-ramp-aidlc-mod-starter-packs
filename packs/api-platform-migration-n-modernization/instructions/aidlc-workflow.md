@@ -14,10 +14,10 @@ modernize, or change anything that warrants a spec.
 
 **MANDATORY FIRST ACTIONS (in this exact order):**
 
-1. Check if `aidlc-docs/aidlc-state.md` exists — if yes, **resume** from where we left off.
-2. If no state file exists, create `aidlc-docs/aidlc-state.md` and `aidlc-docs/audit.md`.
+1. Check if `{{STATE_DIR}}/aidlc-state.md` exists — if yes, **resume** from where we left off.
+2. If no state file exists, create `{{STATE_DIR}}/aidlc-state.md` and `{{STATE_DIR}}/audit.md`.
 3. Decide if this is **brownfield** (existing code present) or **greenfield** (no existing code).
-4. **Brownfield → run Phase 0 (Reverse Engineering) FIRST** — load and follow `reverse-engineering.md` and write every analysis document under `aidlc-docs/analysis/`. **Greenfield → skip Phase 0.**
+4. **Brownfield → run Phase 0 (Reverse Engineering) FIRST** — load and follow `{{INSTRUCTION:reverse-engineering.md}}` and write every analysis document under `{{STATE_DIR}}/analysis/`. **Greenfield → skip Phase 0.**
 5. Then proceed through the phases sequentially — Requirements → Design → Tasks — each behind its decision-file gate.
 
 See **Session Entry** and **Phase 0** below for details.
@@ -89,10 +89,10 @@ Each decision file is independent:
 
 Before any phase work, at the start of every session:
 
-1. **Resume or initialize state.** Check if `aidlc-docs/aidlc-state.md` exists.
+1. **Resume or initialize state.** Check if `{{STATE_DIR}}/aidlc-state.md` exists.
    - If yes → **resume** from the recorded phase/step.
-   - If no → **create** `aidlc-docs/aidlc-state.md` (progress tracker) and
-     `aidlc-docs/audit.md` (append-only decision log).
+   - If no → **create** `{{STATE_DIR}}/aidlc-state.md` (progress tracker) and
+     `{{STATE_DIR}}/audit.md` (append-only decision log).
 2. **Detect brownfield vs greenfield.**
    - **Brownfield** (existing source code is present in the workspace, or the user
      references an existing system to modernize/migrate/extend) → **run Phase 0
@@ -105,22 +105,22 @@ Before any phase work, at the start of every session:
 **When to run:** existing/brownfield source code is present. **Skip** for greenfield.
 **Rerun:** re-run when the brownfield codebase has changed materially.
 
-**🔒 MANDATORY:** Load and follow the **`reverse-engineering.md`** instruction.
+**🔒 MANDATORY:** Load and follow the **`{{INSTRUCTION:reverse-engineering.md}}`** instruction.
 Execute its steps and **write every analysis document it specifies** under
-`aidlc-docs/analysis/` (business-overview, architecture, code-structure,
+`{{STATE_DIR}}/analysis/` (business-overview, architecture, code-structure,
 api-documentation, component-inventory, technology-stack, dependencies,
 code-quality-assessment, bounded-contexts, modernization-readiness, and the
 timestamp file). Do not summarize in chat instead of writing the files — the
 files are the deliverable and feed the Requirements and Design phases.
 
-After Phase 0: update `aidlc-docs/aidlc-state.md` and append a note to
-`aidlc-docs/audit.md`, then continue to Requirements.
+After Phase 0: update `{{STATE_DIR}}/aidlc-state.md` and append a note to
+`{{STATE_DIR}}/audit.md`, then continue to Requirements.
 
 ## State & Audit (maintain throughout)
 
-- **`aidlc-docs/aidlc-state.md`** — update immediately after each phase/step so a
+- **`{{STATE_DIR}}/aidlc-state.md`** — update immediately after each phase/step so a
   fresh session can resume correctly.
-- **`aidlc-docs/audit.md`** — append-only log; record every decision, approval, and
+- **`{{STATE_DIR}}/audit.md`** — append-only log; record every decision, approval, and
   rationale as you go (do not overwrite prior entries).
 
 ## Decision File Format

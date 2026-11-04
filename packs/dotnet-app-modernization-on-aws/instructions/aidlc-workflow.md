@@ -21,10 +21,10 @@ application for AWS.
 
 **MANDATORY FIRST ACTIONS (in this exact order):**
 
-1. Check if `aidlc-docs/aidlc-state.md` exists — if yes, **resume** from where we left off.
-2. If no state file exists, create `aidlc-docs/aidlc-state.md` and `aidlc-docs/audit.md`.
+1. Check if `{{STATE_DIR}}/aidlc-state.md` exists — if yes, **resume** from where we left off.
+2. If no state file exists, create `{{STATE_DIR}}/aidlc-state.md` and `{{STATE_DIR}}/audit.md`.
 3. Decide if this is **brownfield** (existing .NET source present — the default for modernization) or **greenfield** (no existing code — a reimagine/rebuild).
-4. **Brownfield → run Phase 0 (Reverse Engineering) FIRST** — load and follow `reverse-engineering.md` and write every analysis document under `aidlc-docs/analysis/`. **Greenfield → skip Phase 0.**
+4. **Brownfield → run Phase 0 (Reverse Engineering) FIRST** — load and follow `{{INSTRUCTION:reverse-engineering.md}}` and write every analysis document under `{{STATE_DIR}}/analysis/`. **Greenfield → skip Phase 0.**
 5. Then proceed through the phases sequentially — Requirements → Design → Tasks — each behind its decision-file gate.
 
 ## Workflow Overview
@@ -38,7 +38,7 @@ application for AWS.
                                 ▼         │
             ╔════════════════════════════════╗
             ║  PHASE 0: Reverse Engineering  ║   (skip if greenfield)
-            ║  → aidlc-docs/analysis/*       ║
+            ║  → {{STATE_DIR}}/analysis/*       ║
             ╚════════════════════════════════╝
                                 │         │
                                 └────┬────┘
@@ -109,7 +109,7 @@ Each decision file is independent:
 
 ## MANDATORY: State Tracking
 
-Maintain `aidlc-docs/aidlc-state.md` for session continuity. If it exists at
+Maintain `{{STATE_DIR}}/aidlc-state.md` for session continuity. If it exists at
 session start, **resume** from the recorded state.
 
 ```markdown
@@ -150,7 +150,7 @@ session start, **resume** from the recorded state.
 
 ## MANDATORY: Audit Logging
 
-Maintain `aidlc-docs/audit.md` as an append-only log.
+Maintain `{{STATE_DIR}}/audit.md` as an append-only log.
 
 - ALWAYS append, NEVER overwrite
 - Log every user input with complete raw text
@@ -202,7 +202,7 @@ Maintain `aidlc-docs/audit.md` as an append-only log.
 
 ## Session Continuity
 
-When `aidlc-docs/aidlc-state.md` exists at session start:
+When `{{STATE_DIR}}/aidlc-state.md` exists at session start:
 
 1. Read the state file to determine current progress
 2. Identify the active spec and phase
@@ -224,19 +224,19 @@ materially (e.g. after running AWS Transform for .NET). Stale analysis is worse
 than no analysis.
 
 ### Activation
-**MANDATORY**: Load and follow `reverse-engineering.md`. Write every analysis
-document it specifies under `aidlc-docs/analysis/`. Capture .NET-specific facts:
+**MANDATORY**: Load and follow `{{INSTRUCTION:reverse-engineering.md}}`. Write every analysis
+document it specifies under `{{STATE_DIR}}/analysis/`. Capture .NET-specific facts:
 target framework(s), IIS/`web.config` dependencies, `Global.asax` startup,
 in-process session state, `System.Web` coupling, authentication mode, and any
 Windows-only dependencies that affect a move to Linux containers.
 
 ### Two modes — depending on pre-existing AWS Transform (ATX) analysis
 
-First run `reverse-engineering.md` **Step 0** to detect any pre-existing AWS
+First run `{{INSTRUCTION:reverse-engineering.md}}` **Step 0** to detect any pre-existing AWS
 Transform (ATX) analysis, then choose the mode:
 
 - **No ATX analysis found → FULL reverse engineering (the default).** Run every
-  step of `reverse-engineering.md` from scratch, scanning the codebase directly.
+  step of `{{INSTRUCTION:reverse-engineering.md}}` from scratch, scanning the codebase directly.
 
 - **ATX analysis found → ACCELERATED "reuse & verify" mode.** Do NOT skip Phase 0
   and do NOT blindly trust the analysis. Instead:
@@ -248,7 +248,7 @@ Transform (ATX) analysis, then choose the mode:
   3. Do **targeted code verification only** — spot-check ATX claims and scan the
      **gaps**, rather than a full from-scratch pass.
   4. Reconcile discrepancies and attribute each finding's provenance (ATX vs your
-     own scan) in the `aidlc-docs/analysis/*` docs.
+     own scan) in the `{{STATE_DIR}}/analysis/*` docs.
 
 ### Approval Gate
 Present a summary of findings (framework version, containerization blockers,
@@ -283,7 +283,7 @@ Decision categories to consider:
 - **Integration Requirements:** External systems / on-prem dependencies the modernized app must still talk to
 - **Migration Constraints:** Downtime tolerance, rollback expectations, data migration windows
 
-For brownfield work, reference relevant findings in `aidlc-docs/analysis/`.
+For brownfield work, reference relevant findings in `{{STATE_DIR}}/analysis/`.
 
 ### Step 1.2 — Wait for User Input
 Acknowledge partial responses. Do not invent decisions.
@@ -467,7 +467,7 @@ When all tasks are `[x]`:
 - **Decision-driven** — every phase starts with a `_decisions-*.md`
 - **Questions in decision files**, never in chat
 - **Approval gates are real** — never proceed without explicit user approval
-- **Skills/MCP before design & code** — see `skill-activation.md`
+- **Skills/MCP before design & code** — see `{{INSTRUCTION:skill-activation.md}}`
 - **Trackable** — state file + audit log + checkboxes enable session continuity
 
 
@@ -475,7 +475,7 @@ When all tasks are `[x]`:
 
 Every new interaction:
 
-1. CHECK for `aidlc-docs/aidlc-state.md`; if it exists, READ it and RESUME
+1. CHECK for `{{STATE_DIR}}/aidlc-state.md`; if it exists, READ it and RESUME
 2. If it doesn't exist, decide brownfield vs greenfield, then start at the right phase (Phase 0 by default for modernization)
 3. NEVER skip a `_decisions-*.md` before the corresponding spec doc
 4. NEVER skip approval gates

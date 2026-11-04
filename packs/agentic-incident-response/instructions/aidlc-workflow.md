@@ -17,9 +17,9 @@ modernize, or change anything that warrants a spec.
 
 **MANDATORY FIRST ACTIONS (in this exact order):**
 
-1. Check if `aidlc-docs/aidlc-state.md` exists — if yes, **resume** from where we left off
+1. Check if `{{STATE_DIR}}/aidlc-state.md` exists — if yes, **resume** from where we left off
 2. If no state file exists, decide if this is **brownfield** (existing code present) or **greenfield** (no existing code)
-3. Create `aidlc-docs/aidlc-state.md` and `aidlc-docs/audit.md`
+3. Create `{{STATE_DIR}}/aidlc-state.md` and `{{STATE_DIR}}/audit.md`
 4. Brownfield → start at **Phase 0**. Greenfield → start at **Phase 1**.
 5. Follow the workflow sequentially with approval gates.
 
@@ -36,7 +36,7 @@ modernize, or change anything that warrants a spec.
                                 ▼         │
             ╔════════════════════════════════╗
             ║  PHASE 0: Reverse Engineering  ║   (skip if greenfield)
-            ║  → aidlc-docs/analysis/*       ║
+            ║  → {{STATE_DIR}}/analysis/*       ║
             ╚════════════════════════════════╝
                                 │         │
                                 └────┬────┘
@@ -108,7 +108,7 @@ Each decision file is independent:
 
 ## MANDATORY: State Tracking
 
-Maintain `aidlc-docs/aidlc-state.md` for session continuity. If it exists at
+Maintain `{{STATE_DIR}}/aidlc-state.md` for session continuity. If it exists at
 session start, **resume** from the recorded state.
 
 ```markdown
@@ -152,7 +152,7 @@ session start, **resume** from the recorded state.
 
 ## MANDATORY: Audit Logging
 
-Maintain `aidlc-docs/audit.md` as an append-only log.
+Maintain `{{STATE_DIR}}/audit.md` as an append-only log.
 
 - ALWAYS append, NEVER overwrite
 - Log every user input with complete raw text
@@ -213,7 +213,7 @@ Maintain `aidlc-docs/audit.md` as an append-only log.
 
 ## Session Continuity
 
-When `aidlc-docs/aidlc-state.md` exists at session start:
+When `{{STATE_DIR}}/aidlc-state.md` exists at session start:
 
 1. Read the state file to determine current progress
 2. Identify the active spec and phase
@@ -234,9 +234,9 @@ explicitly references an existing system to modernize/extend.
 materially. Stale analysis is worse than no analysis.
 
 ### Activation
-**MANDATORY**: Load and follow the `reverse-engineering.md` instruction file.
+**MANDATORY**: Load and follow the `{{INSTRUCTION:reverse-engineering.md}}` instruction file.
 
-### Outputs (in `aidlc-docs/analysis/`)
+### Outputs (in `{{STATE_DIR}}/analysis/`)
 - `business-overview.md`
 - `architecture.md`
 - `code-structure.md`
@@ -271,7 +271,7 @@ Generate a decision file for the spec. Decision categories to consider:
 - **Integration Requirements:** Existing systems the spec must interoperate with (drawn from Phase 0 outputs when available)
 - **Deployment Variants:** Cloud-only, hybrid, or on-prem variants the requirements must support
 
-For brownfield work, reference relevant findings in `aidlc-docs/analysis/`.
+For brownfield work, reference relevant findings in `{{STATE_DIR}}/analysis/`.
 
 ### Step 1.2 — Wait for User Input
 Acknowledge partial responses. Do not invent decisions.
@@ -464,7 +464,7 @@ These apply during task execution regardless of domain:
 - **Unit tests with fakes/mocks are necessary but not sufficient.** They cannot catch provider-side request validation, permissions-at-invoke, or environment/timing issues. When the spec's Definition of Done includes deployment, run a **live smoke test** (one real request through the deployed path) before declaring done.
 - **Respect environment timing.** Some services are eventually-consistent for querying just-written data (e.g. log-query engines have ingestion latency; freshly-created resources may not be immediately queryable). Where a verification depends on such data, **poll until ready or budget a settling period** instead of asserting immediately.
 - **Private/internal deployments can't be verified from a developer machine.** If ingress is VPC-private, plan an in-boundary runner (bastion/CI inside the network) or exercise the backend directly — decided at design time, not discovered at test time.
-- **Capture self-fixes.** When you hit and fix an error mid-execution, log the problem, root cause, and fix (e.g. to an execution-lessons file in aidlc-docs) so it can be used as retrospective.
+- **Capture self-fixes.** When you hit and fix an error mid-execution, log the problem, root cause, and fix (e.g. to an execution-lessons file in {{STATE_DIR}}) so it can be used as retrospective.
 
 ### Completion
 When all tasks are `[x]`:
@@ -478,7 +478,7 @@ When all tasks are `[x]`:
 ## Spec Directory Convention
 
 ```
-aidlc-docs/specs/<spec-name>/
+{{SPEC_DIR}}/<spec-name>/
 ├── _decisions-requirements.md
 ├── requirements.md
 ├── _decisions-design.md
@@ -504,7 +504,7 @@ aidlc-docs/specs/<spec-name>/
 
 Every new interaction:
 
-1. CHECK for `aidlc-docs/aidlc-state.md`
+1. CHECK for `{{STATE_DIR}}/aidlc-state.md`
 2. If it exists, READ it and RESUME
 3. If it doesn't exist, decide brownfield vs greenfield, then start at the right phase
 4. NEVER skip a `_decisions-*.md` before the corresponding spec doc

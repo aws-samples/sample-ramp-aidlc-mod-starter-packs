@@ -233,7 +233,7 @@ explicitly references an existing system to modernize/extend.
 materially. Stale analysis is worse than no analysis.
 
 ### Activation
-**MANDATORY**: Load and follow the reverse engineering guidance from `instructions/reverse-engineering.md`.
+**MANDATORY**: Load and follow the reverse engineering guidance from `.github/instructions/reverse-engineering.instructions.md`.
 
 ### Outputs (in `aidlc-docs/analysis/`)
 - `business-overview.md`
@@ -425,7 +425,7 @@ When all tasks are `[x]`:
 ## Spec Directory Convention
 
 ```
-aidlc-specs/<spec-name>/
+specs/<spec-name>/
 ├── _decisions-requirements.md
 ├── requirements.md
 ├── _decisions-design.md

@@ -247,11 +247,11 @@ updated, or new/revised FSDs supplied). Stale analysis is worse than no
 analysis.
 
 ### Activation
-**MANDATORY**: Load and follow the `reverse-engineering` companion instructions.
+**MANDATORY**: Load and follow the `.github/instructions/reverse-engineering.instructions.md` companion instructions.
 Detect the **input mode** (Code / Document / Hybrid) first and adapt each step;
 tag every fact with its evidence source and keep an Assumptions & Open Questions
 list. **In Document/Hybrid mode, also load and follow the
-`requirements-traceability` companion** — establish stable source anchors and
+`.github/instructions/requirements-traceability.instructions.md` companion** — establish stable source anchors and
 emit the screen/anchor inventory that Phase 1 traces requirements against.
 
 ### Outputs (in `aidlc-docs/analysis/`)
@@ -304,14 +304,14 @@ Read the completed decisions and generate `requirements.md` covering:
 - Out-of-scope (explicit)
 
 **MANDATORY (Document/Hybrid mode):** Before generating `requirements.md`, load
-and follow the `requirements-traceability` companion — trace every requirement
+and follow the `.github/instructions/requirements-traceability.instructions.md` companion — trace every requirement
 to a **source anchor** (or tag it `NEW` / `NEEDS-CLARIFICATION`), include a
 **Traceability Matrix** with bidirectional coverage, and run its gate check at
 the approval step. (Pure greenfield with no source documents: skip it.)
 
 ### Approval Gate
 Wait for explicit user approval. For document/FSD-driven work, run the
-`requirements-traceability` **gate check** (source/coverage/matrix) before
+`.github/instructions/requirements-traceability.instructions.md` **gate check** (source/coverage/matrix) before
 approving. Update `aidlc-state.md` and `audit.md`.
 
 

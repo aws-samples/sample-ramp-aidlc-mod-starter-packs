@@ -50,13 +50,13 @@ deliverable.
 **How to use it:**
 - Treat ATX output as **source input, not final output** — extract facts
   (framework version, dependencies, tech debt, migration order, data models,
-  external integrations) and fold them into the `aidlc-docs/analysis/*` documents
+  external integrations) and fold them into the `{{STATE_DIR}}/analysis/*` documents
   the steps below define.
 - **Reconcile, don't blindly trust:** spot-check ATX claims against the actual
   code where feasible; note any discrepancies.
 - **Attribute** in each analysis doc when a finding came from ATX vs your own
   scan, so downstream phases know the provenance.
-- Record in `aidlc-docs/audit.md` that pre-existing ATX analysis was ingested,
+- Record in `{{STATE_DIR}}/audit.md` that pre-existing ATX analysis was ingested,
   including where it came from.
 
 > This step is intentionally generic. The pack ships no customer data or fixed
@@ -107,7 +107,7 @@ deliverable.
 
 ## Step 2: Generate Business Overview Documentation
 
-Create `aidlc-docs/analysis/business-overview.md`:
+Create `{{STATE_DIR}}/analysis/business-overview.md`:
 
 ```markdown
 # Business Overview
@@ -128,7 +128,7 @@ Create `aidlc-docs/analysis/business-overview.md`:
 
 ## Step 3: Generate Architecture Documentation
 
-Create `aidlc-docs/analysis/architecture.md`:
+Create `{{STATE_DIR}}/analysis/architecture.md`:
 
 ```markdown
 # System Architecture
@@ -162,7 +162,7 @@ Create `aidlc-docs/analysis/architecture.md`:
 
 ## Step 4: Generate Code Structure Documentation
 
-Create `aidlc-docs/analysis/code-structure.md`:
+Create `{{STATE_DIR}}/analysis/code-structure.md`:
 
 ```markdown
 # Code Structure
@@ -196,7 +196,7 @@ Create `aidlc-docs/analysis/code-structure.md`:
 
 ## Step 5: Generate API Documentation
 
-Create `aidlc-docs/analysis/api-documentation.md`:
+Create `{{STATE_DIR}}/analysis/api-documentation.md`:
 
 ```markdown
 # API Documentation
@@ -233,7 +233,7 @@ Create `aidlc-docs/analysis/api-documentation.md`:
 
 ## Step 6: Generate Component Inventory
 
-Create `aidlc-docs/analysis/component-inventory.md`:
+Create `{{STATE_DIR}}/analysis/component-inventory.md`:
 
 ```markdown
 # Component Inventory
@@ -260,7 +260,7 @@ Create `aidlc-docs/analysis/component-inventory.md`:
 
 ## Step 7: Generate Technology Stack Documentation
 
-Create `aidlc-docs/analysis/technology-stack.md`:
+Create `{{STATE_DIR}}/analysis/technology-stack.md`:
 
 ```markdown
 # Technology Stack
@@ -289,7 +289,7 @@ Create `aidlc-docs/analysis/technology-stack.md`:
 
 ## Step 8: Generate Dependencies Documentation
 
-Create `aidlc-docs/analysis/dependencies.md`:
+Create `{{STATE_DIR}}/analysis/dependencies.md`:
 
 ```markdown
 # Dependencies
@@ -319,7 +319,7 @@ Create `aidlc-docs/analysis/dependencies.md`:
 
 ## Step 9: Generate Code Quality Assessment
 
-Create `aidlc-docs/analysis/code-quality-assessment.md`:
+Create `{{STATE_DIR}}/analysis/code-quality-assessment.md`:
 
 ```markdown
 # Code Quality Assessment
@@ -349,7 +349,7 @@ Create `aidlc-docs/analysis/code-quality-assessment.md`:
 Identify natural service boundaries in the codebase. Critical input for any
 decomposition, modernization, or feature-slice planning that follows.
 
-Create `aidlc-docs/analysis/bounded-contexts.md`:
+Create `{{STATE_DIR}}/analysis/bounded-contexts.md`:
 
 ```markdown
 # Bounded Context Analysis
@@ -383,7 +383,7 @@ Create `aidlc-docs/analysis/bounded-contexts.md`:
 
 ## Step 11: Modernization Readiness Assessment
 
-Create `aidlc-docs/analysis/modernization-readiness.md`:
+Create `{{STATE_DIR}}/analysis/modernization-readiness.md`:
 
 ```markdown
 # Modernization Readiness
@@ -437,7 +437,7 @@ Create `aidlc-docs/analysis/modernization-readiness.md`:
 
 ## Step 12: Create Timestamp File
 
-Create `aidlc-docs/analysis/reverse-engineering-timestamp.md`:
+Create `{{STATE_DIR}}/analysis/reverse-engineering-timestamp.md`:
 
 ```markdown
 # Reverse Engineering Metadata
@@ -463,13 +463,13 @@ Create `aidlc-docs/analysis/reverse-engineering-timestamp.md`:
 
 ## Step 13: Update State Tracking
 
-Update `aidlc-docs/aidlc-state.md`:
+Update `{{STATE_DIR}}/aidlc-state.md`:
 
 ```markdown
 ## Reverse Engineering Status
 - [x] Reverse Engineering — Completed on [timestamp]
 - **Pre-existing ATX Analysis**: [Ingested from <path> / None found]
-- **Artifacts Location**: aidlc-docs/analysis/
+- **Artifacts Location**: {{STATE_DIR}}/analysis/
 ```
 
 ## Step 14: Present Completion Message to User
@@ -482,7 +482,7 @@ state/config externalization needs, bounded contexts, recommended modernization 
 major risks. Note whether pre-existing ATX analysis was ingested.]
 
 > **📋 REVIEW REQUIRED**
-> Please examine the reverse engineering artifacts at: `aidlc-docs/analysis/`
+> Please examine the reverse engineering artifacts at: `{{STATE_DIR}}/analysis/`
 
 > **🚀 WHAT'S NEXT?**
 >
@@ -493,4 +493,4 @@ major risks. Note whether pre-existing ATX analysis was ingested.]
 ## Step 15: Wait for User Approval
 
 - **MANDATORY**: Do not proceed until the user explicitly approves
-- **MANDATORY**: Log the user's response verbatim in `aidlc-docs/audit.md`
+- **MANDATORY**: Log the user's response verbatim in `{{STATE_DIR}}/audit.md`

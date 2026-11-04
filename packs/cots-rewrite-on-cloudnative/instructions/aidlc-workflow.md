@@ -20,11 +20,11 @@ modernize, or change anything that warrants a spec.
 
 **MANDATORY FIRST ACTIONS (in this exact order):**
 
-1. Check if `aidlc-docs/aidlc-state.md` exists — if yes, **resume** from where we left off
+1. Check if `{{STATE_DIR}}/aidlc-state.md` exists — if yes, **resume** from where we left off
 2. If no state file exists, detect the **input mode**:
    - **Existing system with evidence** — source code in the workspace **and/or** functional/design documents (FSDs, platform exports such as OutSystems) provided by the user → run **Phase 0**.
    - **Pure greenfield** — no source and no descriptive documents → skip Phase 0, start at **Phase 1**.
-3. Create `aidlc-docs/aidlc-state.md` and `aidlc-docs/audit.md`
+3. Create `{{STATE_DIR}}/aidlc-state.md` and `{{STATE_DIR}}/audit.md`
 4. Start at **Phase 0** (evidence present) or **Phase 1** (pure greenfield).
 5. Follow the workflow sequentially with approval gates. **Phase 2 (Domain Model & Bounded Contexts) always runs**, greenfield or not.
 
@@ -43,7 +43,7 @@ modernize, or change anything that warrants a spec.
             ║  PHASE 0: Reverse Engineering / ║   (skip if pure greenfield)
             ║           Input Analysis        ║
             ║  source code AND/OR FSDs/docs   ║
-            ║  → aidlc-docs/analysis/*        ║
+            ║  → {{STATE_DIR}}/analysis/*        ║
             ╚════════════════════════════════╝
                                 │         │
                                 └────┬────┘
@@ -123,7 +123,7 @@ Each decision file is independent:
 
 ## MANDATORY: State Tracking
 
-Maintain `aidlc-docs/aidlc-state.md` for session continuity. If it exists at
+Maintain `{{STATE_DIR}}/aidlc-state.md` for session continuity. If it exists at
 session start, **resume** from the recorded state.
 
 ```markdown
@@ -169,7 +169,7 @@ session start, **resume** from the recorded state.
 
 ## MANDATORY: Audit Logging
 
-Maintain `aidlc-docs/audit.md` as an append-only log.
+Maintain `{{STATE_DIR}}/audit.md` as an append-only log.
 
 - ALWAYS append, NEVER overwrite
 - Log every user input with complete raw text
@@ -225,7 +225,7 @@ Maintain `aidlc-docs/audit.md` as an append-only log.
 
 ## Session Continuity
 
-When `aidlc-docs/aidlc-state.md` exists at session start:
+When `{{STATE_DIR}}/aidlc-state.md` exists at session start:
 
 1. Read the state file to determine current progress
 2. Identify the active spec and phase
@@ -248,14 +248,14 @@ updated, or new/revised FSDs supplied). Stale analysis is worse than no
 analysis.
 
 ### Activation
-**MANDATORY**: Load and follow the `reverse-engineering` companion instructions.
+**MANDATORY**: Load and follow the `{{INSTRUCTION:reverse-engineering.md}}` companion instructions.
 Detect the **input mode** (Code / Document / Hybrid) first and adapt each step;
 tag every fact with its evidence source and keep an Assumptions & Open Questions
 list. **In Document/Hybrid mode, also load and follow the
-`requirements-traceability` companion** — establish stable source anchors and
+`{{INSTRUCTION:requirements-traceability.md}}` companion** — establish stable source anchors and
 emit the screen/anchor inventory that Phase 1 traces requirements against.
 
-### Outputs (in `aidlc-docs/analysis/`)
+### Outputs (in `{{STATE_DIR}}/analysis/`)
 - `business-overview.md`
 - `architecture.md`
 - `code-structure.md`
@@ -289,7 +289,7 @@ Generate a decision file for the spec. Decision categories to consider:
 - **UI/UX Fidelity** *(when screens, screenshots, wireframes, or an FSD UI are provided):* Should the frontend **adhere** to the provided screens as-is, **adhere with improvements** (keep flows/layout, modernize styling/accessibility), or **redesign**? If adhering, the Phase 0 UI/screen catalog becomes the **visual contract** that Design and Tasks trace back to.
 - **Deployment Variants:** Cloud-only, hybrid, or on-prem variants the requirements must support
 
-For brownfield or FSD-driven work, reference relevant findings in `aidlc-docs/analysis/`.
+For brownfield or FSD-driven work, reference relevant findings in `{{STATE_DIR}}/analysis/`.
 
 ### Step 1.2 — Wait for User Input
 Acknowledge partial responses. Do not invent decisions.
@@ -305,14 +305,14 @@ Read the completed decisions and generate `requirements.md` covering:
 - Out-of-scope (explicit)
 
 **MANDATORY (Document/Hybrid mode):** Before generating `requirements.md`, load
-and follow the `requirements-traceability` companion — trace every requirement
+and follow the `{{INSTRUCTION:requirements-traceability.md}}` companion — trace every requirement
 to a **source anchor** (or tag it `NEW` / `NEEDS-CLARIFICATION`), include a
 **Traceability Matrix** with bidirectional coverage, and run its gate check at
 the approval step. (Pure greenfield with no source documents: skip it.)
 
 ### Approval Gate
 Wait for explicit user approval. For document/FSD-driven work, run the
-`requirements-traceability` **gate check** (source/coverage/matrix) before
+`{{INSTRUCTION:requirements-traceability.md}}` **gate check** (source/coverage/matrix) before
 approving. Update `aidlc-state.md` and `audit.md`.
 
 
@@ -323,7 +323,7 @@ ubiquitous language the system is organized around, decided **before** technical
 architecture so Design and Tasks map cleanly onto contexts.
 
 **Always runs** — greenfield, brownfield, and FSD-driven. When Phase 0 produced
-`aidlc-docs/analysis/bounded-contexts.md`, use it as the seed and refine it with
+`{{STATE_DIR}}/analysis/bounded-contexts.md`, use it as the seed and refine it with
 the user; for pure greenfield, derive contexts from the Phase 1 requirements.
 
 ### Step 2.1 — Create `_decisions-domain.md`
@@ -581,7 +581,7 @@ When all tasks are `[x]`:
 
 Every new interaction:
 
-1. CHECK for `aidlc-docs/aidlc-state.md`
+1. CHECK for `{{STATE_DIR}}/aidlc-state.md`
 2. If it exists, READ it and RESUME
 3. If it doesn't exist, detect the input mode (source and/or FSDs present → Phase 0; pure greenfield → Phase 1), then start at the right phase
 4. NEVER skip a `_decisions-*.md` before the corresponding spec doc

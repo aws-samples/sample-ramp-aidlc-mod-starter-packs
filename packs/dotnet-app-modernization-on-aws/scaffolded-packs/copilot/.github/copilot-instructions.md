@@ -24,7 +24,7 @@ application for AWS.
 1. Check if `aidlc-docs/aidlc-state.md` exists — if yes, **resume** from where we left off.
 2. If no state file exists, create `aidlc-docs/aidlc-state.md` and `aidlc-docs/audit.md`.
 3. Decide if this is **brownfield** (existing .NET source present — the default for modernization) or **greenfield** (no existing code — a reimagine/rebuild).
-4. **Brownfield → run Phase 0 (Reverse Engineering) FIRST** — load and follow `reverse-engineering.md` and write every analysis document under `aidlc-docs/analysis/`. **Greenfield → skip Phase 0.**
+4. **Brownfield → run Phase 0 (Reverse Engineering) FIRST** — load and follow `.github/instructions/reverse-engineering.instructions.md` and write every analysis document under `aidlc-docs/analysis/`. **Greenfield → skip Phase 0.**
 5. Then proceed through the phases sequentially — Requirements → Design → Tasks — each behind its decision-file gate.
 
 ## Workflow Overview
@@ -224,7 +224,7 @@ materially (e.g. after running AWS Transform for .NET). Stale analysis is worse
 than no analysis.
 
 ### Activation
-**MANDATORY**: Load and follow `reverse-engineering.md`. Write every analysis
+**MANDATORY**: Load and follow `.github/instructions/reverse-engineering.instructions.md`. Write every analysis
 document it specifies under `aidlc-docs/analysis/`. Capture .NET-specific facts:
 target framework(s), IIS/`web.config` dependencies, `Global.asax` startup,
 in-process session state, `System.Web` coupling, authentication mode, and any
@@ -232,11 +232,11 @@ Windows-only dependencies that affect a move to Linux containers.
 
 ### Two modes — depending on pre-existing AWS Transform (ATX) analysis
 
-First run `reverse-engineering.md` **Step 0** to detect any pre-existing AWS
+First run `.github/instructions/reverse-engineering.instructions.md` **Step 0** to detect any pre-existing AWS
 Transform (ATX) analysis, then choose the mode:
 
 - **No ATX analysis found → FULL reverse engineering (the default).** Run every
-  step of `reverse-engineering.md` from scratch, scanning the codebase directly.
+  step of `.github/instructions/reverse-engineering.instructions.md` from scratch, scanning the codebase directly.
 
 - **ATX analysis found → ACCELERATED "reuse & verify" mode.** Do NOT skip Phase 0
   and do NOT blindly trust the analysis. Instead:
@@ -467,7 +467,7 @@ specs/<spec-name>/
 - **Decision-driven** — every phase starts with a `_decisions-*.md`
 - **Questions in decision files**, never in chat
 - **Approval gates are real** — never proceed without explicit user approval
-- **Skills/MCP before design & code** — see `skill-activation.md`
+- **Skills/MCP before design & code** — see `.github/instructions/skill-activation.instructions.md`
 - **Trackable** — state file + audit log + checkboxes enable session continuity
 
 

@@ -236,7 +236,7 @@ explicitly references an existing system to modernize/extend.
 materially. Stale analysis is worse than no analysis.
 
 ### Activation
-**MANDATORY**: Load and follow the `reverse-engineering.md` instruction file.
+**MANDATORY**: Load and follow the `.kiro/steering/reverse-engineering.md` instruction file.
 
 ### Outputs (in `aidlc-docs/analysis/`)
 - `business-overview.md`
@@ -428,7 +428,7 @@ When all tasks are `[x]`:
 ## Spec Directory Convention
 
 ```
-aidlc-docs/specs/<spec-name>/
+.kiro/specs/<spec-name>/
 ├── _decisions-requirements.md
 ├── requirements.md
 ├── _decisions-design.md

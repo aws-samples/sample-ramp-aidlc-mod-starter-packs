@@ -52,7 +52,7 @@ explicit **Assumptions & Open Questions** list per artifact so document-derived
 inferences (which drift from reality) are visible and can be confirmed with the
 user. When the source is FSDs/documents, also preserve or establish **stable
 source anchors** (FSD/requirement/screen/figure IDs) and emit a screen/anchor
-inventory, per the `requirements-traceability` companion — Phase 1 traces
+inventory, per the `.github/instructions/requirements-traceability.instructions.md` companion — Phase 1 traces
 requirements back to those anchors.
 
 **Adaptive steps.** When a step below depends on artifacts that only exist in

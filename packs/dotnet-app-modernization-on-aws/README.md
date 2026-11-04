@@ -59,20 +59,20 @@ Add `--dry-run` to preview, `--force` to overwrite existing files; this installs
    - *"I want to modernize this ASP.NET Framework app onto AWS ECS Fargate. Let's start the AI-DLC workflow."*
    - On Claude Code / Copilot you can also run the **`/aidlc`** command to kick off the workflow.
 
-The workflow runs reverse engineering first (brownfield default), then creates `_decisions-requirements.md` and waits for your input before writing `requirements.md`. The same gate applies before `design.md` and `tasks.md`. Every decision is appended to `aidlc-docs/audit.md`, and progress is tracked in `aidlc-docs/aidlc-state.md` so you can resume across sessions. The spec bundle and `aidlc-docs/` are created by the agent on the first run — specs land in **`.kiro/specs/`** on Kiro and in a root **`specs/`** folder on Claude Code / Copilot / Cursor; `aidlc-docs/` is always at the project root.
+The workflow runs reverse engineering first (brownfield default), then creates `_decisions-requirements.md` and waits for your input before writing `requirements.md`. The same gate applies before `design.md` and `tasks.md`. State, audit, and analysis default to `aidlc-docs/`; override that root with `--state-root <dir>`. Standalone Kiro specs default to `.kiro/specs/`, while standalone Claude Code, Copilot, and Cursor specs default to `specs/`; override with `--spec-root <dir>`. A shared multi-tool installation uses the one spec and state root resolved for that workspace, and the agent creates the resolved directories on first run.
 
 ## How the workflow works
 
 Every phase is **decision-gated**: the agent writes a `_decisions-*.md`, waits for your input, then generates the matching spec document.
 
 **Entry (always):**
-1. Resume from `aidlc-docs/aidlc-state.md` if it exists.
+1. Resume from the state file in the resolved state root (`aidlc-docs/` by default, or the `--state-root <dir>` override) if it exists.
 2. Detect **brownfield vs greenfield**. Brownfield (this pack's default) → run Phase 0 reverse engineering first; greenfield reimagine → skip it.
 
 **Phase 0 — Reverse Engineering (brownfield):**
 - Ingests pre-existing **AWS Transform (ATX)** analysis if present, then scans the codebase.
 - Captures .NET-specific modernization signals (target framework, IIS/`web.config`, Windows-only dependencies, session/state, config/secrets, auth).
-- Produces analysis docs under `aidlc-docs/analysis/` (architecture, bounded contexts, modernization-readiness, etc.).
+- Produces analysis docs under the resolved state root's analysis directory (`aidlc-docs/analysis/` by default).
 
 **Then the standard flow:**
 ```

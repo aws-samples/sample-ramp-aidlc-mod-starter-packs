@@ -108,8 +108,10 @@ rebuild the committed per-tool scaffolds in place, run `./scripts/regenerate.sh 
 > decision gates."*
 
 The workflow creates `_decisions-requirements.md` and waits for your input before writing `requirements.md` —
-the same gate applies before `design.md` and `tasks.md`. Every decision is appended to `aidlc-docs/audit.md`;
-progress is tracked in `aidlc-docs/aidlc-state.md` so you can resume across sessions.
+the same gate applies before `design.md` and `tasks.md`. State, audit, and analysis default to `aidlc-docs/`;
+override that root with `--state-root <dir>`. Standalone Kiro specs default to `.kiro/specs/`, while standalone
+Claude Code, Copilot, and Cursor specs default to `specs/`; override with `--spec-root <dir>`. A shared
+multi-tool installation uses the one spec and state root resolved for that workspace.
 
 ## What's in this pack
 

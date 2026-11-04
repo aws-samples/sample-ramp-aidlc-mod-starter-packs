@@ -50,7 +50,7 @@ explicit **Assumptions & Open Questions** list per artifact so document-derived
 inferences (which drift from reality) are visible and can be confirmed with the
 user. When the source is FSDs/documents, also preserve or establish **stable
 source anchors** (FSD/requirement/screen/figure IDs) and emit a screen/anchor
-inventory, per the `requirements-traceability` companion — Phase 1 traces
+inventory, per the `{{INSTRUCTION:requirements-traceability.md}}` companion — Phase 1 traces
 requirements back to those anchors.
 
 **Adaptive steps.** When a step below depends on artifacts that only exist in
@@ -102,7 +102,7 @@ capture it as a document-sourced fact instead.
 
 ## Step 2: Generate Business Overview Documentation
 
-Create `aidlc-docs/analysis/business-overview.md`:
+Create `{{STATE_DIR}}/analysis/business-overview.md`:
 
 ```markdown
 # Business Overview
@@ -123,7 +123,7 @@ Create `aidlc-docs/analysis/business-overview.md`:
 
 ## Step 3: Generate Architecture Documentation
 
-Create `aidlc-docs/analysis/architecture.md`:
+Create `{{STATE_DIR}}/analysis/architecture.md`:
 
 ```markdown
 # System Architecture
@@ -161,7 +161,7 @@ Create `aidlc-docs/analysis/architecture.md`:
 > **"N/A — no source provided"** and rely on the business, architecture, data,
 > and bounded-context artifacts derived from the FSDs instead.
 
-Create `aidlc-docs/analysis/code-structure.md`:
+Create `{{STATE_DIR}}/analysis/code-structure.md`:
 
 ```markdown
 # Code Structure
@@ -207,7 +207,7 @@ Create `aidlc-docs/analysis/code-structure.md`:
 > reference the UI-fidelity decision (Phase 1) points at and that Design and
 > Tasks trace back to when the choice is to adhere.
 
-Create `aidlc-docs/analysis/api-documentation.md`:
+Create `{{STATE_DIR}}/analysis/api-documentation.md`:
 
 ```markdown
 # API Documentation
@@ -244,7 +244,7 @@ Create `aidlc-docs/analysis/api-documentation.md`:
 
 ## Step 6: Generate Component Inventory
 
-Create `aidlc-docs/analysis/component-inventory.md`:
+Create `{{STATE_DIR}}/analysis/component-inventory.md`:
 
 ```markdown
 # Component Inventory
@@ -271,7 +271,7 @@ Create `aidlc-docs/analysis/component-inventory.md`:
 
 ## Step 7: Generate Technology Stack Documentation
 
-Create `aidlc-docs/analysis/technology-stack.md`:
+Create `{{STATE_DIR}}/analysis/technology-stack.md`:
 
 ```markdown
 # Technology Stack
@@ -305,7 +305,7 @@ Create `aidlc-docs/analysis/technology-stack.md`:
 > dependency graphs **"N/A — no source provided"** and tag document-sourced
 > integrations as `Evidence: Doc`.
 
-Create `aidlc-docs/analysis/dependencies.md`:
+Create `{{STATE_DIR}}/analysis/dependencies.md`:
 
 ```markdown
 # Dependencies
@@ -338,7 +338,7 @@ Create `aidlc-docs/analysis/dependencies.md`:
 > FSDs describe known pain points, tech debt, or quality concerns, capture them
 > as document-sourced observations instead.
 
-Create `aidlc-docs/analysis/code-quality-assessment.md`:
+Create `{{STATE_DIR}}/analysis/code-quality-assessment.md`:
 
 ```markdown
 # Code Quality Assessment
@@ -372,7 +372,7 @@ This is critical input for any decomposition or modernization that follows, and
 it is the **primary seed for Phase 2 (Domain Model & Bounded Contexts)** — the
 domain phase refines and confirms these boundaries with the user.
 
-Create `aidlc-docs/analysis/bounded-contexts.md`:
+Create `{{STATE_DIR}}/analysis/bounded-contexts.md`:
 
 ```markdown
 # Bounded Context Analysis
@@ -406,7 +406,7 @@ Create `aidlc-docs/analysis/bounded-contexts.md`:
 
 ## Step 11: Modernization Readiness Assessment
 
-Create `aidlc-docs/analysis/modernization-readiness.md`:
+Create `{{STATE_DIR}}/analysis/modernization-readiness.md`:
 
 ```markdown
 # Modernization Readiness
@@ -452,7 +452,7 @@ Create `aidlc-docs/analysis/modernization-readiness.md`:
 
 ## Step 12: Create Timestamp File
 
-Create `aidlc-docs/analysis/reverse-engineering-timestamp.md`:
+Create `{{STATE_DIR}}/analysis/reverse-engineering-timestamp.md`:
 
 ```markdown
 # Reverse Engineering Metadata
@@ -477,12 +477,12 @@ Create `aidlc-docs/analysis/reverse-engineering-timestamp.md`:
 
 ## Step 13: Update State Tracking
 
-Update `aidlc-docs/aidlc-state.md`:
+Update `{{STATE_DIR}}/aidlc-state.md`:
 
 ```markdown
 ## Reverse Engineering Status
 - [x] Reverse Engineering — Completed on [timestamp]
-- **Artifacts Location**: aidlc-docs/analysis/
+- **Artifacts Location**: {{STATE_DIR}}/analysis/
 ```
 
 ## Step 14: Present Completion Message to User
@@ -493,7 +493,7 @@ Update `aidlc-docs/aidlc-state.md`:
 [AI-generated summary of key findings — bounded contexts identified, coupling hotspots, recommended modernization order, major risks]
 
 > **📋 REVIEW REQUIRED**
-> Please examine the reverse engineering artifacts at: `aidlc-docs/analysis/`
+> Please examine the reverse engineering artifacts at: `{{STATE_DIR}}/analysis/`
 
 > **🚀 WHAT'S NEXT?**
 >
@@ -504,4 +504,4 @@ Update `aidlc-docs/aidlc-state.md`:
 ## Step 15: Wait for User Approval
 
 - **MANDATORY**: Do not proceed until the user explicitly approves
-- **MANDATORY**: Log the user's response verbatim in `aidlc-docs/audit.md`
+- **MANDATORY**: Log the user's response verbatim in `{{STATE_DIR}}/audit.md`

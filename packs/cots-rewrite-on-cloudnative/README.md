@@ -54,14 +54,14 @@ Add `--dry-run` to preview, `--force` to overwrite existing files. To regenerate
    - *"I want to build a cloud-native enterprise app — [describe your domain and core workflow]. Let's start the AI-DLC workflow."*
    - On Claude Code / Copilot you can also run the **`/aidlc`** command to kick off the workflow.
 
-The workflow creates `_decisions-requirements.md` and waits for your input before writing `requirements.md`. The same gate applies before `design.md` and `tasks.md`. Every decision is appended to `aidlc-docs/audit.md`, and progress is tracked in `aidlc-docs/aidlc-state.md` so you can resume across sessions. The `specs/` and `aidlc-docs/` directories are created by the agent on the first run.
+The workflow creates `_decisions-requirements.md` and waits for your input before writing `requirements.md`. The same gate applies before `design.md` and `tasks.md`. State, audit, and analysis default to `aidlc-docs/`; override that root with `--state-root <dir>`. Standalone Kiro specs default to `.kiro/specs/`, while standalone Claude Code, Copilot, and Cursor specs default to `specs/`; override with `--spec-root <dir>`. A shared multi-tool installation uses the one spec and state root resolved for that workspace, and the agent creates those resolved directories on first run.
 
 ## How the workflow works
 
 Every phase is **decision-gated**: the agent writes a `_decisions-*.md`, waits for your input, then generates the matching spec document.
 
 **Entry (always):**
-1. Resume from `aidlc-docs/aidlc-state.md` if it exists.
+1. Resume from the state file in the resolved state root (`aidlc-docs/` by default, or the `--state-root <dir>` override) if it exists.
 2. Detect the **input mode**: existing **source code** and/or **functional documents (FSDs**, platform exports such as OutSystems). If either is present → run **Phase 0** (Reverse Engineering / Input Analysis). Pure greenfield (no source, no docs) → skip Phase 0.
 
 **Then the single-repo flow:**

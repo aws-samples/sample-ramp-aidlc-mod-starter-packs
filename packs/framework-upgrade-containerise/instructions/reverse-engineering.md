@@ -43,7 +43,7 @@
 - **Rough effort signal**: LOC + module count + risk concentration → a first-cut sizing tier (see the strategy artifact in Step 9).
 
 ## Step 2–7: Baseline documentation
-Create under `aidlc-docs/analysis/`:
+Create under `{{STATE_DIR}}/analysis/`:
 - `business-overview.md` — what the service does and behaviour that must be preserved exactly.
 - `architecture.md` — current architecture (Mermaid), integration points, deployment/runtime topology.
 - `code-structure.md` — build system detail, key modules/classes, notable patterns, critical deps + versions, **and codebase-scale metrics** (total/app/test LOC, module count, per-module LOC, dependency fan-in/out).
@@ -112,7 +112,7 @@ Current deploy model, whether already containerised, config/secrets handling, an
 The behaviours/endpoints/flows the regression net must lock down before the upgrade (feeds the `regression-testing` skill).
 
 ## Step 12: Timestamp & state
-Create `aidlc-docs/analysis/reverse-engineering-timestamp.md` listing generated artifacts; update `aidlc-docs/aidlc-state.md` (mark Assessment complete).
+Create `{{STATE_DIR}}/analysis/reverse-engineering-timestamp.md` listing generated artifacts; update `{{STATE_DIR}}/aidlc-state.md` (mark Assessment complete).
 
 ## Step 13: Present completion message
 
@@ -121,7 +121,7 @@ Create `aidlc-docs/analysis/reverse-engineering-timestamp.md` listing generated 
 
 [Summary — current stack & JDK, recommended target LTS (25, or 21/17 if constrained) with rationale, top version-risk items, container status, discovered environment/region/tooling, behaviour-parity scope, **codebase scale (LOC/modules) and the recommended execution strategy (one-shot vs batched vs wave-based) with the wave order for large codebases**. NO decomposition recommendations for the primary objective.]
 
-> **📋 REVIEW REQUIRED:** examine artifacts at `aidlc-docs/analysis/`
+> **📋 REVIEW REQUIRED:** examine artifacts at `{{STATE_DIR}}/analysis/`
 > **🚀 NEXT:** Approve to proceed to the Upgrade + Containerisation requirements decisions.
 ```
 

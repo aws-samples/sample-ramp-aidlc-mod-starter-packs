@@ -99,10 +99,10 @@ User Request
 
 ## Spec File Structure
 
-One specification directory: `upgrade-containerisation/`.
+One specification directory: `specs/upgrade-containerisation/`.
 
 ```
-upgrade-containerisation/
+specs/upgrade-containerisation/
 ├── _decisions-requirements.md   # Decisions before requirements
 ├── requirements.md              # WHAT: upgrade targets, parity, NFRs, constraints
 ├── _decisions-design.md         # Decisions before design
@@ -279,7 +279,7 @@ The decision file must contain the following questions (use the standard decisio
 
 3. **After answers are received**, evaluate the tooling decision:
    - **If AWS Transform Custom IS permitted:** Record in the audit log. Recommend AWS Transform Custom as the primary analysis approach for Stage 1 — it provides comprehensive automated code analysis, dependency mapping, and transformation planning. Proceed to Stage 1 with the AWS Transform Custom analysis path.
-   - **If AWS Transform Custom is NOT permitted:** Record in the audit log. Stage 1 will use the manual reverse engineering flow — language-native tooling (OpenRewrite recipes, jdeps, jdeprscan) and manual codebase analysis per the `reverse-engineering.md` instructions and the `java-upgrade` skill.
+   - **If AWS Transform Custom is NOT permitted:** Record in the audit log. Stage 1 will use the manual reverse engineering flow — language-native tooling (OpenRewrite recipes, jdeps, jdeprscan) and manual codebase analysis per the `.cursor/rules/reverse-engineering.mdc` instructions and the `java-upgrade` skill.
 
 4. Log all environment decisions to `aidlc-docs/audit.md`.
 5. Update `aidlc-state.md` — mark Stage 0 complete.
@@ -294,7 +294,7 @@ The decision file must contain the following questions (use the standard decisio
 
 > **Pre-requisite:** Stage 0 (Environment & Tooling Decisions) must be complete. The analysis approach (AWS Transform Custom vs manual reverse engineering), target region, and target platform were already decided in Stage 0.
 
-**MANDATORY**: load and follow `reverse-engineering.md` (upgrade-focused).
+**MANDATORY**: load and follow `.cursor/rules/reverse-engineering.mdc` (upgrade-focused).
 
 **Analysis approach** (decided in Stage 0):
 - If **AWS Transform Custom** was permitted and chosen: use it for comprehensive code analysis, dependency mapping, and transformation planning. Supplement with manual inspection where needed.
@@ -306,7 +306,7 @@ Capture into `aidlc-docs/analysis/`:
 3. **Java-version risk surface** (removed `javax.*`/JAXB, JDK-internal encapsulation, Nashorn, TLS/serialization, GC/flags, Security Manager) — see the `java-upgrade` skill.
 4. **Deployment & container status** (already containerised? deploy model?).
 5. **Behaviour baseline** for the regression net (the `regression-testing` skill).
-6. **Codebase scale & execution strategy** — measure LOC (total/app/test), module count, per-module size, and dependency shape; from that, produce `upgrade-strategy.md` recommending a **one-shot vs batched vs wave-based** approach. A large codebase (e.g. 500k LOC) is **never** upgraded one-shot — plan dependency-ordered waves. See `reverse-engineering.md` Step 1.6 & Step 9.
+6. **Codebase scale & execution strategy** — measure LOC (total/app/test), module count, per-module size, and dependency shape; from that, produce `upgrade-strategy.md` recommending a **one-shot vs batched vs wave-based** approach. A large codebase (e.g. 500k LOC) is **never** upgraded one-shot — plan dependency-ordered waves. See `.cursor/rules/reverse-engineering.mdc` Step 1.6 & Step 9.
 
 ### Completion Gate — present the assessment; wait for approval; update `aidlc-state.md`.
 

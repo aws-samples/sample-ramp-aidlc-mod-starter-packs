@@ -13,10 +13,10 @@ modernize, or change anything that warrants a spec.
 
 **MANDATORY FIRST ACTIONS (in this exact order):**
 
-1. Check if `aidlc-docs/aidlc-state.md` exists — if yes, **resume** from where we left off.
-2. If no state file exists, create `aidlc-docs/aidlc-state.md` and `aidlc-docs/audit.md`.
+1. Check if `{{STATE_DIR}}/aidlc-state.md` exists — if yes, **resume** from where we left off.
+2. If no state file exists, create `{{STATE_DIR}}/aidlc-state.md` and `{{STATE_DIR}}/audit.md`.
 3. Decide if this is **brownfield** (existing code present) or **greenfield** (no existing code).
-4. **Brownfield → run Phase 0 (Reverse Engineering) FIRST** — load and follow `reverse-engineering.md` and write every analysis document under `aidlc-docs/analysis/`. **Greenfield → skip Phase 0.**
+4. **Brownfield → run Phase 0 (Reverse Engineering) FIRST** — load and follow `{{INSTRUCTION:reverse-engineering.md}}` and write every analysis document under `{{STATE_DIR}}/analysis/`. **Greenfield → skip Phase 0.**
 5. Then proceed through the phases sequentially — Requirements → Design → Tasks — each behind its decision-file gate.
 
 See **Session Entry** and **Phase 0** below for details.
@@ -30,9 +30,9 @@ See **Session Entry** and **Phase 0** below for details.
 
 At the start of every session, before phase work:
 
-1. Check if `aidlc-docs/aidlc-state.md` exists — if yes, **resume** from the recorded phase/step; if no, **create** `aidlc-docs/aidlc-state.md` (progress tracker) and `aidlc-docs/audit.md` (append-only decision log).
-2. Update `aidlc-docs/aidlc-state.md` immediately after each phase/step so a fresh session can resume correctly.
-3. Append every decision, approval, and rationale to `aidlc-docs/audit.md` as you go (append-only — never overwrite prior entries).
+1. Check if `{{STATE_DIR}}/aidlc-state.md` exists — if yes, **resume** from the recorded phase/step; if no, **create** `{{STATE_DIR}}/aidlc-state.md` (progress tracker) and `{{STATE_DIR}}/audit.md` (append-only decision log).
+2. Update `{{STATE_DIR}}/aidlc-state.md` immediately after each phase/step so a fresh session can resume correctly.
+3. Append every decision, approval, and rationale to `{{STATE_DIR}}/audit.md` as you go (append-only — never overwrite prior entries).
 
 ## Core Principles
 
@@ -257,7 +257,7 @@ another group's outputs goes into a later wave.
 - The final wave always includes integration + smoke verification.
 - Mark each task `[x]` on completion; a wave is done only when all its groups are `[x]`.
 - Don't start a later wave until every group in the previous wave is `[x]`.
-- Conflicts (two workers on the same file) → stop, flag in `aidlc-docs/audit.md`, ask the user.
+- Conflicts (two workers on the same file) → stop, flag in `{{STATE_DIR}}/audit.md`, ask the user.
 
 ## Implementation Guidelines
 
@@ -399,15 +399,15 @@ another group's outputs goes into a later wave.
 ## Phase 0: Reverse Engineering (brownfield)
 
 When an existing system/codebase is present, run the companion
-`reverse-engineering.md` **before Phase 1** and write every analysis document it
-specifies under **`aidlc-docs/analysis/`**. Skip it for genuine greenfield work.
-Reverse-engineering analysis stays in `aidlc-docs/`; the per-spec decision and
+`{{INSTRUCTION:reverse-engineering.md}}` **before Phase 1** and write every analysis document it
+specifies under **`{{STATE_DIR}}/analysis/`**. Skip it for genuine greenfield work.
+Reverse-engineering analysis stays in `{{STATE_DIR}}/`; the per-spec decision and
 spec documents live in `{{SPEC_DIR}}/` (see below).
 
 ## Spec Directory Convention
 
-State and audit live in `aidlc-docs/`; reverse-engineering analysis in
-`aidlc-docs/analysis/`; the per-spec decision and spec documents live under
+State and audit live in `{{STATE_DIR}}/`; reverse-engineering analysis in
+`{{STATE_DIR}}/analysis/`; the per-spec decision and spec documents live under
 `{{SPEC_DIR}}/<spec-name>/`:
 
 ```
@@ -419,7 +419,7 @@ State and audit live in `aidlc-docs/`; reverse-engineering analysis in
 ├── _decisions-tasks.md
 └── tasks.md
 
-aidlc-docs/
+{{STATE_DIR}}/
 ├── aidlc-state.md          # progress tracker (resume across sessions)
 ├── audit.md                # append-only decision/approval log
 └── analysis/               # reverse-engineering output (brownfield only)

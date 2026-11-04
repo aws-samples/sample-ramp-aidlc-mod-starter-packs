@@ -42,7 +42,7 @@ Activate the relevant skill or tooling **BEFORE** generating any decision file, 
 - `aws-cloudformation` — author/validate/troubleshoot CloudFormation.
 - `ecs-build` — Terraform for ECS.
 
-**🔒 RULE:** Record the IaC-tool choice in `aidlc-docs/audit.md` before generating IaC.
+**🔒 RULE:** Record the IaC-tool choice in `{{STATE_DIR}}/audit.md` before generating IaC.
 
 ## 🧠 IAM & Observability Skills
 

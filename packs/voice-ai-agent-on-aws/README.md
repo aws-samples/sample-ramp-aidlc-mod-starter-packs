@@ -69,7 +69,7 @@ Add `--dry-run` to preview, `--force` to overwrite existing files. To rebuild al
 2. **(For brownfield / Phase 0)** Make any existing codebase (the current chat/CRM/agent stack) available to the agent: clone it into a gitignored folder, symlink your local checkout, or point the agent at an absolute path when it asks.
 3. Confirm **Nova Sonic model availability in your target region** via the AWS Knowledge MCP during design.
 
-The workflow creates `_decisions-requirements.md` and waits for your input before writing `requirements.md`. The same gate applies before `design.md` and `tasks.md`. Every decision is appended to `aidlc-docs/audit.md`, and progress is tracked in `aidlc-docs/aidlc-state.md` so you can resume across sessions.
+The workflow creates `_decisions-requirements.md` and waits for your input before writing `requirements.md`. The same gate applies before `design.md` and `tasks.md`. State, audit, and analysis default to `aidlc-docs/`; override that root with `--state-root <dir>`. Standalone Kiro specs default to `.kiro/specs/`, while standalone Claude Code, Copilot, and Cursor specs default to `specs/`; override with `--spec-root <dir>`. A shared multi-tool installation uses the one spec and state root resolved for that workspace.
 
 ## What's in this pack
 

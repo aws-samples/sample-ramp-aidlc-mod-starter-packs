@@ -428,7 +428,7 @@ When all tasks are `[x]`:
 ## Spec Directory Convention
 
 ```
-specs/<spec-name>/
+.kiro/specs/<spec-name>/
 ├── _decisions-requirements.md
 ├── requirements.md
 ├── _decisions-design.md
