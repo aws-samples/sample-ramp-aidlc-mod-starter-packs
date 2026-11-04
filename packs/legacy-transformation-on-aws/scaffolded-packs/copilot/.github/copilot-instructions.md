@@ -1,95 +1,142 @@
 # Legacy Transformation on AWS Modernization Workflow
 
+An evidence-driven, decision-gated brownfield workflow for decomposing and
+modernizing legacy applications on AWS.
+
+For this pack, the concrete specification is
+`specs/decomposition-plan/`.
+
 ## 🚨 CRITICAL: READ THIS BEFORE DOING ANYTHING
 
-When the user asks about modernization, decomposition, microservices extraction, strangler fig, or legacy transformation, follow this workflow.
+Use this workflow when the user asks about legacy modernization,
+decomposition, microservices extraction, strangler migration, replatforming,
+refactoring, re-architecture, or reimagination.
 
 **Forbidden until the matching gate is cleared:**
-- Do not skip brownfield reverse engineering.
-- Do not silently run a whole-system scan when the objective is bounded.
-- Do not silently expand into another business capability, a high-fan-in shared kernel, or Full mode.
+
+- Do not bypass brownfield reverse engineering.
+- Do not silently run a whole-system scan for a bounded objective.
+- Do not silently expand into another business capability or bounded context,
+  a high-fan-in shared kernel, or Full mode.
 - Do not extract services before decomposition decisions are approved.
-- Do not generate `requirements.md`, `design.md`, or `tasks.md` before the matching `_decisions-*.md` is completed and approved.
-- Do not skip ahead to code or infrastructure generation.
+- Do not generate final `requirements.md`, `design.md`, or `tasks.md` before
+  the matching `_decisions-*.md` is completed and explicitly approved.
+- Do not generate code or infrastructure as code before the applicable gate.
+- Do not create a decision file and its corresponding final artifact in the
+  same interaction.
 
 **Mandatory first actions, in order:**
-1. Check for `aidlc-docs/aidlc-state.md`; if present, read it and resume from the next incomplete step.
-2. If no state exists, create `aidlc-docs/aidlc-state.md` and append the initial entry to `aidlc-docs/audit.md`.
-3. Run Stage 1 Workspace Detection as a cheap orientation, not a whole-repository deep scan.
-4. Run Stage 2 Reverse Engineering in Targeted or Full mode and clear its approval gate.
-5. Run Stage 3 sequentially through Requirements, Design, and Tasks, preserving every decision and document approval gate.
+
+1. Read `aidlc-docs/aidlc-state.md`; if it exists, resume from the next
+   incomplete step.
+2. If it does not exist, initialize `aidlc-docs/aidlc-state.md` and
+   `aidlc-docs/audit.md`.
+3. Perform cheap Orientation inside Phase 0.
+4. Run Targeted analysis by default, or Full analysis only when explicit or
+   approved.
+5. Clear the same single Phase 0 approval gate.
+6. Proceed through Phase 1 Requirements, Phase 2 Design, Phase 3 Tasks, and
+   then execution.
+
+### Scope clarification exception
+
+**One informed scope clarification is the only chat exception** during Phase 0
+Orientation. Use it only after cheap repository evidence cannot resolve a
+defensible anchor, multiple disjoint targets match, or materially different
+business capabilities share terminology.
+
+Log the exact question and complete raw response to
+`aidlc-docs/audit.md`. Do not ask a generic question that repository
+evidence can answer. Requirements, Design, Tasks, and approval questions remain
+decision-file or explicit-gate interactions.
+
+---
 
 ## Workflow Overview
 
 ```text
-User Objective
-     |
-     v
-+---------------------------------------+
-| STAGE 1: Workspace Detection          |
-| Cheap orientation + prior evidence    |
-+-------------------+-------------------+
-                    |
-                    v
-+---------------------------------------+
-| STAGE 2: Reverse Engineering          |
-| Targeted (default) OR Full (explicit) |
-| Reuse prior analysis when current     |
-+-------------------+-------------------+
-                    |
-             explicit approval
-                    |
-                    v
-+--------------------------------------------------+
-| STAGE 3: Decomposition Plan                      |
-| decisions -> requirements -> approval            |
-| decisions -> design -> approval                  |
-| decisions -> tasks -> approval -> execution      |
-+--------------------------------------------------+
+User modernization objective
+  -> PHASE 0: cheap Orientation + adaptive Reverse Engineering
+       Targeted (bounded default) / Full (explicit or approved)
+       reuse and spot-verify current prior evidence
+  -> explicit Phase 0 approval
+  -> PHASE 1: decomposition Requirements
+  -> PHASE 2: target Design
+  -> PHASE 3: dependency-aware Tasks
+  -> execution, integration, cutover, rollback verification
 ```
 
-Stage 3 uses either the approved Targeted artifact bundle or the approved Full artifact bundle. A Targeted run must never be presented as complete whole-system analysis.
+Approved Targeted or Full evidence feeds
+`specs/decomposition-plan/`. Orientation is a cheap, temporary pass,
+not a completed analysis mode. Targeted evidence never represents
+whole-system completeness.
+
+---
 
 ## Core Principles
 
-### Language matching
+### 🚨 MANDATORY DECISION FILE FIRST
+Before creating ANY spec document (`requirements.md`, `design.md`, `tasks.md`), you MUST:
 
-Generate workflow artifacts in the user's language unless the language cannot be determined.
+1. **Create the decision file first**: `_decisions-requirements.md`, `_decisions-design.md`, or `_decisions-tasks.md`
+2. **Wait for user input**: Get explicit user decisions before proceeding
+3. **Read completed decisions**: Use user choices to generate the final document
 
-### Natural messaging
+**🔒 ABSOLUTE RULE**: NEVER generate `requirements.md`, `design.md`, or `tasks.md` without first creating and completing the corresponding `_decisions-*.md` file.
 
-Present scope and decisions as necessary modernization choices, not procedural overhead. Do not cite internal steering rules to the user.
+Creating a decision file and the corresponding final phase document in the
+same interaction is forbidden. Stop after creating the decision file and wait
+for the user's explicit decisions.
 
-### Scope clarification exception
+### 🌐 LANGUAGE MATCHING
+Generate decision files and spec documents in the same language as the user's input prompt. Default to English only if language cannot be determined.
 
-Questions for Requirements, Design, and Tasks belong in their `_decisions-*.md` files. **One informed scope clarification is the only chat exception before spec phases**: after a cheap Orientation pass, Stage 2 may ask one informed question if no defensible objective/anchor can be resolved, multiple disjoint targets match, or materially different capabilities share terminology. Log the exact question and answer in `aidlc-docs/audit.md`.
+### 💬 NATURAL MESSAGING
+**NEVER say**: "According to the rules…", "The steering file indicates…", "Per the guidelines…", "Following the process, I need to…"
 
-Do not ask generic questions that repository evidence can answer.
+**DO say**:
+- "To make sure we capture this correctly, let's clarify some key decisions…"
+- "Before we lock the design, I'd like to understand your preferences…"
+- "I've prepared some decisions to ensure we build exactly what you need."
 
-### Decision isolation
+Present decision files as a natural part of the planning conversation, not as procedural overhead.
 
-Requirements, Design, and Tasks decisions are independent. Do not carry preferences into a later phase without explicit confirmation in that phase.
+### 💬 QUESTION CHANNEL
+Put phase decisions in decision files, never in chat. The only permitted chat
+exception is when the active reverse-engineering companion instruction
+explicitly declares an Orientation clarification during Phase 0.
 
-### Honest coverage
+This exception is limited to Phase 0 Orientation; it does not apply to phase
+decisions or approval gates. Phase decisions remain in their decision files,
+and approval gates always require the user's explicit approval.
 
-Every Reverse Engineering artifact states its mode, objective, scope boundary, and what was not analyzed. A Targeted run is never presented as whole-system analysis, and missing critical evidence is called out rather than hidden behind a false Complete status.
+### 🔒 DECISION ISOLATION
+Each decision file is independent:
+- Requirements decisions apply ONLY to `_decisions-requirements.md`
+- Design decisions apply ONLY to `_decisions-design.md`
+- Tasks decisions apply ONLY to `_decisions-tasks.md`
+- **NEVER carry over** preferences between phases without explicit confirmation
+- Each phase requires NEW explicit user input
 
-## Mandatory State Tracking
+---
 
-Maintain `aidlc-docs/aidlc-state.md` and update it in the same interaction whenever a step, scope expansion, gate, task section, or status changes.
+## MANDATORY: State Tracking
+
+Maintain `aidlc-docs/aidlc-state.md` for session continuity. If it exists at
+session start, **resume** from the recorded state.
 
 ```markdown
-# AI-DLC Modernization Workflow State
+# AI-DLC Workflow State
 
 ## Project Info
 - **Project Type**: Legacy Transformation on AWS
 - **Legacy Stack**: [languages, frameworks, build, data, runtime]
 - **Target Architecture**: [unknown until approved / approved summary]
 - **Migration Pattern**: [unknown until approved / approved summary]
-- **Active Spec**: [spec directory]
+- **Active Spec**: specs/decomposition-plan/
 
 ## Reverse Engineering Plan
-- **Mode**: [Orientation / Targeted / Full]
+- **Mode**: [Pending during Orientation / Targeted / Full]
 - **Objective**: [user objective and expected downstream outcome]
 - **Target Type**: [feature / journey / module / endpoint / data area / bounded context / system-wide]
 - **Anchors**: [symbols, routes, modules, schemas, files]
@@ -100,142 +147,150 @@ Maintain `aidlc-docs/aidlc-state.md` and update it in the same interaction whene
 - **Reverse Engineering Status**: [In Progress / Awaiting Approval / Complete]
 - **Scope Expansions**: [none / approved major expansions with timestamp]
 
-## Stage Progress
-- [ ] 1. Workspace Detection
-- [ ] 2. Reverse Engineering
-  - [ ] Scope contract resolved
-  - [ ] Evidence gathering complete
-  - [ ] Coverage/status recorded
-  - [ ] User approval received
-- [ ] 3. Decomposition Plan Spec
-  - [ ] 3a. `_decisions-requirements.md` created
-  - [ ] 3b. Requirements decisions completed and approved by user
-  - [ ] 3c. `requirements.md` generated and approved
-  - [ ] 3d. `_decisions-design.md` created
-  - [ ] 3e. Design decisions completed and approved by user
-  - [ ] 3f. `design.md` generated and approved
-  - [ ] 3g. `_decisions-tasks.md` created
-  - [ ] 3h. Tasks decisions completed and approved by user
-  - [ ] 3i. `tasks.md` generated and approved
-  - [ ] 3j. Task execution
-
-## Task Execution Progress
-- [ ] Planning tasks
-- [ ] Service or modernization slice: [name]
-- [ ] Integration and verification
+## Phase Progress
+- [ ] Phase 0: Reverse Engineering (skip if greenfield)
+- [ ] Phase 1: Requirements
+  - [ ] 1a. _decisions-requirements.md created
+  - [ ] 1b. _decisions-requirements.md completed by user
+  - [ ] 1c. requirements.md generated and approved
+- [ ] Phase 2: Design
+  - [ ] 2a. _decisions-design.md created
+  - [ ] 2b. _decisions-design.md completed by user
+  - [ ] 2c. design.md generated and approved
+- [ ] Phase 3: Tasks
+  - [ ] 3a. _decisions-tasks.md created
+  - [ ] 3b. _decisions-tasks.md completed by user
+  - [ ] 3c. tasks.md generated and approved
+  - [ ] 3d. Task execution
 
 ## Current Status
-- **Stage**: [stage]
-- **Spec Phase**: [phase]
-- **Status**: [In Progress / Awaiting Approval / Complete]
-- **Last Updated**: [ISO timestamp]
+**Phase**: [current phase]
+**Status**: [In Progress / Awaiting Approval / Complete]
+**Last Updated**: [ISO timestamp]
 ```
 
-### Checkpoint rules
+### Checkpoint Rules
+- Update `aidlc-docs/aidlc-state.md` immediately after completing each phase step
+- Mark checkboxes `[x]` in the SAME interaction where work is completed
+- Record current status so a fresh session can resume correctly
 
-- Mark checkboxes `[x]` in the same interaction in which work completes.
-- Record any approved major scope expansion.
-- Use exactly `In Progress / Awaiting Approval / Complete` for Reverse Engineering status across the scope, timestamp, and state artifacts.
-- When mode-specific evidence is finished, set Reverse Engineering to `Awaiting Approval`; do not call the run complete.
-- Set Reverse Engineering to `Complete` only after explicit user approval is appended verbatim to audit and state is updated.
-- Resume from state; do not restart completed phases unless evidence is stale or the user requests a rerun.
+---
 
-## Mandatory Audit Logging
+## MANDATORY: Audit Logging
 
-Maintain `aidlc-docs/audit.md` as append-only. Never overwrite it.
+Maintain `aidlc-docs/audit.md` as an append-only log.
 
-Log:
-- every user input with complete raw text;
-- mode selection with rationale, and whether prior analysis was reused;
-- scope, assumptions, and open questions;
-- the Orientation clarification question/answer, if used;
-- approved major scope expansions;
-- status changes;
-- all decision-file answers and all approval responses; and
-- architectural decisions with rationale.
+- ALWAYS append, NEVER overwrite
+- Log every user input with complete raw text
+- Log every approval/decision with timestamp
+- Log every architectural decision with rationale
 
 ```markdown
-## [Stage] — [Step]
+## [Phase Name] — [Step]
 **Timestamp**: [ISO timestamp]
 **User Input**: "[complete raw input]"
 **AI Response**: "[action taken]"
-**Decision**: [decision and rationale]
+**Decision**: [decision made and rationale]
+
+---
 ```
 
-## Mandatory Decision File Format
+---
+
+## MANDATORY: Decision File Format
 
 ```markdown
 # Decisions: [Phase Name]
 
-> **Instructions:** Review each decision point. Recommendations are provided for guidance. Fill in every Answer section, then confirm when ready for approval.
+> **Instructions:** Review each decision point below. agent recommendations are provided for guidance. Fill in your decisions in the "Answer" sections, then confirm when ready to proceed.
+
+---
 
 ## [Decision Category]
 
 ### [Specific Decision Point]
 
-**Question:** [clear question]
+**Question:** [Clear question to be answered]
 
-**Why this matters:** [impact]
+**Why this matters:** [One-sentence explanation of project impact]
 
 **Options:**
-1. [Recommended option]: [description and rationale]
-2. [Option]: [description]
-3. [Option]: [description]
+1. [Option 1 — Recommended]: [Description with rationale]
+2. [Option 2]: [Description]
+3. [Option 3]: [Description]
 4. Other (please specify): _______________________
 
 **Answer:**
+
+---
 ```
 
-Rules:
-- Provide three or four concrete options and mark one recommendation.
-- Customize choices to the approved Reverse Engineering evidence and current phase.
-- Design decisions reference Requirements; Tasks decisions reference Design.
-- Acknowledge partial answers and leave unanswered decisions open.
-- Do not invent decisions. If the user gives no answer, ask in the decision file whether recommendations should be accepted as defaults.
-- Skip a decision file only when the user explicitly says to skip it or says no decisions are needed.
+**Rules:**
+- 3–4 concrete options per decision point
+- Mark one option as "Recommended" with rationale
+- Briefly explain why each decision matters
+- For Design and Tasks phases, **reference the previous phase's decisions** explicitly
+- **Customize** decision points to the actual project — never use generic boilerplate
+- Keep every unanswered item and every proposed default or recommendation in
+  the decision file
+- The user must complete each unanswered item or explicitly confirm a proposed
+  default in that same file
+- Silence is never acceptance; never infer or apply a default from non-response
+  or a chat fallback
+- Validate that all critical decisions have user input before generating the document
+
+---
 
 ## Session Continuity
 
-When state exists:
-1. Read state and audit.
-2. Load completed mode-specific Reverse Engineering artifacts and approved spec artifacts.
-3. Reassess prior evidence only if state says it is stale or the relevant code materially changed.
-4. Present the last completed step and next incomplete step.
-5. Resume without bypassing any pending approval.
+When `aidlc-docs/aidlc-state.md` exists at session start:
 
-# Stage 1: Workspace Detection
+1. Read the state file to determine current progress
+2. Identify the active spec and phase
+3. Load all artifacts from completed phases
+4. Present a concise resumption message: last completed step, next step
+5. Resume from the next incomplete step
 
-Perform only enough orientation to classify the workspace and support Stage 2 mode selection:
-1. Locate source roots, repository manifests, build files, module topology, entry points, tests, infrastructure, and prior analysis.
-2. Identify languages, frameworks, build tools, data stores, runtime/deployment model, and likely objective anchors.
-3. Detect ATX/AWS Transform output, migration assessments, architecture documents, and prior `aidlc-docs/analysis/` artifacts.
-4. Initialize state and audit if absent.
-5. Proceed automatically to Stage 2; do not perform deep whole-codebase analysis in Stage 1.
+---
 
-# Stage 2: Reverse Engineering
+# PHASE 0: Adaptive Reverse Engineering (Brownfield Only)
 
-Load and follow `reverse-engineering.md`.
+**MANDATORY:** Load and follow
+`.github/instructions/reverse-engineering.instructions.md`.
 
 ## Mode selection
 
-- **Targeted mode** is the default when the user names a feature, journey, module, endpoint, data area, bounded context, modernization surface, or other bounded objective.
-- **Full mode** runs only when the user explicitly asks for whole-system analysis or approves a major expansion to Full.
-- **Orientation** is a temporary pass for ambiguous prompts. Resolve anchors from cheap repository evidence; use the one informed scope clarification only if the permitted ambiguity conditions remain.
-- **Prior analysis** (ATX/assessments), when found and current for the objective, is ingested as primary input and spot-verified; otherwise scan the source directly. Prefer current source/runtime evidence when they conflict. When ATX covers the whole codebase, use it as broad whole-system context, but still run Targeted RE for granular depth on the user's specific objective — the two compose.
+- **Targeted mode** is the default for a bounded feature, journey, module,
+  endpoint, data area, bounded context, modernization surface, or other
+  bounded objective.
+- **Full mode** runs only when the user explicitly asks for whole-system
+  analysis or approves a major expansion to Full.
+- **Orientation** is a cheap, temporary locating pass. It is not a third
+  completed analysis mode.
+- **Prior analysis** from current ATX/AWS Transform output, assessments,
+  architecture documents, or earlier analysis may be primary input only when
+  relevant and current for the objective. Spot-verify high-risk claims and
+  prefer current source or runtime evidence when sources conflict. Otherwise,
+  scan the source directly.
 
 ## Required scope contract
 
-Before deep scanning in both Targeted and Full modes, record objective, target type, anchors, in-scope behavior, not-in-scope areas, prior analysis reused, and open questions / not-analyzed areas in `aidlc-docs/analysis/reverse-engineering-scope.md` and state.
+Before deep scanning in both Targeted and Full modes, record the objective,
+target type, anchors, in-scope behavior, not-in-scope areas, prior analysis
+reused, and not-analyzed areas or open questions in
+`aidlc-docs/analysis/reverse-engineering-scope.md` and state.
 
 ## Proportional artifacts
 
 Targeted mode produces:
+
 - `reverse-engineering-scope.md`
 - `target-analysis.md`
 - `target-coupling-assessment.md`
 - `reverse-engineering-timestamp.md`
 
-Full mode preserves the comprehensive bundle:
+Full mode produces the complete legacy comprehensive bundle:
+
 - `business-overview.md`
 - `architecture.md`
 - `code-structure.md`
@@ -245,231 +300,248 @@ Full mode preserves the comprehensive bundle:
 - `dependencies.md`
 - `bounded-contexts.md`
 - `coupling-assessment.md`
-- plus `reverse-engineering-scope.md` and `reverse-engineering-timestamp.md` for scope honesty.
+- plus `reverse-engineering-scope.md` and
+  `reverse-engineering-timestamp.md`.
+
+The active reverse-engineering companion is authoritative for artifact
+contents. Do not invent an unsupported coverage artifact.
 
 ## Expansion and approval gate
 
-Direct-dependency expansion may occur automatically. A **major expansion** into another business capability/bounded context, deep analysis of a high-fan-in shared kernel, or a switch to Full mode requires explicit approval before scanning.
+Direct-dependency expansion may occur automatically. A **major expansion**
+into another business capability/bounded context, deep analysis of a
+high-fan-in shared kernel, or a switch to Full mode requires explicit approval before scanning.
 
-When evidence collection is approval-ready, update the scope artifact, timestamp, and state to `Awaiting Approval`. Present a mode-aware message that the **analysis evidence is ready for review**, not that Reverse Engineering is complete:
-- Targeted: accept and continue; fill evidence gaps; expand selected areas; or run Full RE.
-- Full: accept and continue; or fill evidence gaps/rescan selected areas.
+When evidence is ready, keep the scope, timestamp, and state at
+`Awaiting Approval`. Present the evidence, coverage boundaries, key risks, and
+recommended decomposition order, then stop for explicit approval.
 
-Only after explicit approval, append the complete raw response to `aidlc-docs/audit.md`, update the Reverse Engineering status to `Complete` in scope/timestamp/state, and mark the Stage 2 approval checkbox. Do not enter Stage 3 before that Awaiting Approval → Complete transition.
+After explicit approval, execute the **same single Phase 0 approval gate**
+detailed by the companion exactly once:
 
-# Stage 3: Decomposition Plan Spec
+1. Append the complete raw approval response with timestamp to
+   `aidlc-docs/audit.md`.
+2. Update `aidlc-docs/analysis/reverse-engineering-scope.md`,
+   `aidlc-docs/analysis/reverse-engineering-timestamp.md`, and
+   `aidlc-docs/aidlc-state.md` from `Awaiting Approval` to `Complete`.
+3. Mark the inherited Phase 0 progress and current status complete.
+4. Only then enter Phase 1 Requirements.
 
-Use the approved Targeted or Full bundle as evidence. Scope every proposed extraction or modernization slice to analyzed evidence, and carry explicit coverage gaps into requirements and risks.
+---
 
-Use one specification directory for Requirements, Design, Tasks, and execution.
+# PHASE 1: Requirements
 
-## Requirements Phase
+**Focus:** WHAT to build — business and non-functional requirements.
 
-### Create `_decisions-requirements.md`
+### Step 1.1 — Create `_decisions-requirements.md`
 
-Cover WHAT the modernization must achieve, tailored to the approved evidence:
-- modernization goal and definition of done: replatform (lift-and-shift to containers), refactor (framework/language upgrade), re-architect (decompose to services), or reimagine — and the success criteria that define "done";
-- scope and strategy: strangler fig, big bang, parallel run, or bounded modernization;
-- which analyzed capabilities/slices are included or excluded;
-- coexistence, cutover, rollback, and downtime constraints;
-- functional parity and expected behavior changes;
+Create `specs/decomposition-plan/_decisions-requirements.md` and cover:
+
+- modernization goal, strategy, definition of done, and measurable success;
+- replatform, refactor, re-architect, reimagine, or a deliberate combination;
+- included and excluded capabilities, slices, and analyzed evidence;
+- strangler, big-bang, parallel-run, or bounded modernization strategy;
+- coexistence, cutover, rollback, downtime, and functional parity;
 - non-functional, security, compliance, and data-residency requirements;
 - named integrations and dependencies;
 - data ownership and transaction boundaries; and
-- timeline, team, budget, and platform constraints.
+- timeline, team, budget, platform, and operational constraints.
 
-### Approval Gate 1 — Requirements decisions
+### Step 1.2 — Approve Requirements Decisions
 
-Wait for the user to complete and explicitly approve `_decisions-requirements.md`. Record the raw response in audit and state before generating `requirements.md`.
+Wait for the user to complete and explicitly approve
+`_decisions-requirements.md`. Append the complete raw approval response to
+`aidlc-docs/audit.md`, then update
+`aidlc-docs/aidlc-state.md`. Do not generate the final artifact before this
+decision gate is complete.
 
-### Generate `requirements.md`
+### Step 1.3 — Generate `requirements.md`
 
-Include numbered functional/non-functional requirements, user stories and acceptance criteria (EARS format where applicable), per-slice scope, integrations, data ownership, migration/cutover constraints, coverage assumptions, and explicit out-of-scope items.
+Generate `specs/decomposition-plan/requirements.md` with:
 
-### Approval Gate 2 — Requirements document
+- numbered functional and measurable non-functional requirements;
+- user stories and testable acceptance criteria, using EARS where applicable;
+- per-slice scope and explicit out-of-scope items;
+- integrations, data ownership, and transaction boundaries;
+- coexistence, migration, cutover, rollback, and downtime constraints; and
+- evidence assumptions, open gaps, and named risks from Phase 0.
 
-Wait for explicit approval of `requirements.md`; update audit and state.
+### Approval Gate
+Wait for explicit user approval. Append the complete raw approval response to
+`aidlc-docs/audit.md`, then update `aidlc-docs/aidlc-state.md` before
+entering Phase 2.
 
-## Design Phase
+---
 
-### Create `_decisions-design.md`
+# PHASE 2: Design
 
-Reference approved Requirements and gather HOW choices for:
-- target compute/runtime, packaging (container image, health checks, non-root runtime), and framework transformation;
-- statelessness: session state, in-process caches, and shared/static state to externalize for horizontal scaling and safe cutover;
-- API, routing, auth, and inter-service communication;
-- data decomposition, target stores, synchronization, and migration;
-- configuration and secrets externalization out of code and config files into a parameter/secret store;
-- infrastructure as code, accounts, networking, and environments;
-- observability, security (least-privilege roles and secrets injection), CI/CD, deployment, rollback, and testing (parity/regression, contract, and smoke); and
-- per-slice choices where one architecture does not fit all.
+**Focus:** HOW to build it — technical architecture for the spec.
 
-Activate applicable bundled skills and validate current AWS behavior before proposing AWS-specific options.
+### Step 2.1 — Create `_decisions-design.md`
 
-**Pick one IaC tool per project.** The bundled skills split by tool — `ecs-build` generates Terraform while `aws-cloudformation` generates CloudFormation (and CDK where applicable). Choose a single IaC tool, activate the matching skill, and call the choice out explicitly rather than blending outputs.
+Create `specs/decomposition-plan/_decisions-design.md`, reference the
+approved Requirements, and cover:
 
-### Approval Gate 3 — Design decisions
+- target compute/runtime, framework transformation, packaging, health checks,
+  and non-root runtime;
+- statelessness and externalization of sessions, caches, and shared state;
+- APIs, routing, authentication, authorization, and communication patterns;
+- data decomposition, ownership, target stores, synchronization, and migration;
+- configuration and secrets externalization;
+- accounts, networking, environments, infrastructure as code, observability,
+  security, CI/CD, deployment, rollback, testing, and per-slice variation.
 
-Wait for the user to complete and explicitly approve `_decisions-design.md`; update audit and state before generating `design.md`.
+Choose one infrastructure-as-code tool for the project. Do not blend
+Terraform, CloudFormation, and CDK ownership.
 
-### Generate `design.md`
+### Step 2.2 — Approve Design Decisions
 
-Include:
-- target architecture and before/after Mermaid diagrams;
-- strangler/cutover routing phases when applicable;
-- per-service or per-slice component design;
-- data ownership and migration flow;
+Wait for the user to complete and explicitly approve
+`_decisions-design.md`. Append the complete raw approval response to
+`aidlc-docs/audit.md`, then update
+`aidlc-docs/aidlc-state.md`. Do not generate the final artifact before this
+decision gate is complete.
+
+### Step 2.3 — Generate `design.md`
+
+Generate `specs/decomposition-plan/design.md` with:
+
+- target architecture and per-slice component design;
+- strangler routing, coexistence, cutover, and rollback phases;
+- data ownership, synchronization, and migration flows;
 - API contracts and primary sequence flows;
-- auth, observability, config/secrets, errors, deployment, and rollback;
-- risks and mitigations tied to Reverse Engineering coverage; and
+- authentication, observability, configuration, secrets, errors, deployment,
+  testing, and rollback;
+- risks tied to Phase 0 evidence boundaries; and
 - a decision log referencing `_decisions-design.md`.
 
-**Mandatory diagrams:** a target architecture/context diagram; at least one sequence diagram for the primary flow; a data model / ER diagram when persistent state exists; and a before → after (legacy vs modernized) diagram when applicable.
+Include a target architecture/context diagram, a primary sequence diagram, a
+persistent data/ER diagram when relevant, and a before/after legacy-to-target
+diagram.
 
-### Approval Gate 4 — Design document
+### Approval Gate
+Wait for explicit user approval. Append the complete raw approval response to
+`aidlc-docs/audit.md`, then update `aidlc-docs/aidlc-state.md` before
+entering Phase 3.
 
-Wait for explicit approval of `design.md`; update audit and state.
+---
 
-## Tasks Phase
+# PHASE 3: Tasks
 
-### Create `_decisions-tasks.md`
+**Focus:** Ordered, executable plan to build and verify the spec.
 
-Reference approved Design and gather execution choices for:
-- extraction/modernization order and sequencing (e.g. strangler-fig slice order);
-- **parallel execution groups**: which extraction/modernization slices share no state and can be worked concurrently by separate workers — analyze dependencies and propose independent groups;
-- task granularity and ownership;
+### Step 3.1 — Create `_decisions-tasks.md`
+
+Create `specs/decomposition-plan/_decisions-tasks.md`, reference the
+approved Design, and cover:
+
+- extraction and modernization order;
+- task granularity, slice ownership, and independent parallel groups;
 - transformation versus refactoring sequence;
-- tests, parity criteria, coverage, and smoke verification;
-- deployment, cutover, and rollback granularity; and
+- tests, parity, smoke checks, and validation evidence;
+- deployment, coexistence, cutover, and rollback granularity; and
 - definition of done.
 
-### Approval Gate 5 — Tasks decisions
+### Step 3.2 — Approve Task Decisions
 
-Wait for the user to complete and explicitly approve `_decisions-tasks.md`; update audit and state before generating `tasks.md`.
+Wait for the user to complete and explicitly approve `_decisions-tasks.md`.
+Append the complete raw approval response to `aidlc-docs/audit.md`, then
+update `aidlc-docs/aidlc-state.md`. Do not generate the final artifact
+before this decision gate is complete.
 
-### Generate `tasks.md`
+### Step 3.3 — Generate `tasks.md`
 
-Organize tasks into **dependency-aware waves of independent groups**. Each group is a distinct decomposition slice, bounded context, service, or cross-cutting concern with its own files; groups in the same wave share no state and can be executed by separate workers in parallel. Within a group, tasks run sequentially.
+Generate `specs/decomposition-plan/tasks.md` as dependency-aware waves
+of independent groups. Before grouping, classify every task against:
 
-**Mandatory dependency analysis** — before writing `tasks.md`, classify every task against the approved Design for:
-1. File/module dependencies — does task B read or write files task A creates?
-2. API/contract dependencies — does task B call a service or endpoint task A defines?
-3. Infrastructure dependencies — does task B need infra (network, cluster, pipeline) task A provisions?
-4. Data dependencies — does task B need schemas, seed data, or a migrated store task A produces?
-5. Cutover dependencies — does task B rely on strangler routing, coexistence, or rollback wiring task A establishes?
+1. **File/module dependencies** — files or modules produced or changed.
+2. **API/contract dependencies** — services, events, or endpoints consumed.
+3. **Infrastructure dependencies** — network, runtime, pipeline, or platform
+   prerequisites.
+4. **Data dependencies** — schemas, seed data, synchronization, or migrated
+   stores.
+5. **Cutover dependencies** — strangler routing, coexistence, traffic shift,
+   or rollback wiring.
 
-Tasks with no cross-dependencies form independent groups in the same wave. Tasks that consume another group's output move to a later wave.
+Groups in the same wave must touch distinct files and share no mutable state.
+Move consumers of another group's output to a later wave.
 
-Lead `tasks.md` with an execution plan, then the grouped waves:
+Each task must name its inputs, files/modules, validation, and rollback
+implication. The final wave must include cross-slice integration, parity and
+end-to-end smoke tests, deployment/cutover, rollback verification, and
+documentation.
 
-```markdown
-# Tasks: <Decomposition Slice / Spec Name>
+**Execution rules:**
 
-## Execution Plan
+- Mark a task complete only after its validation passes.
+- Do not pull a later wave forward.
+- Stop if two workers would touch the same files.
+- Do not silently change an approved Design decision.
 
-| Wave | Groups (run in parallel) | Depends On |
-|------|--------------------------|------------|
-| 1    | Group A, Group B, Group C | —          |
-| 2    | Group D, Group E          | Wave 1     |
-| 3    | Group F                   | Wave 2     |
+### Approval Gate
+Wait for explicit user approval. Append the complete raw approval response to
+`aidlc-docs/audit.md`, then update `aidlc-docs/aidlc-state.md` before
+starting task execution.
 
-> **How to run:** Assign one worker (agent instance or developer) per group within a wave.
-> Complete every group in a wave before starting the next.
-
-## Wave 1 (no dependencies — start all in parallel)
-
-### Group A: [Slice / Context / Concern]
-- [ ] A.1 [Task — inputs, files/modules, validation, rollback implication]
-- [ ] A.2 [Task]
-
-### Group B: [Slice / Context / Concern]
-- [ ] B.1 [Task]
-
-## Wave 2 (depends on Wave 1)
-
-### Group D: [Slice / Context / Concern]
-**Requires:** Group A outputs (e.g. extracted service), Group B outputs (e.g. migrated schema)
-- [ ] D.1 [Task]
-
-## Wave 3 (integration & cutover — depends on Wave 2)
-
-### Group F: Verification & Cutover
-**Requires:** all prior waves complete
-- [ ] F.1 Integration and end-to-end smoke tests across extracted slices
-- [ ] F.2 Strangler cutover / traffic shift with rollback verification
-- [ ] F.3 Update docs with build, deploy, and rollback instructions
-```
-
-**Task generation rules:**
-- Each group targets a distinct slice/boundary/concern with its own files; groups in the same wave must not touch the same files.
-- Each task is small enough for one worker request and names its inputs, files/modules, validation, and rollback implication.
-- The final wave always includes integration tests, end-to-end smoke verification, deployment/cutover, rollback, and documentation.
-
-**Task execution rules:**
-- Mark each task `[x]` immediately after its validation passes.
-- Follow approved Design decisions; do not silently change them.
-- A wave is complete only when every group in it is `[x]`; verify this before starting the next wave.
-- If a group finishes early, its worker waits — do not pull next-wave tasks forward.
-- If two workers would touch the same files, stop, flag it in `audit.md`, and ask the user.
-
-### Approval Gate 6 — Tasks document
-
-Wait for explicit approval of `tasks.md`; update audit and state before execution.
+---
 
 # Task Execution
 
-For each approved task:
-1. Execute according to Design without silently changing decisions.
-2. Run the most relevant tests and validation.
-3. Mark the task `[x]` immediately after successful validation.
-4. Update state and append a concise audit entry.
-5. Stop and request approval if execution requires a major scope or architecture change.
+Read approved work from
+`specs/decomposition-plan/tasks.md`. For each task:
 
-When all tasks are complete:
-- present produced artifacts, extracted/modernized components, deployed resources, and verification evidence;
-- mark the workflow complete in state;
-- append completion to audit; and
-- ask whether to start a new specification.
+1. Execute within its approved slice and file boundary.
+2. Run the relevant tests and validation.
+3. Mark it complete only after validation succeeds.
+4. Update `aidlc-docs/aidlc-state.md`.
+5. Append a concise entry to `aidlc-docs/audit.md`.
+6. Do not pull a later wave forward.
+7. Stop on conflicting file ownership or a major scope or architecture change.
 
-## Directory Structure
+The final wave owns cross-slice integration, parity and smoke tests, strangler
+traffic shift or cutover, rollback verification, and documentation.
 
-```text
-<WORKSPACE-ROOT>/
-├── [existing legacy source]
-├── services/ or [modernized components]
-├── infrastructure/
-├── decomposition-plan/
-│   ├── _decisions-requirements.md
-│   ├── requirements.md
-│   ├── _decisions-design.md
-│   ├── design.md
-│   ├── _decisions-tasks.md
-│   └── tasks.md
-└── aidlc-docs/
-    ├── analysis/
-    │   ├── reverse-engineering-scope.md
-    │   ├── reverse-engineering-timestamp.md
-    │   ├── target-analysis.md                 # Targeted mode
-    │   ├── target-coupling-assessment.md      # Targeted mode
-    │   ├── business-overview.md               # Full mode
-    │   ├── architecture.md                    # Full mode
-    │   ├── code-structure.md                  # Full mode
-    │   ├── api-documentation.md               # Full mode
-    │   ├── component-inventory.md             # Full mode
-    │   ├── technology-stack.md                # Full mode
-    │   ├── dependencies.md                    # Full mode
-    │   ├── bounded-contexts.md                # Full mode
-    │   └── coupling-assessment.md             # Full mode
-    ├── aidlc-state.md
-    └── audit.md
+When all tasks complete, summarize the produced artifacts,
+modernized/extracted components, deployed resources, and verification
+evidence. Then update state and audit and offer to start another specification.
+
+---
+
+## Spec Directory Convention
+
+```
+specs/<spec-name>/
+├── _decisions-requirements.md
+├── requirements.md
+├── _decisions-design.md
+├── design.md
+├── _decisions-tasks.md
+└── tasks.md
 ```
 
-## Final Enforcement Reminder
+---
 
-On every interaction:
-1. Read state first and resume.
-2. Keep Stage 2 proportional: Targeted by default for bounded objectives; Full only when explicit or approved.
-3. When prior analysis is reused, ingest it as input and spot-verify high-risk claims rather than trusting it wholesale.
-4. Never silently approve a major expansion or claim whole-system completeness from Targeted evidence.
-5. Preserve the Stage 2 approval and all six Stage 3 decision/document gates.
-6. Keep spec-phase questions in decision files; only the informed Orientation scope clarification may occur in chat.
+## Key Principles
+
+- **Phase 0 only when brownfield** — don't invent analysis for greenfield work
+- **Decision-driven** — every phase starts with a `_decisions-*.md`
+- **Questions in decision files** — except an explicitly declared Phase 0
+  Orientation clarification from the active reverse-engineering companion
+- **Approval gates are real** — never proceed without explicit user approval
+- **Trackable** — state file + audit log + checkboxes enable session continuity
+
+---
+
+## 🚨 FINAL REMINDER: WORKFLOW ENFORCEMENT
+
+Every new interaction:
+
+1. CHECK for `aidlc-docs/aidlc-state.md`
+2. If it exists, READ it and RESUME
+3. If it doesn't exist, decide brownfield vs greenfield, then start at the right phase
+4. NEVER skip a `_decisions-*.md` before the corresponding spec doc
+5. NEVER skip approval gates
+6. Put phase questions in decision files; only an explicitly declared Phase 0
+   Orientation clarification may occur in chat
+
+This workflow is the only workflow.

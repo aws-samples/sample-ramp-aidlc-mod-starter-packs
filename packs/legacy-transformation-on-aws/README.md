@@ -2,7 +2,10 @@
 
 A **tool-agnostic** starter pack for analyzing and decomposing a **brownfield monolith** into microservices on AWS, driven by the **AI-Driven Development Lifecycle (AI-DLC)** decision-driven workflow. The output is a defensible, decision-audited modernization blueprint at a depth proportional to the objective.
 
-The pack is authored once as tool-neutral source and works with **Kiro, Claude Code, GitHub Copilot, and Cursor**. Whichever agent you use gains the same structured modernization workflow, generated in the tool's native format.
+The pack composes a shared lifecycle with a tool-neutral legacy specialization
+and works with **Kiro, Claude Code, GitHub Copilot, and Cursor**. Whichever
+agent you use gains the same structured modernization workflow, generated in
+the tool's native format.
 
 ## Use case
 
@@ -13,9 +16,12 @@ Reverse engineering is adaptive:
 - **Targeted is the default** when the prompt names a feature, journey, module, endpoint, data area, bounded context, modernization surface, or other bounded objective. It traces that target end-to-end, performs a mandatory cross-cutting sentinel sweep, and expands only when evidence requires it.
 - **Full is explicit or approved**. It runs only when the user requests whole-system analysis or approves a major scope expansion. A Targeted run never silently becomes Full or claims whole-system completeness.
 - **Orientation** is a cheap locating pass for ambiguous prompts. It inspects prior analysis, manifests, module topology, entry points, and likely anchors before deep scanning. If ambiguity remains, the workflow allows one informed scope clarification and records it in the audit log.
-- **Reuse & Verify** applies to either mode only when prior evidence is suitable. Existing AWS Transform/ATX output, migration assessments, architecture documents, and prior AI-DLC analysis are assessed for freshness and coverage; when sufficiently current and relevant they are reused as primary input, verified where risk or gaps warrant it, and reconciled with explicit provenance. Otherwise the workflow uses **Direct Scan**.
+- **Reuse & Verify** applies to either mode only when prior evidence is suitable. Existing AWS Transform/ATX output, migration assessments, architecture documents, and prior AI-DLC analysis are assessed for freshness and relevance; when sufficiently current they are reused as primary input and spot-verified where risk or gaps warrant it. Otherwise the workflow uses **Direct Scan**.
 
-Before deep analysis, the workflow records the objective, anchors, in-scope and not-in-scope boundaries, prior evidence, assumptions, confidence, provenance, and areas not analyzed. Major expansion into another capability, bounded context, high-fan-in shared kernel, or Full mode requires approval.
+Before deep analysis, the workflow records the objective, anchors, in-scope
+and not-in-scope boundaries, prior evidence, and areas not analyzed. Major
+expansion into another capability, bounded context, high-fan-in shared kernel,
+or Full mode requires approval.
 
 ## Getting started
 
@@ -54,7 +60,7 @@ Run the `ramp-pack` installer from the repo root; it reads the neutral source an
 node installer/bin/ramp-pack.js init legacy-transformation-on-aws --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/monolith
 ```
 
-Add `--dry-run` to preview or `--force` to overwrite existing generated files; this installs steering **and** skills in one step. To rebuild the committed per-tool scaffolds in place, run `./scripts/regenerate.sh legacy-transformation-on-aws` (requires Node). The neutral source plus the shared `skills-library/` are the single source of truth.
+Add `--dry-run` to preview or `--force` to overwrite existing generated files; this installs steering **and** skills in one step. To rebuild the committed per-tool scaffolds in place, run `./scripts/regenerate.sh legacy-transformation-on-aws` (requires Node). The common lifecycle, named legacy overlay, pack-local companions, and shared `skills-library/` are the sources of truth.
 
 ### Then
 
@@ -69,7 +75,8 @@ The workflow detects the workspace, selects Targeted or Full reverse engineering
 
 ## Proportional reverse-engineering artifacts
 
-Both modes write analysis under `aidlc-docs/analysis/` and state the mode, objective, scope boundary, provenance, confidence, coverage, and what was not analyzed.
+Both modes write analysis under `aidlc-docs/analysis/` and state the mode,
+objective, scope boundary, prior evidence used, and what was not analyzed.
 
 ### Targeted bundle
 
@@ -78,7 +85,6 @@ A bounded objective produces a focused evidence set:
 - `reverse-engineering-scope.md`
 - `target-analysis.md`
 - `target-coupling-assessment.md`
-- `reverse-engineering-coverage.md`
 - `reverse-engineering-timestamp.md`
 
 ### Full bundle
@@ -95,20 +101,28 @@ An explicit or approved whole-system assessment produces the comprehensive set:
 - `bounded-contexts.md`
 - `coupling-assessment.md`
 - `reverse-engineering-scope.md`
-- `reverse-engineering-coverage.md`
 - `reverse-engineering-timestamp.md`
 
-If critical evidence is unavailable or a time/budget boundary is reached, the workflow records `Partial/Awaiting Evidence` rather than reporting false completeness.
+If evidence is unavailable or a time/budget boundary is reached, the workflow
+records the gap under `Not Analyzed / Open Questions`. Lifecycle status stays
+within `In Progress / Awaiting Approval / Complete`; it reaches `Complete`
+only after explicit approval.
 
 ## What's in this pack
 
 ```text
+common/instructions/
+└── aidlc-workflow.md             # Canonical decision-gated lifecycle
+
+workflow-overlays/
+└── legacy-transformation-workflow.md
+                                   # Adaptive legacy primary specialization
+
 legacy-transformation-on-aws/
 ├── pack.yaml                 # Manifest: instruction roles, MCP servers, skills, /aidlc command
-├── instructions/             # Tool-neutral steering (source of truth)
-│   ├── aidlc-workflow.md         # Detection → adaptive RE → Requirements → Design → Tasks
+├── instructions/
 │   ├── skill-activation.md       # Routing for all 19 bundled skills + AWS Knowledge validation
-│   └── reverse-engineering.md    # Targeted/Full, Orientation, Reuse & Verify playbook
+│   └── reverse-engineering.md    # Adaptive Targeted/Full companion (pack-local source)
 ├── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills-library/
 ├── add-skills.ps1            # Windows/PowerShell equivalent of add-skills.sh (no Node)
 └── scaffolded-packs/         # Committed, regenerated from source
@@ -118,9 +132,10 @@ legacy-transformation-on-aws/
 > The pack's 19 skills are referenced **by name** from `pack.yaml` (`skills:` list) and resolved from the
 > shared [`skills-library/`](../../skills-library/) at the repo root — the pack has no `skills/` directory of
 > its own (a local `skills/` appears only when a pack overrides a library skill). They are ported into a target
-> project by `add-skills.sh`. Edit `instructions/`, `pack.yaml`, and this README as canonical
-> source; the committed per-tool scaffolds are regenerated from it — rebuild them with the installer or
-> `./scripts/regenerate.sh legacy-transformation-on-aws` rather than hand-editing.
+> project by `add-skills.sh`. Edit the common lifecycle, named overlay,
+> pack-local companions, `pack.yaml`, and this README as source. Never edit
+> `scaffolded-packs/` directly; rebuild it with the installer or
+> `./scripts/regenerate.sh legacy-transformation-on-aws`.
 
 ### How each instruction maps per tool
 

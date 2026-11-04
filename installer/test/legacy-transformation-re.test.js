@@ -1,15 +1,24 @@
 import { describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { resolveInstructionBody } from '../src/instructions/compose.js'
 import { loadManifest } from '../src/manifest.js'
 import { renderInstructions } from '../src/render/instructions.js'
 import { renderCommand } from '../src/render/command.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const packDir = resolve(here, '..', '..', 'packs', 'legacy-transformation-on-aws')
+const repoRoot = resolve(packDir, '..', '..')
 const manifest = loadManifest(packDir)
-const readInstruction = (name) => readFileSync(join(packDir, 'instructions', name), 'utf8')
+const readInstruction = (name) => resolveInstructionBody(manifest, packDir, name)
+const localWorkflow = join(packDir, 'instructions', 'aidlc-workflow.md')
+const localReverseEngineering = join(packDir, 'instructions', 'reverse-engineering.md')
+const workflowOverlay = join(
+  repoRoot,
+  'workflow-overlays',
+  'legacy-transformation-workflow.md',
+)
 const byPath = (writes, path) => writes.find((write) => write.path === path)?.content ?? ''
 
 // Extract a Markdown section (heading line through the line before the next
@@ -157,7 +166,7 @@ function expectEvidenceLifecycle(re, wf, source) {
 
   const wfGate = markdownSection(wf, '## Expansion and approval gate')
   expect(wfGate, `${source}: workflow transitions Awaiting Approval to Complete only after raw audit`).toMatch(
-    /Awaiting Approval[\s\S]*explicit approval[\s\S]*raw response[\s\S]*audit\.md[\s\S]*`Complete`/i,
+    /Awaiting Approval[\s\S]*explicit approval[\s\S]*complete raw approval response[\s\S]*audit\.md[\s\S]*`Complete`/i,
   )
 }
 
@@ -201,12 +210,131 @@ function expectAdaptiveSemantics(re, wf, source) {
 }
 
 describe('legacy-transformation-on-aws adaptive reverse engineering', () => {
+  it('composes the primary from one nine-slot legacy overlay while retaining local RE', () => {
+    expect(existsSync(localWorkflow)).toBe(false)
+    expect(existsSync(localReverseEngineering)).toBe(true)
+    expect(existsSync(workflowOverlay)).toBe(true)
+    expect(
+      manifest.workflow.overlays.filter(
+        (name) => name === 'legacy-transformation-workflow.md',
+      ),
+    ).toHaveLength(1)
+
+    const overlay = readFileSync(workflowOverlay, 'utf8')
+    const expectedSlots = [
+      'workflow-identity',
+      'first-actions',
+      'workflow-overview',
+      'state-project-fields',
+      'reverse-engineering-stage',
+      'requirements-domain-decisions',
+      'design-domain-decisions',
+      'tasks-domain-decisions',
+      'execution-guidance',
+    ]
+    const starts = [...overlay.matchAll(/<!-- RAMP:SLOT ([A-Za-z0-9-]+) START -->/g)]
+      .map((match) => match[1])
+    const ends = [...overlay.matchAll(/<!-- RAMP:SLOT ([A-Za-z0-9-]+) END -->/g)]
+      .map((match) => match[1])
+
+    expect(starts).toEqual(expectedSlots)
+    expect(ends).toEqual(expectedSlots)
+  })
+
   it('defines the adaptive contract in the canonical instructions', () => {
     expectAdaptiveSemantics(
       readInstruction('reverse-engineering.md'),
       readInstruction('aidlc-workflow.md'),
       'canonical instructions',
     )
+  })
+
+  it('uses canonical phases, one legacy overview, and the concrete decomposition spec', () => {
+    const workflow = readInstruction('aidlc-workflow.md')
+
+    expect(workflow.match(/User modernization objective/g) ?? []).toHaveLength(1)
+    expect(workflow).not.toContain('Detect: brownfield?')
+    for (const phase of [
+      'PHASE 0',
+      'PHASE 1',
+      'PHASE 2',
+      'PHASE 3',
+    ]) expect(workflow).toContain(phase)
+    expect(workflow).not.toMatch(/\bSTAGE [123]\b/i)
+    expect(workflow).toMatch(/Orientation[\s\S]*(?:temporary|cheap pass)/i)
+    expect(workflow).toMatch(/Targeted[\s\S]*Full/i)
+    expect(workflow).toContain('{{SPEC_DIR}}/decomposition-plan/')
+    expect(workflow).not.toMatch(/skip (?:a |the )?decision file/i)
+    expect(workflow).toMatch(/same interaction[\s\S]*forbidden/i)
+    expect(workflow).toMatch(/silence is never acceptance/i)
+  })
+
+  it('preserves the six ordered decision and document approval gates', () => {
+    const workflow = readInstruction('aidlc-workflow.md')
+    const phases = [
+      {
+        start: '# PHASE 1:',
+        decision: '_decisions-requirements.md',
+        final: 'requirements.md',
+        next: '# PHASE 2:',
+      },
+      {
+        start: '# PHASE 2:',
+        decision: '_decisions-design.md',
+        final: 'design.md',
+        next: '# PHASE 3:',
+      },
+      {
+        start: '# PHASE 3:',
+        decision: '_decisions-tasks.md',
+        final: 'tasks.md',
+        next: '# Task Execution',
+      },
+    ]
+
+    for (const { start, decision, final, next } of phases) {
+      const startIndex = workflow.indexOf(start)
+      const endIndex = workflow.indexOf(next, startIndex)
+      expect(startIndex).toBeGreaterThanOrEqual(0)
+      expect(endIndex).toBeGreaterThan(startIndex)
+      const section = workflow.slice(startIndex, endIndex + next.length)
+      const decisionIndex = section.indexOf(`Create \`${decision}\``)
+      const decisionApprovalIndex = section.indexOf('explicitly approve', decisionIndex)
+      const decisionAuditIndex = section.indexOf(
+        'complete raw approval response',
+        decisionApprovalIndex,
+      )
+      const decisionStateIndex = section.indexOf(
+        '{{STATE_DIR}}/aidlc-state.md',
+        decisionAuditIndex,
+      )
+      const finalIndex = section.indexOf(`Generate \`${final}\``, decisionStateIndex)
+      const documentGateIndex = section.indexOf('### Approval Gate', finalIndex)
+      const documentApprovalIndex = section.indexOf(
+        'Wait for explicit user approval.',
+        documentGateIndex,
+      )
+      const documentAuditIndex = section.indexOf(
+        'Append the complete raw approval response',
+        documentApprovalIndex,
+      )
+      const documentStateIndex = section.indexOf(
+        '{{STATE_DIR}}/aidlc-state.md',
+        documentAuditIndex,
+      )
+      const nextIndex = section.indexOf(next, documentStateIndex)
+
+      expect(decisionIndex).toBeGreaterThanOrEqual(0)
+      expect(decisionApprovalIndex).toBeGreaterThan(decisionIndex)
+      expect(decisionAuditIndex).toBeGreaterThan(decisionApprovalIndex)
+      expect(decisionStateIndex).toBeGreaterThan(decisionAuditIndex)
+      expect(finalIndex).toBeGreaterThan(decisionStateIndex)
+      expect(documentGateIndex).toBeGreaterThan(finalIndex)
+      expect(documentApprovalIndex).toBeGreaterThan(documentGateIndex)
+      expect(documentAuditIndex).toBeGreaterThan(documentApprovalIndex)
+      expect(documentStateIndex).toBeGreaterThan(documentAuditIndex)
+      expect(nextIndex).toBeGreaterThan(documentStateIndex)
+    }
   })
 
   it('uses a semantic auto-load description for bounded and system-wide brownfield analysis', () => {
@@ -230,15 +358,23 @@ describe('legacy-transformation-on-aws adaptive reverse engineering', () => {
   })
 
   it('encodes the prior-analysis-aware input strategy in the manifest command body', () => {
-    expectConditionalInputStrategy(manifest.command?.body ?? '', 'pack.yaml command.body')
+    const body = manifest.command?.body ?? ''
+    expectConditionalInputStrategy(body, 'pack.yaml command.body')
+    expect(body).toMatch(/resolved state[\s\S]*primary instructions/i)
+    expect(body).toMatch(/resolved analysis path[\s\S]*primary instructions/i)
+    expect(body).not.toContain('aidlc-docs/')
+    expect(body).not.toMatch(/\{\{(?:STATE_DIR|SPEC_DIR)/)
   })
 
-  // Generated output is no longer committed (Model B: build-all regenerates it
-  // from source and CI publishes to gh-pages), so we assert the fresh render.
+  // Assert the fresh renderer output; committed scaffolds are checked separately
+  // by the regeneration/parity gates.
   it.each([['claude-code'], ['copilot']])(
     'keeps the %s launcher prior-analysis-aware in fresh render',
     (tool) => {
-      expectConditionalInputStrategy(renderCommand(manifest, tool)?.content ?? '', `${tool} fresh launcher`)
+      const content = renderCommand(manifest, tool)?.content ?? ''
+      expectConditionalInputStrategy(content, `${tool} fresh launcher`)
+      expect(content).not.toContain('aidlc-docs/')
+      expect(content).not.toMatch(/\{\{(?:STATE_DIR|SPEC_DIR)/)
     },
   )
 })

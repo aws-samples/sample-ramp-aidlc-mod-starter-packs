@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { getAdapter, listAdapterIds } from '../src/adapters/index.js'
 import { resolveInstructionBody } from '../src/instructions/compose.js'
 import { loadManifest } from '../src/manifest.js'
+import { renderCommand } from '../src/render/command.js'
 import { renderInstructions } from '../src/render/instructions.js'
 import { resolveWorkspace } from '../src/workspace.js'
 
@@ -28,6 +29,8 @@ const qaReverseEngineeringOverlay = join(
 const manifest = loadManifest(packDir)
 const commonRePackDir = join(repoRoot, 'packs', 'agentic-ai-workflow')
 const commonReManifest = loadManifest(commonRePackDir)
+const legacyPackDir = join(repoRoot, 'packs', 'legacy-transformation-on-aws')
+const legacyManifest = loadManifest(legacyPackDir)
 
 const nativeReverseEngineeringPaths = {
   kiro: '.kiro/steering/reverse-engineering.md',
@@ -63,6 +66,17 @@ function qaReverseEngineeringContent(
   const write = renderInstructions(manifest, packDir, tool, workspace)
     .find((entry) => entry.path === path)
   expect(write, `QA reverse-engineering companion for ${tool}`).toBeDefined()
+  return write.content
+}
+
+function legacyPrimaryContent(
+  tool,
+  workspace = resolveWorkspace(legacyManifest, { tools: [tool] }),
+) {
+  const path = getAdapter(tool).instructions.primaryPath('aidlc-workflow.md')
+  const write = renderInstructions(legacyManifest, legacyPackDir, tool, workspace)
+    .find((entry) => entry.path === path)
+  expect(write, `legacy primary instruction for ${tool}`).toBeDefined()
   return write.content
 }
 
@@ -481,5 +495,93 @@ describe.each(listAdapterIds())('QA reverse-engineering rendering for %s', (tool
     expect(content).not.toContain('aidlc-docs/')
     expect(content).not.toContain('RAMP:SLOT')
     expect(content).not.toMatch(/\{\{(?:INSTRUCTION:|SPEC_DIR|STATE_DIR)/)
+  })
+})
+
+describe('legacy primary workflow composition', () => {
+  it('preserves adaptive modernization semantics without stale lifecycle stages', () => {
+    const content = resolveInstructionBody(
+      legacyManifest,
+      legacyPackDir,
+      'aidlc-workflow.md',
+    )
+
+    expect(content).toContain('# Legacy Transformation on AWS Modernization Workflow')
+    expect(content).toContain('{{SPEC_DIR}}/decomposition-plan/')
+    expect(content).toContain('# PHASE 0: Adaptive Reverse Engineering')
+    expect(content).toContain('# PHASE 1: Requirements')
+    expect(content).toContain('# PHASE 2: Design')
+    expect(content).toContain('# PHASE 3: Tasks')
+    expect(content).not.toMatch(/\bSTAGE [123]\b/i)
+    expect(content).not.toContain('Detect: brownfield?')
+    expect(content).toMatch(/Targeted[\s\S]*bounded default/i)
+    expect(content).toMatch(/Full[\s\S]*(?:explicit|approved)/i)
+    expect(content).toMatch(/Orientation[\s\S]*(?:temporary|cheap)/i)
+    expect(content).toContain('Cutover dependencies')
+    expect(content).not.toContain('RAMP:SLOT')
+  })
+
+  it('orders the single Phase 0 approval transition before Requirements', () => {
+    const content = resolveInstructionBody(
+      legacyManifest,
+      legacyPackDir,
+      'aidlc-workflow.md',
+    )
+    const phaseStart = content.indexOf('# PHASE 0:')
+    const phaseEnd = content.indexOf('# PHASE 1:', phaseStart)
+    expect(phaseStart).toBeGreaterThanOrEqual(0)
+    expect(phaseEnd).toBeGreaterThan(phaseStart)
+    const phase = content.slice(phaseStart, phaseEnd)
+    const evidenceReady = phase.slice(phase.indexOf('`Awaiting Approval`'))
+
+    expectOrdered(evidenceReady, '`Awaiting Approval`', 'explicit approval')
+    expectOrdered(evidenceReady, 'explicit approval', 'same single Phase 0')
+    expectOrdered(evidenceReady, 'same single Phase 0', 'complete raw approval response')
+    expectOrdered(
+      evidenceReady,
+      'complete raw approval response',
+      '{{STATE_DIR}}/audit.md',
+    )
+    expectOrdered(
+      evidenceReady,
+      '{{STATE_DIR}}/audit.md',
+      '`Awaiting Approval` to `Complete`',
+    )
+    expect(content.indexOf('`Awaiting Approval` to `Complete`')).toBeLessThan(phaseEnd)
+  })
+})
+
+describe.each(listAdapterIds())('legacy primary workflow rendering for %s', (tool) => {
+  it('uses native companion paths and resolves custom workspace roots', () => {
+    const workspace = resolveWorkspace(legacyManifest, {
+      tools: [tool],
+      specRoot: 'customer-specs',
+      stateRoot: 'customer-state',
+    })
+    const content = legacyPrimaryContent(tool, workspace)
+    const nativePath = nativeReverseEngineeringPaths[tool]
+
+    expect(content).toContain(nativePath)
+    for (const [otherTool, otherPath] of Object.entries(nativeReverseEngineeringPaths)) {
+      if (otherTool !== tool) expect(content).not.toContain(otherPath)
+    }
+    expect(content).toContain('customer-specs/decomposition-plan/')
+    expect(content).toContain('customer-state/aidlc-state.md')
+    expect(content).toContain('customer-state/audit.md')
+    expect(content).toContain('customer-state/analysis/reverse-engineering-scope.md')
+    expect(content).not.toContain('aidlc-docs/')
+    expect(content).not.toContain('RAMP:SLOT')
+    expect(content).not.toMatch(/\{\{(?:INSTRUCTION:|SPEC_DIR|STATE_DIR)/)
+  })
+})
+
+describe.each(['claude-code', 'copilot'])('legacy launcher portability for %s', (tool) => {
+  it('defers path selection to the resolved primary instructions', () => {
+    const content = renderCommand(legacyManifest, tool)?.content ?? ''
+
+    expect(content).toMatch(/resolved state[\s\S]*primary instructions/i)
+    expect(content).toMatch(/resolved analysis path[\s\S]*primary instructions/i)
+    expect(content).not.toContain('aidlc-docs/')
+    expect(content).not.toMatch(/\{\{(?:STATE_DIR|SPEC_DIR)/)
   })
 })
