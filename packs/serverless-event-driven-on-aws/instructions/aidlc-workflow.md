@@ -18,12 +18,12 @@ modernize, or change anything that warrants a spec.
 
 **MANDATORY FIRST ACTIONS (in this exact order):**
 
-1. Check if `aidlc-docs/aidlc-state.md` exists — if yes, **resume** from where we left off
+1. Check if `{{STATE_DIR}}/aidlc-state.md` exists — if yes, **resume** from where we left off
 2. If no state file exists, decide if this is **brownfield** (existing code present) or **greenfield** (no existing code)
-3. Create `aidlc-docs/aidlc-state.md` and `aidlc-docs/audit.md`
-4. Run **Practices Discovery** (follow `practices-discovery.md`) — capture the team's stack, testing posture (current vs target), conventions, and compliance constraints into `aidlc-docs/team-practices.md`. This is a light gate that grounds every later phase.
-5. Run the **repo-model decision gate** (follow `multi-repo-projects.md`) — ask how the system's code is organized: **single repo (monorepo)** / **frontend + backend split** / **other multi-repo (3+)**. Record it in state as **Repo Model**. If **multi-repo**, follow the Multi-Repo Flow in that file (capture system requirements + design, freeze the API/event contracts, split into per-repo slices, then fan out); if **single repo**, run the standard phases below.
-6. Brownfield → start at **Phase 0**. Greenfield → start at **Phase 1** (or, if multi-repo, the system-level Requirements → Design first — see `multi-repo-projects.md`).
+3. Create `{{STATE_DIR}}/aidlc-state.md` and `{{STATE_DIR}}/audit.md`
+4. Run **Practices Discovery** (follow `{{INSTRUCTION:practices-discovery.md}}`) — capture the team's stack, testing posture (current vs target), conventions, and compliance constraints into `{{STATE_DIR}}/team-practices.md`. This is a light gate that grounds every later phase.
+5. Run the **repo-model decision gate** (follow `{{INSTRUCTION:multi-repo-projects.md}}`) — ask how the system's code is organized: **single repo (monorepo)** / **frontend + backend split** / **other multi-repo (3+)**. Record it in state as **Repo Model**. If **multi-repo**, follow the Multi-Repo Flow in that file (capture system requirements + design, freeze the API/event contracts, split into per-repo slices, then fan out); if **single repo**, run the standard phases below.
+6. Brownfield → start at **Phase 0**. Greenfield → start at **Phase 1** (or, if multi-repo, the system-level Requirements → Design first — see `{{INSTRUCTION:multi-repo-projects.md}}`).
 7. Follow the workflow sequentially with approval gates. At each decision file, surface **both** the phase's primary decisions **and** the testability/quality decisions (Phase 1 = Product + Testability; Phase 2 = Architecture + Test Architecture; Phase 3 = test sequencing) so quality is shaped in at every gate, not bolted on later.
 
 
@@ -38,7 +38,7 @@ modernize, or change anything that warrants a spec.
                                 ▼         │
             ╔════════════════════════════════╗
             ║  PHASE 0: Reverse Engineering  ║   (skip if greenfield)
-            ║  → aidlc-docs/analysis/*       ║
+            ║  → {{STATE_DIR}}/analysis/*       ║
             ╚════════════════════════════════╝
                                 │         │
                                 └────┬────┘
@@ -78,7 +78,7 @@ Before creating ANY spec document (`requirements.md`, `design.md`, `tasks.md`), 
 
 1. **Create the decision file first**: `_decisions-requirements.md`, `_decisions-design.md`, or `_decisions-tasks.md`
 2. **Wait for user input**: Get explicit user decisions before proceeding
-3. **Check for contradictions**: Once a decision file is filled in, review the answers **before generating the spec doc** — check the choices are internally consistent (no decision contradicts another), consistent with earlier phases' decisions, and consistent with `aidlc-docs/team-practices.md`. If you find a contradiction, **surface it and ask the user to resolve it** — do NOT silently pick one side or generate a spec on top of conflicting inputs.
+3. **Check for contradictions**: Once a decision file is filled in, review the answers **before generating the spec doc** — check the choices are internally consistent (no decision contradicts another), consistent with earlier phases' decisions, and consistent with `{{STATE_DIR}}/team-practices.md`. If you find a contradiction, **surface it and ask the user to resolve it** — do NOT silently pick one side or generate a spec on top of conflicting inputs.
 4. **Read completed decisions**: Use the resolved user choices to generate the final document
 
 **🔒 ABSOLUTE RULE**: NEVER generate `requirements.md`, `design.md`, or `tasks.md` without first creating and completing the corresponding `_decisions-*.md` file.
@@ -108,8 +108,8 @@ Each decision file is independent:
 
 ### 📋 HONOR TEAM PRACTICES
 **MANDATORY:** Before generating any design or code artifact, consult
-`aidlc-docs/team-practices.md` (captured once at the start — see
-`practices-discovery.md`). If a decision conflicts with it, **surface the
+`{{STATE_DIR}}/team-practices.md` (captured once at the start — see
+`{{INSTRUCTION:practices-discovery.md}}`). If a decision conflicts with it, **surface the
 conflict** rather than silently overriding the team's conventions. Treat the
 **Testing Posture (target)** and **Non-Negotiables** sections as binding for the
 rest of the workflow — they are what the per-phase testability/quality decisions
@@ -119,7 +119,7 @@ exist yet, run Practices Discovery first.
 
 ## MANDATORY: State Tracking
 
-Maintain `aidlc-docs/aidlc-state.md` for session continuity. If it exists at
+Maintain `{{STATE_DIR}}/aidlc-state.md` for session continuity. If it exists at
 session start, **resume** from the recorded state.
 
 ```markdown
@@ -134,7 +134,7 @@ session start, **resume** from the recorded state.
 - **Active Spec**: [name of the spec currently being worked on]
 
 ## Phase Progress
-- [ ] Practices Discovery (→ aidlc-docs/team-practices.md)
+- [ ] Practices Discovery (→ {{STATE_DIR}}/team-practices.md)
 - [ ] Phase 0: Reverse Engineering (skip if greenfield)
 - [ ] Phase 1: Requirements
   - [ ] 1a. _decisions-requirements.md created
@@ -164,7 +164,7 @@ session start, **resume** from the recorded state.
 
 ## MANDATORY: Audit Logging
 
-Maintain `aidlc-docs/audit.md` as an append-only log.
+Maintain `{{STATE_DIR}}/audit.md` as an append-only log.
 
 - ALWAYS append, NEVER overwrite
 - Log every user input with complete raw text
@@ -220,7 +220,7 @@ Maintain `aidlc-docs/audit.md` as an append-only log.
 
 ## Session Continuity
 
-When `aidlc-docs/aidlc-state.md` exists at session start:
+When `{{STATE_DIR}}/aidlc-state.md` exists at session start:
 
 1. Read the state file to determine current progress
 2. Identify the active spec and phase
@@ -240,9 +240,9 @@ explicitly references an existing system to modernize/extend.
 materially. Stale analysis is worse than no analysis.
 
 ### Activation
-**MANDATORY**: Load and follow `.kiro/steering/reverse-engineering.md`.
+**MANDATORY**: Load and follow `{{INSTRUCTION:reverse-engineering.md}}`.
 
-### Outputs (in `aidlc-docs/analysis/`)
+### Outputs (in `{{STATE_DIR}}/analysis/`)
 - `business-overview.md`
 - `architecture.md`
 - `code-structure.md`
@@ -278,7 +278,7 @@ Generate a decision file for the spec. Decision categories to consider:
 
 Surface **both** the Product framing (scope, personas, measurable outcome) **and** the Testability/Quality decisions above — so quality is shaped in at requirements time, not bolted on later.
 
-For brownfield work, reference relevant findings in `aidlc-docs/analysis/`. Respect `aidlc-docs/team-practices.md` (see `practices-discovery.md`) — especially the target testing posture and any compliance constraints.
+For brownfield work, reference relevant findings in `{{STATE_DIR}}/analysis/`. Respect `{{STATE_DIR}}/team-practices.md` (see `{{INSTRUCTION:practices-discovery.md}}`) — especially the target testing posture and any compliance constraints.
 
 ### Step 1.2 — Wait for User Input
 Acknowledge partial responses. Do not invent decisions.
@@ -312,7 +312,7 @@ Generate a decision file. Decision categories to consider:
 - **Data Architecture:** Data store choice, ownership, migration approach if brownfield
 - **Infrastructure & Operations:** IaC tool, environments, deployment strategy
 - **Observability:** Logs, metrics, tracing, alarms; structured logging
-- **Test Architecture (Quality):** What is mocked at each layer; which components are unit-isolatable vs. need integration; the contract-test expectation at each named seam; the integration-test environment; and the **CI quality gate that must be green to merge** (when the team runs trunk-based delivery — see `practices-discovery.md`)
+- **Test Architecture (Quality):** What is mocked at each layer; which components are unit-isolatable vs. need integration; the contract-test expectation at each named seam; the integration-test environment; and the **CI quality gate that must be green to merge** (when the team runs trunk-based delivery — see `{{INSTRUCTION:practices-discovery.md}}`)
 - **Correctness Properties Strategy:** Skip / essential only / comprehensive
 
 Surface **both** the Architecture decisions **and** the Test Architecture above — so testability is designed in, not discovered during construction.
@@ -342,7 +342,7 @@ Generate the complete technical design covering:
 3. Data model / ER diagram (when persistent state exists)
 
 ### Quality Gate Check
-Before presenting the gate, for **each** requirement from Phase 1 confirm a test is **accounted for**: name the test that proves it and the seam/contract it asserts against, consistent with the team's chosen test-sequencing strategy (captured in Phase 3 decisions and `aidlc-docs/team-practices.md`). A requirement with **no test plan at all** ("manual QA only" / "tested later, TBD") is not ready — surface it before approving.
+Before presenting the gate, for **each** requirement from Phase 1 confirm a test is **accounted for**: name the test that proves it and the seam/contract it asserts against, consistent with the team's chosen test-sequencing strategy (captured in Phase 3 decisions and `{{STATE_DIR}}/team-practices.md`). A requirement with **no test plan at all** ("manual QA only" / "tested later, TBD") is not ready — surface it before approving.
 
 ### Approval Gate
 Wait for explicit user approval. Update `aidlc-state.md` and `audit.md`.
@@ -503,7 +503,7 @@ When all tasks are `[x]`:
 
 Every new interaction:
 
-1. CHECK for `aidlc-docs/aidlc-state.md`
+1. CHECK for `{{STATE_DIR}}/aidlc-state.md`
 2. If it exists, READ it and RESUME
 3. If it doesn't exist, decide brownfield vs greenfield, then start at the right phase
 4. NEVER skip a `_decisions-*.md` before the corresponding spec doc

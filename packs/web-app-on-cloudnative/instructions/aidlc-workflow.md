@@ -17,11 +17,11 @@ modernize, or change anything that warrants a spec.
 
 **MANDATORY FIRST ACTIONS (in this exact order):**
 
-1. Check if `aidlc-docs/aidlc-state.md` exists — if yes, **resume** from where we left off
-2. If no state file exists, create `aidlc-docs/aidlc-state.md` and `aidlc-docs/audit.md`
+1. Check if `{{STATE_DIR}}/aidlc-state.md` exists — if yes, **resume** from where we left off
+2. If no state file exists, create `{{STATE_DIR}}/aidlc-state.md` and `{{STATE_DIR}}/audit.md`
 3. Decide if this is **brownfield** (existing code present) or **greenfield** (no existing code)
 4. **Brownfield → run a system-level Phase 0 (Reverse Engineering) FIRST.** Its outputs (bounded contexts, coupling, existing API contracts, modernization-readiness) are the primary input to the repo-model/topology decision and the contract catalog. **Greenfield → skip Phase 0.**
-5. Decide **spec placement** (e.g. central specs repo) and a *provisional* **mono-vs-multi preference** early — see **`.kiro/steering/multi-repo-projects.md`**. But **defer the detailed repo topology** (exact repos + boundaries): it is finalized in the **System High-Level Design (S2)**, *after* the **System Requirements (S1)** are captured (and after Phase 0 for brownfield). Topology follows bounded contexts + overall requirements — don't lock exact repos/boundaries before them. Topology must be locked before per-repo design.
+5. Decide **spec placement** (e.g. central specs repo) and a *provisional* **mono-vs-multi preference** early — see **`{{INSTRUCTION:multi-repo-projects.md}}`**. But **defer the detailed repo topology** (exact repos + boundaries): it is finalized in the **System High-Level Design (S2)**, *after* the **System Requirements (S1)** are captured (and after Phase 0 for brownfield). Topology follows bounded contexts + overall requirements — don't lock exact repos/boundaries before them. Topology must be locked before per-repo design.
 6. Proceed: Greenfield single-repo/monorepo → **Phase 1** (its Phase 1/2 already capture overall requirements + design in one repo). Multi-repo (domain-grouped/polyrepo) → the two-level flow: **S1 System Requirements → S2 System High-Level Design** (freeze contracts = Wave 0) → **S3 split** the system requirements into per-repo slices → **S4 fan out** to per-repo detailed R→D→T. (Monorepo spanning multiple contract-sharing domains → run S1/S2 lightly with in-repo contracts.)
 7. Follow the workflow sequentially with approval gates.
 
@@ -38,7 +38,7 @@ modernize, or change anything that warrants a spec.
                                 ▼         │
             ╔════════════════════════════════╗
             ║  PHASE 0: Reverse Engineering  ║   (skip if greenfield)
-            ║  → aidlc-docs/analysis/*       ║
+            ║  → {{STATE_DIR}}/analysis/*       ║
             ╚════════════════════════════════╝
                                 │         │
                                 └────┬────┘
@@ -110,10 +110,10 @@ Each decision file is independent:
 
 ## MANDATORY: State Tracking
 
-Maintain `aidlc-docs/aidlc-state.md` for session continuity. If it exists at
+Maintain `{{STATE_DIR}}/aidlc-state.md` for session continuity. If it exists at
 session start, **resume** from the recorded state.
 
-> **Multi-repo:** keep state **per level** — `aidlc-docs/_platform/aidlc-state.md` for the shared S0–S3 phases, and a separate `aidlc-docs/<repo>/aidlc-state.md` per sub for its S4 fan-out. This keeps parallel branches from colliding on one tracker. See `.kiro/steering/multi-repo-projects.md`.
+> **Multi-repo:** keep state **per level** — `{{STATE_DIR}}/_platform/aidlc-state.md` for the shared S0–S3 phases, and a separate `{{STATE_DIR}}/<repo>/aidlc-state.md` per sub for its S4 fan-out. This keeps parallel branches from colliding on one tracker. See `{{INSTRUCTION:multi-repo-projects.md}}`.
 
 ```markdown
 # AI-DLC Workflow State
@@ -174,9 +174,9 @@ session start, **resume** from the recorded state.
 
 ## MANDATORY: Audit Logging
 
-Maintain `aidlc-docs/audit.md` as an append-only log.
+Maintain `{{STATE_DIR}}/audit.md` as an append-only log.
 
-> **Multi-repo:** audit **per level** too — `aidlc-docs/_platform/audit.md` for shared S0–S3 decisions, and `aidlc-docs/<repo>/audit.md` per sub for its S4 work — so each sub's audit travels with it at repo hand-off.
+> **Multi-repo:** audit **per level** too — `{{STATE_DIR}}/_platform/audit.md` for shared S0–S3 decisions, and `{{STATE_DIR}}/<repo>/audit.md` per sub for its S4 work — so each sub's audit travels with it at repo hand-off.
 
 - ALWAYS append, NEVER overwrite
 - Log every user input with complete raw text
@@ -237,7 +237,7 @@ Maintain `aidlc-docs/audit.md` as an append-only log.
 
 ## Session Continuity
 
-When `aidlc-docs/aidlc-state.md` exists at session start:
+When `{{STATE_DIR}}/aidlc-state.md` exists at session start:
 
 1. Read the state file to determine current progress
 2. Identify the active spec and phase
@@ -258,9 +258,9 @@ explicitly references an existing system to modernize/extend.
 materially. Stale analysis is worse than no analysis.
 
 ### Activation
-**MANDATORY**: Load and follow `.kiro/steering/reverse-engineering.md`.
+**MANDATORY**: Load and follow `{{INSTRUCTION:reverse-engineering.md}}`.
 
-### Outputs (in `aidlc-docs/analysis/`)
+### Outputs (in `{{STATE_DIR}}/analysis/`)
 - `business-overview.md`
 - `architecture.md`
 - `code-structure.md`
@@ -294,7 +294,7 @@ Generate a decision file for the spec. Decision categories to consider:
 - **Integration Requirements:** Existing systems the spec must interoperate with (drawn from Phase 0 outputs when available)
 - **Deployment Variants:** Cloud-only, hybrid, or on-prem variants the requirements must support
 
-For brownfield work, reference relevant findings in `aidlc-docs/analysis/`.
+For brownfield work, reference relevant findings in `{{STATE_DIR}}/analysis/`.
 
 ### Step 1.2 — Wait for User Input
 Acknowledge partial responses. Do not invent decisions.
@@ -507,7 +507,7 @@ When all tasks are `[x]`:
 
 The repo model (monorepo → polyrepo) is a **decision gate** taken at project start. For multi-repo systems, capture the whole system once — **System Requirements (S1) → System High-Level Design (S2)** — then **split** those requirements into per-repo slices and fan out. The full flow — the repo-model decision gate, how the workflow adapts to each model, the two system-level passes, the split step, contract tiers and blast-radius rules, and directory conventions — lives in a dedicated steering doc to keep this workflow focused.
 
-**MANDATORY:** Load and follow **`.kiro/steering/multi-repo-projects.md`** whenever the repo model is anything other than a single simple repo (monorepo spanning multiple contract-sharing domains, domain-grouped repos, or polyrepo). Run its **repo-model decision gate** before the design phase in every case.
+**MANDATORY:** Load and follow **`{{INSTRUCTION:multi-repo-projects.md}}`** whenever the repo model is anything other than a single simple repo (monorepo spanning multiple contract-sharing domains, domain-grouped repos, or polyrepo). Run its **repo-model decision gate** before the design phase in every case.
 
 ---
 
@@ -526,7 +526,7 @@ The repo model (monorepo → polyrepo) is a **decision gate** taken at project s
 
 Every new interaction:
 
-1. CHECK for `aidlc-docs/aidlc-state.md`
+1. CHECK for `{{STATE_DIR}}/aidlc-state.md`
 2. If it exists, READ it and RESUME
 3. If it doesn't exist, decide brownfield vs greenfield AND single-repo vs multi-repo, then start at the right phase (multi-repo → System Requirements → System High-Level Design → split → fan out)
 4. NEVER skip a `_decisions-*.md` before the corresponding spec doc

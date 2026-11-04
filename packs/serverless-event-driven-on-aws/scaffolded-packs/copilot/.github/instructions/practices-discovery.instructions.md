@@ -1,5 +1,5 @@
 ---
-description: Team-practices capture — run once at the start of a workflow (before Phase 1) to record the team's tech stack, testing posture (current vs. target), coding conventions, branching model, and compliance constraints into aidlc-docs/team-practices.md. Load when starting a new workflow, on first session, or when capturing/revisiting team conventions.
+description: Team-practices capture — run once at the start of a workflow (before Phase 1) to record the team's tech stack, testing posture (current vs. target), coding conventions, branching model, and compliance constraints in the resolved team-practices state file. Load when starting a new workflow, on first session, or when capturing/revisiting team conventions.
 ---
 # Practices Discovery — Team Context Capture
 
@@ -108,7 +108,7 @@ Once `team-practices.md` is filled in, it steers all three phases:
 ### Steering Rule
 
 Once captured, `aidlc-docs/team-practices.md` is **binding for the rest of the
-workflow**. The **HONOR TEAM PRACTICES** core principle in `aidlc-workflow.md`
+workflow**. The **HONOR TEAM PRACTICES** core principle in `.github/copilot-instructions.md`
 enforces it: before generating any design or code artifact, the agent consults
 this file, surfaces (never silently overrides) conflicts, and treats the
 **Testing Posture (target)** and **Non-Negotiables** sections as the standard the

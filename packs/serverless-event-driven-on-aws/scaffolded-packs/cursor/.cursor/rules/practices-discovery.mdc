@@ -108,7 +108,7 @@ Once `team-practices.md` is filled in, it steers all three phases:
 ### Steering Rule
 
 Once captured, `aidlc-docs/team-practices.md` is **binding for the rest of the
-workflow**. The **HONOR TEAM PRACTICES** core principle in `aidlc-workflow.md`
+workflow**. The **HONOR TEAM PRACTICES** core principle in `.cursor/rules/aidlc-workflow.mdc`
 enforces it: before generating any design or code artifact, the agent consults
 this file, surfaces (never silently overrides) conflicts, and treats the
 **Testing Posture (target)** and **Non-Negotiables** sections as the standard the

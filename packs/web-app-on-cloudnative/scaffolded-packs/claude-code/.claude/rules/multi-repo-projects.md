@@ -4,9 +4,9 @@
 
 **Execute when**: At project start, always run the **repo-model decision gate** below. Then follow the **Multi-Repo Projects flow** when the chosen model is domain-grouped repos, repo-per-component (polyrepo), or a monorepo that spans multiple contract-sharing domains.
 
-**Skip the multi-repo flow when**: A single simple app in one repo with no shared contracts across domains — use the standard single-repo workflow in `aidlc-decisions-workflow.md`.
+**Skip the multi-repo flow when**: A single simple app in one repo with no shared contracts across domains — use the standard single-repo workflow in `CLAUDE.md`.
 
-> This doc is loaded and followed from `aidlc-decisions-workflow.md` (see its MANDATORY FIRST ACTIONS). The **contract-first, decide-once** principle here applies to *every* model; only the mechanics of how contracts are shared differ.
+> This doc is loaded and followed from `CLAUDE.md` (see its MANDATORY FIRST ACTIONS). The **contract-first, decide-once** principle here applies to *every* model; only the mechanics of how contracts are shared differ.
 
 ---
 
@@ -33,7 +33,7 @@ You do **not** need to know the repo model before starting — this is a decisio
 
 ## How the workflow adapts to the chosen model
 
-- **Monorepo / monorepo-with-workspaces (options 1–2):** run the **standard single-repo workflow** (Phase 1 → 2 → 3 in `aidlc-decisions-workflow.md`) — its Phase 1/2 already capture overall requirements + design in one place, and Phase 3 decomposes into parallel task groups. If the repo spans **multiple contract-sharing domains**, run the two system-level passes below (System Requirements → System High-Level Design) so the contracts are fixed once — but here contracts live as an **in-repo shared package/module**, changed atomically alongside consumers. No cross-repo publishing or versioning ceremony.
+- **Monorepo / monorepo-with-workspaces (options 1–2):** run the **standard single-repo workflow** (Phase 1 → 2 → 3 in `CLAUDE.md`) — its Phase 1/2 already capture overall requirements + design in one place, and Phase 3 decomposes into parallel task groups. If the repo spans **multiple contract-sharing domains**, run the two system-level passes below (System Requirements → System High-Level Design) so the contracts are fixed once — but here contracts live as an **in-repo shared package/module**, changed atomically alongside consumers. No cross-repo publishing or versioning ceremony.
 - **Domain-grouped or polyrepo (options 3–4):** run the full **MULTI-REPO PROJECTS** flow below — System Requirements → System High-Level Design (publish **versioned** shared contracts = Wave 0) → **split** into per-repo slices → fan out to per-repo detailed specs that pin a contract version.
 
 > 🔑 **The only real difference across models is the contract mechanism:** an **in-repo shared package** (monorepo — changes are atomic) vs a **versioned, published artifact** (multi-repo — changes are coordinated and version-bumped). Everything else — decision gates, approval gates, state/audit tracking, parallel task waves — is identical.
@@ -46,7 +46,7 @@ You do **not** need to know the repo model before starting — this is a decisio
 
 # MULTI-REPO PROJECTS
 
-**When this applies:** the system is split across **multiple repositories** — e.g. each SPA and each BFF is its own repo, plus a shared domain/engine repo and any integration endpoints. Confirm the repo model at project start (see MANDATORY FIRST ACTIONS in `aidlc-decisions-workflow.md`).
+**When this applies:** the system is split across **multiple repositories** — e.g. each SPA and each BFF is its own repo, plus a shared domain/engine repo and any integration endpoints. Confirm the repo model at project start (see MANDATORY FIRST ACTIONS in `CLAUDE.md`).
 
 **The core risk is contract drift.** When independent repos each run their own spec from scratch, their product intent AND their APIs/data shapes drift out of sync — integration fails late and per-repo specs come out thin. The workflow prevents this by **capturing the whole system once, then splitting it**, under one rule:
 
@@ -152,7 +152,7 @@ Track progress at **both levels, in separate files**, so parallel squads on sepa
 
 **Why per-sub:** once you split, squads work on separate branches (and eventually separate repos). Disjoint per-sub state/audit paths mean branches don't collide on a shared tracker.
 
-**Hand-off to code repos:** when a squad moves from the central specs repo to its own code repo, it copies its `.kiro/specs/<repo>/` bundle (decisions + requirements + design + tasks) **and** its `aidlc-docs/<repo>/` (state + audit) into the code repo — where they become that repo's **root** `aidlc-docs/` + `.kiro/specs/<repo>/`. Shared contracts are consumed by pinned version. From that point the code repo owns its own AI-DLC lifecycle. (This is effectively transitioning that sub from the central-specs-repo placement to co-located.)
+**Hand-off to code repos:** when a squad moves from the central specs repo to its own code repo, copy the selected `specs/<repo>/` specification bundle (decisions + requirements + design + tasks) and `aidlc-docs/<repo>/` state bundle (state + audit) into the destination code repository's resolved specification root (`specs/`) and state root (`aidlc-docs/`). Shared contracts are consumed by pinned version. From that point the code repo owns its own AI-DLC lifecycle. (This is effectively transitioning that sub from the central-specs-repo placement to co-located.)
 
 ## Multi-repo directory conventions
 
@@ -168,7 +168,7 @@ Track progress at **both levels, in separate files**, so parallel squads on sepa
 │   │   ├── aidlc-state.md
 │   │   └── audit.md
 │   └── ...                           # one folder per sub
-└── .kiro/specs/
+└── specs/
     ├── _platform/                    # LEVEL 1 — system specs (whole system)
     │   ├── _decisions-requirements.md · requirements.md   # S1
     │   ├── _decisions-design.md · design.md               # S2 (architecture, topology)
@@ -179,7 +179,7 @@ Track progress at **both levels, in separate files**, so parallel squads on sepa
     ├── consumer-spa/
     └── ...
 
-     ── hand-off ──▶  copy .kiro/specs/<repo>/ + aidlc-docs/<repo>/ into the <repo> code repo
+     ── hand-off ──▶  copy specs/<repo>/ + aidlc-docs/<repo>/ into the <repo> code repo
 ```
 
 **Co-located / hybrid model** (specs already travel with each code repo):
@@ -187,11 +187,11 @@ Track progress at **both levels, in separate files**, so parallel squads on sepa
 ```
 <contracts-repo>/                     # authority for shared contracts + system specs
 ├── aidlc-docs/_platform/             # system-level state + audit (S0–S3)
-└── .kiro/specs/_platform/            # requirements.md · design.md · contracts/ · split.md
+└── specs/_platform/            # requirements.md · design.md · contracts/ · split.md
 <consumer-bff-repo>/
 ├── aidlc-docs/                       # this repo's OWN state + audit (S4 + execution)
-└── .kiro/specs/consumer-bff/         # per-repo detailed spec; pins contracts@<version>
+└── specs/consumer-bff/         # per-repo detailed spec; pins contracts@<version>
 <consumer-spa-repo>/
 ├── aidlc-docs/
-└── .kiro/specs/consumer-spa/
+└── specs/consumer-spa/
 ```

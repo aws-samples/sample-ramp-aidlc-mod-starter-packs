@@ -119,12 +119,62 @@ const sources = [
   },
 ]
 
+const multiRepoSources = [
+  {
+    pack: 'web-app-on-cloudnative',
+    file: 'aidlc-workflow.md',
+    state: 14,
+    spec: 1,
+    instructions: {
+      'multi-repo-projects.md': 3,
+      'reverse-engineering.md': 1,
+    },
+  },
+  {
+    pack: 'web-app-on-cloudnative',
+    file: 'multi-repo-projects.md',
+    state: 10,
+    spec: 7,
+    instructions: { 'aidlc-workflow.md': 4 },
+  },
+  {
+    pack: 'serverless-event-driven-on-aws',
+    file: 'aidlc-workflow.md',
+    state: 16,
+    spec: 1,
+    instructions: {
+      'practices-discovery.md': 4,
+      'multi-repo-projects.md': 2,
+      'reverse-engineering.md': 1,
+    },
+  },
+  {
+    pack: 'serverless-event-driven-on-aws',
+    file: 'multi-repo-projects.md',
+    state: 10,
+    spec: 8,
+    instructions: { 'aidlc-workflow.md': 2 },
+  },
+  {
+    pack: 'serverless-event-driven-on-aws',
+    file: 'practices-discovery.md',
+    state: 4,
+    spec: 0,
+    instructions: { 'aidlc-workflow.md': 1 },
+  },
+]
+
 const packNames = [...new Set(sources.map(({ pack }) => pack))]
+const multiRepoPackNames = [
+  ...new Set(multiRepoSources.map(({ pack }) => pack)),
+]
 const packDir = (pack) => join(repoRoot, 'packs', pack)
 const manifestFor = (pack) => loadManifest(packDir(pack))
 const count = (text, needle) => text.split(needle).length - 1
 const portable = (path) => path.split(sep).join('/')
 const ownedToken = /\{\{(?:SPEC_DIR|STATE_DIR|INSTRUCTION:[^}]+)\}\}/
+const fixedWorkflowRoot =
+  /aidlc-docs|aidlc-specs|\.kiro\/specs|\.kiro\/steering|\.claude\/specs|\.cursor\/specs|\.github\/specs|aidlc-decisions-workflow\.md/
 
 function nativeInstructionPath(manifest, tool, file) {
   const instruction = manifest.instructions.find((item) => item.file === file)
@@ -157,7 +207,7 @@ function renderedSource(expectation, tool, workspace) {
 
 function expectNativeReferences(content, expectation, manifest, tool) {
   for (const [file, expected] of Object.entries(expectation.instructions)) {
-    const native = getAdapter(tool).instructions.companionPath(file)
+    const native = nativeInstructionPath(manifest, tool, file)
     expect(
       count(content, native),
       `${expectation.pack}/${expectation.file}: ${tool} native ${file}`,
@@ -165,7 +215,8 @@ function expectNativeReferences(content, expectation, manifest, tool) {
 
     for (const otherTool of tools) {
       if (otherTool === tool) continue
-      const other = getAdapter(otherTool).instructions.companionPath(file)
+      const other = nativeInstructionPath(manifest, otherTool, file)
+      if (other === native) continue
       expect(
         content,
         `${expectation.pack}/${expectation.file}: no ${otherTool} ${file}`,
@@ -336,6 +387,170 @@ describe.each(packNames)('shared workspace defaults: %s', (pack) => {
     }
   })
 })
+
+describe('multi-repository neutral instruction portability', () => {
+  it.each(multiRepoSources)(
+    '$pack/$file owns every workflow path and native instruction reference',
+    (expectation) => {
+      const manifest = manifestFor(expectation.pack)
+      const content = resolveInstructionBody(
+        manifest,
+        packDir(expectation.pack),
+        expectation.file,
+      )
+
+      expect(count(content, '{{STATE_DIR}}')).toBe(expectation.state)
+      expect(count(content, '{{SPEC_DIR}}')).toBe(expectation.spec)
+      expect(content).not.toMatch(fixedWorkflowRoot)
+
+      for (const [file, expected] of Object.entries(expectation.instructions)) {
+        const token = `{{INSTRUCTION:${file}}}`
+        expect(count(content, token)).toBe(expected)
+        expect(content.split(token).join('')).not.toContain(file)
+      }
+    },
+  )
+})
+
+describe.each(multiRepoPackNames)(
+  'multi-repository custom workspace portability: %s',
+  (pack) => {
+    const expectations = multiRepoSources.filter(
+      (candidate) => candidate.pack === pack,
+    )
+    const manifest = manifestFor(pack)
+    const directory = packDir(pack)
+
+    it.each(tools)(
+      'renders all %s instructions into custom roots and native paths',
+      (tool) => {
+        const workspace = resolveWorkspace(manifest, {
+          tools: [tool],
+          specRoot: 'company-specs',
+          stateRoot: 'delivery-state',
+        })
+        const writes = renderInstructions(manifest, directory, tool, workspace)
+
+        for (const write of writes) {
+          expect(write.content).not.toMatch(ownedToken)
+          expect(write.content).not.toMatch(
+            /aidlc-docs|aidlc-specs|\.kiro\/specs|\.claude\/specs|\.cursor\/specs|\.github\/specs/,
+          )
+
+          for (const otherTool of tools) {
+            if (otherTool === tool) continue
+            expect(write.content).not.toContain(
+              `${privateInstructionRoot(otherTool)}/`,
+            )
+          }
+        }
+
+        for (const expectation of expectations) {
+          const content = renderedSource(expectation, tool, workspace)
+          expect(count(content, 'company-specs')).toBe(expectation.spec)
+          expect(count(content, 'delivery-state')).toBe(expectation.state)
+          expectNativeReferences(content, expectation, manifest, tool)
+        }
+
+        const multiRepo = renderedSource(
+          expectations.find(
+            (expectation) => expectation.file === 'multi-repo-projects.md',
+          ),
+          tool,
+          workspace,
+        )
+        expect(multiRepo).toContain('company-specs/_platform/')
+        expect(multiRepo).toContain('company-specs/<repo>/')
+        expect(multiRepo).toContain('delivery-state/_platform/')
+        expect(multiRepo).toContain('delivery-state/<repo>/')
+        expect(multiRepo).toMatch(
+          /resolved specification root \(`company-specs\/`\) and\s+state root \(`delivery-state\/`\)/,
+        )
+        expect(multiRepo).not.toMatch(
+          /resolved `?company-specs\/<repo>\/`? specification/,
+        )
+
+        if (pack === 'serverless-event-driven-on-aws' && tool === 'copilot') {
+          const practices = renderedSource(
+            expectations.find(
+              (expectation) => expectation.file === 'practices-discovery.md',
+            ),
+            tool,
+            workspace,
+          )
+          expect(practices).toContain(
+            "in the resolved team-practices state file.",
+          )
+        }
+      },
+    )
+  },
+)
+
+describe.each(multiRepoPackNames)(
+  'multi-repository standalone workspace defaults: %s',
+  (pack) => {
+    const expectation = multiRepoSources.find(
+      (candidate) =>
+        candidate.pack === pack &&
+        candidate.file === 'multi-repo-projects.md',
+    )
+    const manifest = manifestFor(pack)
+
+    it.each(tools)(
+      'uses the %s standalone roots with native references',
+      (tool) => {
+        const workspace = resolveWorkspace(manifest, { tools: [tool] })
+        const content = renderedSource(expectation, tool, workspace)
+        const specRoot = tool === 'kiro' ? '.kiro/specs' : 'specs'
+
+        expect(content).toContain(`${specRoot}/_platform/`)
+        expect(content).toContain(`${specRoot}/<repo>/`)
+        expect(content).toContain('aidlc-docs/_platform/')
+        expect(content).toContain('aidlc-docs/<repo>/')
+        if (tool !== 'kiro') expect(content).not.toContain('.kiro/specs')
+        expectNativeReferences(content, expectation, manifest, tool)
+      },
+    )
+  },
+)
+
+describe.each(multiRepoPackNames)(
+  'multi-repository shared workspace defaults: %s',
+  (pack) => {
+    const expectation = multiRepoSources.find(
+      (candidate) =>
+        candidate.pack === pack &&
+        candidate.file === 'multi-repo-projects.md',
+    )
+    const manifest = manifestFor(pack)
+
+    it.each([
+      [['kiro', 'claude-code'], '.kiro/specs'],
+      [['claude-code', 'cursor'], 'specs'],
+    ])('shares %s roots at %s while keeping native references', (
+      participants,
+      specRoot,
+    ) => {
+      const workspace = resolveWorkspace(manifest, { tools: participants })
+
+      for (const tool of participants) {
+        const content = renderedSource(expectation, tool, workspace)
+        expect(content).toContain(`${specRoot}/_platform/`)
+        expect(content).toContain(`${specRoot}/<repo>/`)
+        expect(content).toContain('aidlc-docs/_platform/')
+        expect(content).toContain('aidlc-docs/<repo>/')
+        if (!participants.includes('kiro')) {
+          expect(content).not.toContain('.kiro/specs')
+        }
+        expect(content).not.toMatch(
+          /\.claude\/specs|\.cursor\/specs|\.github\/specs/,
+        )
+        expectNativeReferences(content, expectation, manifest, tool)
+      }
+    })
+  },
+)
 
 describe('COTS root-neutral launchers', () => {
   const pack = 'cots-rewrite-on-cloudnative'

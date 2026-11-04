@@ -35,10 +35,10 @@ Captured dimensions:
 
 ## The Practices Discovery Capture
 
-On first run (no `aidlc-docs/team-practices.md` exists), generate this file and
+On first run (no `{{STATE_DIR}}/team-practices.md` exists), generate this file and
 have the team fill it in. Keep it to one screen per section.
 
-### `aidlc-docs/team-practices.md`
+### `{{STATE_DIR}}/team-practices.md`
 
 ```markdown
 # Team Practices & Conventions
@@ -105,8 +105,8 @@ Once `team-practices.md` is filled in, it steers all three phases:
 
 ### Steering Rule
 
-Once captured, `aidlc-docs/team-practices.md` is **binding for the rest of the
-workflow**. The **HONOR TEAM PRACTICES** core principle in `aidlc-workflow.md`
+Once captured, `{{STATE_DIR}}/team-practices.md` is **binding for the rest of the
+workflow**. The **HONOR TEAM PRACTICES** core principle in `{{INSTRUCTION:aidlc-workflow.md}}`
 enforces it: before generating any design or code artifact, the agent consults
 this file, surfaces (never silently overrides) conflicts, and treats the
 **Testing Posture (target)** and **Non-Negotiables** sections as the standard the
@@ -140,7 +140,7 @@ output).
 
 ## Skip Conditions
 
-- Skip if `aidlc-docs/team-practices.md` already exists (resume scenario).
+- Skip if `{{STATE_DIR}}/team-practices.md` already exists (resume scenario).
 - Skip if the team says "skip practices" / "we'll fill this in later".
 - Greenfield POC with no existing team: generate a minimal version with just
   tech-stack and target testing-posture decisions.

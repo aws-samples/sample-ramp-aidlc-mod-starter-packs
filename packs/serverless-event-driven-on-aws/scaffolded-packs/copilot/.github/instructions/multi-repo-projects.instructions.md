@@ -15,7 +15,7 @@ whole system's intent once and splits the specs across repos **without contract 
 Practices Discovery and before Phase 1. Then:
 
 - **Single repo (monorepo)** → skip the rest of this file; run the standard
-  `aidlc-workflow.md` flow (Phase 1 → 2 → 3).
+  `.github/copilot-instructions.md` flow (Phase 1 → 2 → 3).
 - **Multi-repo** → follow the **Multi-Repo Flow** in this file (system-level
   requirements + design → split → per-repo fan-out).
 
@@ -261,16 +261,16 @@ branches never contend on one tracker:
   covering its Requirements → Design → Tasks and execution.
 
 **Hand-off to code repos:** when a squad moves from the central specs repo to its own code
-repo, it copies its `.kiro/specs/<repo>/` bundle (decisions + requirements + design + tasks)
-**and** its `aidlc-docs/<repo>/` (state + audit) into the code repo, where they become that
-repo's root `aidlc-docs/` + `.kiro/specs/<repo>/`. Shared contracts are consumed by pinned
-version. From that point the code repo owns its own AI-DLC lifecycle.
+repo, copy the selected `specs/<repo>/` specification bundle (decisions +
+requirements + design + tasks) and `aidlc-docs/<repo>/` state bundle (state + audit)
+into the destination code repository's resolved specification root (`specs/`) and
+state root (`aidlc-docs/`). Shared contracts are consumed by pinned version.
+From that point the code repo owns its own AI-DLC lifecycle.
 
-> **Spec directory per tool:** this pack follows the same spec-dir convention as
-> `aidlc-workflow.md` — `.kiro/specs/<name>/` on Kiro. On other harnesses the installer
-> renders the equivalent location (e.g. Claude Code `.claude/specs/`, Cursor
-> `.cursor/specs/`, Copilot `.github/specs/`). The `_platform/` and per-repo `<repo>/`
-> subfolders below sit under that tool's specs directory.
+> **Resolved specification root:** the workspace resolver chooses `specs` once
+> for every participant. The `_platform/` and per-repo `<repo>/` subfolders below sit
+> under that shared root. See `.github/copilot-instructions.md` for the single-repository
+> convention.
 
 ## Directory conventions
 
@@ -288,7 +288,7 @@ version. From that point the code repo owns its own AI-DLC lifecycle.
 │   └── frontend/
 │       ├── aidlc-state.md
 │       └── audit.md
-└── .kiro/specs/                      # (tool's specs dir — .claude/.cursor/.github on other harnesses)
+└── specs/                     # resolver-selected specification root for every participant
     ├── _platform/                    # LEVEL 1 — system specs (whole system)
     │   ├── _decisions-requirements.md · requirements.md   # Step 1
     │   ├── _decisions-design.md · design.md               # Step 2 (architecture, topology)
@@ -297,21 +297,21 @@ version. From that point the code repo owns its own AI-DLC lifecycle.
     ├── backend/                      # LEVEL 2 — per-repo detailed specs (Req → Design → Tasks)
     └── frontend/
 
-     ── hand-off ──▶  copy .kiro/specs/<repo>/ + aidlc-docs/<repo>/ into the <repo> code repo
+     ── hand-off ──▶  copy specs/<repo>/ + aidlc-docs/<repo>/ into the <repo> code repo
 ```
 
 **Co-located / hybrid model** (specs travel with each code repo):
 
 ```
 <contracts-repo>/                     # authority for shared contracts + system specs
-├── aidlc-docs/_platform/             # system-level state + audit
-└── .kiro/specs/_platform/            # requirements.md · design.md · contracts/ · split.md
+├── aidlc-docs/_platform/          # system-level state + audit
+└── specs/_platform/           # requirements.md · design.md · contracts/ · split.md
 <backend-repo>/
-├── aidlc-docs/                       # this repo's OWN state + audit
-└── .kiro/specs/backend/              # per-repo detailed spec; pins contracts@<version>
+├── aidlc-docs/                    # this repo's OWN state + audit
+└── specs/backend/             # per-repo detailed spec; pins contracts@<version>
 <frontend-repo>/
 ├── aidlc-docs/
-└── .kiro/specs/frontend/
+└── specs/frontend/
 ```
 
 ## Key Principles

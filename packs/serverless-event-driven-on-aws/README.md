@@ -57,6 +57,16 @@ node installer/bin/ramp-pack.js init serverless-event-driven-on-aws --tool <kiro
 
 Add `--dry-run` to preview, `--force` to overwrite existing files. To regenerate all four tool configs locally, run `./scripts/regenerate.sh serverless-event-driven-on-aws` (requires Node), which rebuilds the committed scaffolds in place. The tool-neutral source plus the shared `skills-library/` are the single source of truth.
 
+### Workspace paths
+
+The installer resolves one specification root and one state root for everyone working in the same repository:
+
+- Standalone Kiro uses `.kiro/specs`; standalone Claude Code, Copilot, or Cursor uses `specs`.
+- A shared workspace containing Kiro, such as Kiro + Claude Code, uses `.kiro/specs` for every participant. A shared workspace without Kiro, such as Claude Code + Cursor, uses `specs` for every participant.
+- The default state root is `aidlc-docs`.
+- `--spec-root` and `--state-root` select custom safe relative roots. For example, `--spec-root company-specs --state-root delivery-state` puts shared system artifacts in `company-specs/_platform/` and `delivery-state/_platform/`, and each repository's artifacts in `company-specs/<repo>/` and `delivery-state/<repo>/`.
+- At hand-off, copy the selected per-repository specification and state bundles into the destination repository's resolved specification and state roots.
+
 ### Then
 
 1. Update `AWS_PROFILE` in the generated MCP config (`mcp.json` / `.mcp.json`) for the AWS IaC MCP.
@@ -66,7 +76,7 @@ Add `--dry-run` to preview, `--force` to overwrite existing files. To regenerate
    - *"Build a third-party integration — route requests to an external service gateway with validation and status tracking."*
    - On Claude Code / Copilot you can also run the **`/aidlc`** command to kick off the workflow.
 
-The workflow creates `_decisions-requirements.md` and waits for your input before writing `requirements.md`. The same gate applies before `design.md` and `tasks.md`. Every decision is appended to `aidlc-docs/audit.md`, and progress is tracked in `aidlc-docs/aidlc-state.md` so you can resume across sessions. The `specs/` and `aidlc-docs/` directories are created by the agent on the first run.
+The workflow creates `_decisions-requirements.md` and waits for your input before writing `requirements.md`. The same gate applies before `design.md` and `tasks.md`. Every decision is appended to the audit file in the resolved state root, and progress is tracked there so you can resume across sessions. The agent creates the resolved specification and state roots on the first run.
 
 ## How the workflow works
 

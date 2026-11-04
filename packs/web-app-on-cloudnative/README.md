@@ -57,6 +57,16 @@ node installer/bin/ramp-pack.js init web-app-on-cloudnative --tool <kiro|claude-
 
 Add `--dry-run` to preview, `--force` to overwrite existing files. To regenerate all four tool configs locally, run `./scripts/regenerate.sh web-app-on-cloudnative` (requires Node) — it rebuilds the committed `scaffolded-packs/` in place. The neutral source (`instructions/`, `pack.yaml`) plus the shared `skills-library/` are the single source of truth.
 
+### Workspace paths
+
+The installer resolves one specification root and one state root for everyone working in the same repository:
+
+- Standalone Kiro uses `.kiro/specs`; standalone Claude Code, Copilot, or Cursor uses `specs`.
+- A shared workspace containing Kiro, such as Kiro + Claude Code, uses `.kiro/specs` for every participant. A shared workspace without Kiro, such as Claude Code + Cursor, uses `specs` for every participant.
+- The default state root is `aidlc-docs`.
+- `--spec-root` and `--state-root` select custom safe relative roots. For example, `--spec-root company-specs --state-root delivery-state` puts shared system artifacts in `company-specs/_platform/` and `delivery-state/_platform/`, and each repository's artifacts in `company-specs/<repo>/` and `delivery-state/<repo>/`.
+- At hand-off, copy the selected per-repository specification and state bundles into the destination repository's resolved specification and state roots.
+
 ### Then
 
 1. Open the project in your tool and start a conversation. Try:
@@ -163,7 +173,7 @@ LEVEL 2 — PER REPO (fan-out, in parallel)
 ```
 
 - **Topology is decided in S2, after S1** — it follows the bounded contexts (from RE) + overall requirements; never guessed up front.
-- **State & audit are per level:** `aidlc-docs/_platform/` for the shared S0–S3 phases, and a separate `aidlc-docs/<repo>/` per sub for its S4 work — so parallel branches never collide. At **hand-off**, a squad copies its `.kiro/specs/<repo>/` + `aidlc-docs/<repo>/` into its own code repo.
+- **State & audit are per level:** under the default state root, `aidlc-docs/_platform/` holds shared S0–S3 tracking and `aidlc-docs/<repo>/` holds each repository's S4 tracking, so parallel branches never collide. At **hand-off**, a squad copies the selected per-repository specification and state bundles into its code repository's resolved roots.
 
 **Invariants across all paths:** decision-file before every spec doc · real approval gates · **contract-first, decide-once** (per-repo specs are derived slices that consume shared contracts, never redefine them; changes routed by blast radius) · everything tracked in state + append-only audit.
 

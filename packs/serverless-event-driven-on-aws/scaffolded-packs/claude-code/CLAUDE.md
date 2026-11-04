@@ -26,9 +26,9 @@ modernize, or change anything that warrants a spec.
 1. Check if `aidlc-docs/aidlc-state.md` exists — if yes, **resume** from where we left off
 2. If no state file exists, decide if this is **brownfield** (existing code present) or **greenfield** (no existing code)
 3. Create `aidlc-docs/aidlc-state.md` and `aidlc-docs/audit.md`
-4. Run **Practices Discovery** (follow `practices-discovery.md`) — capture the team's stack, testing posture (current vs target), conventions, and compliance constraints into `aidlc-docs/team-practices.md`. This is a light gate that grounds every later phase.
-5. Run the **repo-model decision gate** (follow `multi-repo-projects.md`) — ask how the system's code is organized: **single repo (monorepo)** / **frontend + backend split** / **other multi-repo (3+)**. Record it in state as **Repo Model**. If **multi-repo**, follow the Multi-Repo Flow in that file (capture system requirements + design, freeze the API/event contracts, split into per-repo slices, then fan out); if **single repo**, run the standard phases below.
-6. Brownfield → start at **Phase 0**. Greenfield → start at **Phase 1** (or, if multi-repo, the system-level Requirements → Design first — see `multi-repo-projects.md`).
+4. Run **Practices Discovery** (follow `.claude/rules/practices-discovery.md`) — capture the team's stack, testing posture (current vs target), conventions, and compliance constraints into `aidlc-docs/team-practices.md`. This is a light gate that grounds every later phase.
+5. Run the **repo-model decision gate** (follow `.claude/rules/multi-repo-projects.md`) — ask how the system's code is organized: **single repo (monorepo)** / **frontend + backend split** / **other multi-repo (3+)**. Record it in state as **Repo Model**. If **multi-repo**, follow the Multi-Repo Flow in that file (capture system requirements + design, freeze the API/event contracts, split into per-repo slices, then fan out); if **single repo**, run the standard phases below.
+6. Brownfield → start at **Phase 0**. Greenfield → start at **Phase 1** (or, if multi-repo, the system-level Requirements → Design first — see `.claude/rules/multi-repo-projects.md`).
 7. Follow the workflow sequentially with approval gates. At each decision file, surface **both** the phase's primary decisions **and** the testability/quality decisions (Phase 1 = Product + Testability; Phase 2 = Architecture + Test Architecture; Phase 3 = test sequencing) so quality is shaped in at every gate, not bolted on later.
 
 
@@ -114,7 +114,7 @@ Each decision file is independent:
 ### 📋 HONOR TEAM PRACTICES
 **MANDATORY:** Before generating any design or code artifact, consult
 `aidlc-docs/team-practices.md` (captured once at the start — see
-`practices-discovery.md`). If a decision conflicts with it, **surface the
+`.claude/rules/practices-discovery.md`). If a decision conflicts with it, **surface the
 conflict** rather than silently overriding the team's conventions. Treat the
 **Testing Posture (target)** and **Non-Negotiables** sections as binding for the
 rest of the workflow — they are what the per-phase testability/quality decisions
@@ -245,7 +245,7 @@ explicitly references an existing system to modernize/extend.
 materially. Stale analysis is worse than no analysis.
 
 ### Activation
-**MANDATORY**: Load and follow `.kiro/steering/reverse-engineering.md`.
+**MANDATORY**: Load and follow `.claude/rules/reverse-engineering.md`.
 
 ### Outputs (in `aidlc-docs/analysis/`)
 - `business-overview.md`
@@ -283,7 +283,7 @@ Generate a decision file for the spec. Decision categories to consider:
 
 Surface **both** the Product framing (scope, personas, measurable outcome) **and** the Testability/Quality decisions above — so quality is shaped in at requirements time, not bolted on later.
 
-For brownfield work, reference relevant findings in `aidlc-docs/analysis/`. Respect `aidlc-docs/team-practices.md` (see `practices-discovery.md`) — especially the target testing posture and any compliance constraints.
+For brownfield work, reference relevant findings in `aidlc-docs/analysis/`. Respect `aidlc-docs/team-practices.md` (see `.claude/rules/practices-discovery.md`) — especially the target testing posture and any compliance constraints.
 
 ### Step 1.2 — Wait for User Input
 Acknowledge partial responses. Do not invent decisions.
@@ -317,7 +317,7 @@ Generate a decision file. Decision categories to consider:
 - **Data Architecture:** Data store choice, ownership, migration approach if brownfield
 - **Infrastructure & Operations:** IaC tool, environments, deployment strategy
 - **Observability:** Logs, metrics, tracing, alarms; structured logging
-- **Test Architecture (Quality):** What is mocked at each layer; which components are unit-isolatable vs. need integration; the contract-test expectation at each named seam; the integration-test environment; and the **CI quality gate that must be green to merge** (when the team runs trunk-based delivery — see `practices-discovery.md`)
+- **Test Architecture (Quality):** What is mocked at each layer; which components are unit-isolatable vs. need integration; the contract-test expectation at each named seam; the integration-test environment; and the **CI quality gate that must be green to merge** (when the team runs trunk-based delivery — see `.claude/rules/practices-discovery.md`)
 - **Correctness Properties Strategy:** Skip / essential only / comprehensive
 
 Surface **both** the Architecture decisions **and** the Test Architecture above — so testability is designed in, not discovered during construction.
