@@ -4,6 +4,7 @@ import { mkdtempSync, writeFileSync, mkdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { renderInstructions } from '../src/render/instructions.js'
+import { resolveWorkspace } from '../src/workspace.js'
 
 const manifest = {
   instructions: [
@@ -102,6 +103,37 @@ describe('renderInstructions', () => {
     // default fixtures contain no token → bodies pass through verbatim
     const w = renderInstructions(manifest, packDir, 'kiro')
     expect(byPath(w, '.kiro/steering/aidlc-workflow.md').content).toBe('---\ninclusion: always\n---\nWORKFLOW BODY\n')
+  })
+
+  it('renders one Kiro/Claude workspace root and shared state root into both tools', () => {
+    writeFileSync(
+      join(packDir, 'instructions/aidlc-workflow.md'),
+      'Spec {{SPEC_DIR}} State {{STATE_DIR}}',
+    )
+    const workspace = resolveWorkspace(manifest, { tools: ['kiro', 'claude-code'] })
+
+    const kiro = renderInstructions(manifest, packDir, 'kiro', workspace)
+    const claude = renderInstructions(manifest, packDir, 'claude-code', workspace)
+
+    expect(byPath(kiro, '.kiro/steering/aidlc-workflow.md').content).toContain(
+      'Spec .kiro/specs State aidlc-docs',
+    )
+    expect(byPath(claude, 'CLAUDE.md').content).toContain(
+      'Spec .kiro/specs State aidlc-docs',
+    )
+  })
+
+  it('renders one no-Kiro shared workspace root into Claude and Cursor', () => {
+    writeFileSync(join(packDir, 'instructions/aidlc-workflow.md'), 'Spec {{SPEC_DIR}}')
+    const workspace = resolveWorkspace(manifest, { tools: ['claude-code', 'cursor'] })
+
+    const claude = renderInstructions(manifest, packDir, 'claude-code', workspace)
+    const cursor = renderInstructions(manifest, packDir, 'cursor', workspace)
+
+    expect(byPath(claude, 'CLAUDE.md').content).toContain('Spec specs')
+    expect(byPath(cursor, '.cursor/rules/aidlc-workflow.mdc').content).toContain(
+      'Spec specs',
+    )
   })
 })
 

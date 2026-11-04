@@ -10,7 +10,10 @@ beforeEach(() => {
   packsRoot = mkdtempSync(join(tmpdir(), 'packs-'))
   const p = join(packsRoot, 'demo')
   mkdirSync(join(p, 'instructions'), { recursive: true })
-  writeFileSync(join(p, 'instructions/aidlc-workflow.md'), 'WORKFLOW')
+  writeFileSync(
+    join(p, 'instructions/aidlc-workflow.md'),
+    'Spec {{SPEC_DIR}} State {{STATE_DIR}}',
+  )
   writeFileSync(
     join(p, 'pack.yaml'),
     `name: demo\ntitle: Demo\ndescription: d\ninstructions:\n  - file: aidlc-workflow.md\n    role: primary\ncommand:\n  name: aidlc\n  description: go\nskills:\n  - aws-lambda\n  - api-gateway\n`,
@@ -53,5 +56,54 @@ describe('buildAll (Model C: lean scaffolds + add-skills.sh)', () => {
     buildAll({ packsRoot, outDir: out, includeSkills: true, emitSkillScript: false })
     expect(existsSync(join(out, 'demo/kiro/.kiro/skills/aws-lambda/SKILL.md'))).toBe(true)
     expect(existsSync(join(out, 'demo/add-skills.sh'))).toBe(false)
+  })
+
+  it('keeps default multi-target builds as independent standalone projections', () => {
+    const out = mkdtempSync(join(tmpdir(), 'out-'))
+    buildAll({ packsRoot, outDir: out, includeSkills: false, emitSkillScript: false })
+
+    expect(
+      readFileSync(join(out, 'demo/kiro/.kiro/steering/aidlc-workflow.md'), 'utf8'),
+    ).toContain('Spec .kiro/specs State aidlc-docs')
+    expect(readFileSync(join(out, 'demo/claude-code/CLAUDE.md'), 'utf8')).toContain(
+      'Spec specs State aidlc-docs',
+    )
+  })
+
+  it('can render selected tools against one explicit shared workspace', () => {
+    const out = mkdtempSync(join(tmpdir(), 'out-'))
+    buildAll({
+      packsRoot,
+      outDir: out,
+      tools: ['kiro', 'claude-code'],
+      workspaceMode: 'shared',
+      includeSkills: false,
+      emitSkillScript: false,
+    })
+
+    expect(
+      readFileSync(join(out, 'demo/kiro/.kiro/steering/aidlc-workflow.md'), 'utf8'),
+    ).toContain('Spec .kiro/specs State aidlc-docs')
+    expect(readFileSync(join(out, 'demo/claude-code/CLAUDE.md'), 'utf8')).toContain(
+      'Spec .kiro/specs State aidlc-docs',
+    )
+  })
+
+  it.each([
+    [[], /tools.*non-empty/i],
+    [['kiro', 'kiro'], /duplicate.*kiro/i],
+  ])('rejects an invalid selected tool set before building: %#', (tools, message) => {
+    const out = mkdtempSync(join(tmpdir(), 'out-'))
+
+    expect(() =>
+      buildAll({
+        packsRoot,
+        outDir: out,
+        tools,
+        includeSkills: false,
+        emitSkillScript: false,
+      }),
+    ).toThrow(message)
+    expect(existsSync(join(out, 'demo'))).toBe(false)
   })
 })

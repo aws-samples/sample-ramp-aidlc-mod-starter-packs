@@ -31,16 +31,22 @@ function resolveInstruction(packDir, file) {
 // Read an instruction body, trimming surrounding blank lines. Neutral sources
 // can carry a leading blank line (left behind when Kiro frontmatter is stripped);
 // trimming keeps every tool's output starting on real content. Also substitutes
-// per-tool tokens (currently `{{SPEC_DIR}}`).
-const body = (packDir, file, specRoot) => {
+// workspace tokens (`{{SPEC_DIR}}` and `{{STATE_DIR}}`).
+const body = (packDir, file, workspace) => {
   const raw = readFileSync(resolveInstruction(packDir, file), 'utf8').trim() + '\n'
-  return raw.replaceAll('{{SPEC_DIR}}', specRoot)
+  return raw
+    .replaceAll('{{SPEC_DIR}}', workspace.specRoot)
+    .replaceAll('{{STATE_DIR}}', workspace.stateRoot)
 }
 const stem = (file) => basename(file, '.md')
 
-export function renderInstructions(manifest, packDir, tool) {
+export function renderInstructions(manifest, packDir, tool, workspace) {
   const adapter = getAdapter(tool)
   const instructions = adapter.instructions
+  const resolvedWorkspace = workspace ?? {
+    specRoot: adapter.defaultSpecRoot,
+    stateRoot: 'aidlc-docs',
+  }
   const primary = manifest.instructions.find((i) => i.role === 'primary')
   const companions = manifest.instructions.filter((i) => i.role === 'companion')
 
@@ -49,7 +55,7 @@ export function renderInstructions(manifest, packDir, tool) {
       path: i.role === 'primary'
         ? instructions.primaryPath(i.file)
         : instructions.companionPath(i.file),
-      content: `---\ninclusion: ${i.load}\n---\n${body(packDir, i.file, adapter.defaultSpecRoot)}`,
+      content: `---\ninclusion: ${i.load}\n---\n${body(packDir, i.file, resolvedWorkspace)}`,
       kind: 'text',
     }))
   }
@@ -62,13 +68,13 @@ export function renderInstructions(manifest, packDir, tool) {
       : ''
     const writes = [{
       path: instructions.primaryPath(primary.file),
-      content: header + body(packDir, primary.file, adapter.defaultSpecRoot),
+      content: header + body(packDir, primary.file, resolvedWorkspace),
       kind: 'text',
     }]
     for (const c of companions) {
       writes.push({
         path: instructions.companionPath(c.file),
-        content: body(packDir, c.file, adapter.defaultSpecRoot),
+        content: body(packDir, c.file, resolvedWorkspace),
         kind: 'text',
       })
     }
@@ -83,7 +89,7 @@ export function renderInstructions(manifest, packDir, tool) {
     const writes = [
       {
         path: instructions.primaryPath(primary.file),
-        content: body(packDir, primary.file, adapter.defaultSpecRoot),
+        content: body(packDir, primary.file, resolvedWorkspace),
         kind: 'text',
       },
     ]
@@ -97,7 +103,7 @@ export function renderInstructions(manifest, packDir, tool) {
           : `---\ndescription: ${c.description ?? stem(c.file)}\n---\n`
       writes.push({
         path: instructions.companionPath(c.file),
-        content: fm + body(packDir, c.file, adapter.defaultSpecRoot),
+        content: fm + body(packDir, c.file, resolvedWorkspace),
         kind: 'text',
       })
     }
@@ -109,7 +115,7 @@ export function renderInstructions(manifest, packDir, tool) {
       path: i.role === 'primary'
         ? instructions.primaryPath(i.file)
         : instructions.companionPath(i.file),
-      content: `---\nalwaysApply: ${i.role === 'primary'}\n---\n${body(packDir, i.file, adapter.defaultSpecRoot)}`,
+      content: `---\nalwaysApply: ${i.role === 'primary'}\n---\n${body(packDir, i.file, resolvedWorkspace)}`,
       kind: 'text',
     }))
   }

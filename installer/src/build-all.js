@@ -5,6 +5,7 @@ import { applyPlan } from './apply.js'
 import { loadManifest } from './manifest.js'
 import { renderAddSkills } from './render/add-skills.js'
 import { listAdapterIds } from './adapters/index.js'
+import { resolveWorkspace } from './workspace.js'
 
 export const TOOLS = listAdapterIds()
 
@@ -34,6 +35,10 @@ export function buildAll({
   includeSkills = false,
   emitSkillScript = true,
   inPlace = false,
+  profile,
+  workspaceMode,
+  specRoot,
+  stateRoot,
 }) {
   const packs = pack ? [pack] : listPacks(packsRoot)
   if (packs.length === 0) throw new Error(`no packs found under ${packsRoot}`)
@@ -41,19 +46,35 @@ export function buildAll({
   for (const p of packs) {
     const packDir = join(packsRoot, p)
     if (!existsSync(join(packDir, 'pack.yaml'))) throw new Error(`not a pack (no pack.yaml): ${p}`)
+    const manifest = loadManifest(packDir)
+    resolveWorkspace(manifest, { tools })
+    const usesSharedResolution =
+      profile !== undefined ||
+      workspaceMode !== undefined ||
+      specRoot !== undefined ||
+      stateRoot !== undefined
+    const sharedWorkspace = usesSharedResolution
+      ? resolveWorkspace(manifest, { tools, profile, workspaceMode, specRoot, stateRoot })
+      : null
+    const plans = tools.map((tool) => ({
+      tool,
+      plan: buildPlan(packDir, tool, {
+        includeSkills,
+        ...(sharedWorkspace ? { workspace: sharedWorkspace } : {}),
+      }),
+    }))
 
     const packOut = inPlace ? join(packDir, 'scaffolded-packs') : join(outDir, p)
     if (inPlace) rmSync(packOut, { recursive: true, force: true }) // clean rebuild of committed scaffolds
 
-    for (const tool of tools) {
+    for (const { tool, plan } of plans) {
       const target = join(packOut, tool)
       rmSync(target, { recursive: true, force: true })
-      const written = applyPlan(buildPlan(packDir, tool, { includeSkills }), target, { dryRun: false, force: true })
+      const written = applyPlan(plan, target, { dryRun: false, force: true })
       results.push({ pack: p, tool, count: written.length })
     }
 
     if (emitSkillScript) {
-      const manifest = loadManifest(packDir)
       // Committed layout: add-skills.sh sits at the pack root, a sibling of
       // scaffolded-packs/. In --out preview mode it sits beside the tool folders.
       const scriptDir = inPlace ? packDir : join(outDir, p)

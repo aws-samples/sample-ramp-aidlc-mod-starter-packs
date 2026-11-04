@@ -6,7 +6,9 @@ import { existsSync } from 'node:fs'
 import { buildPlan } from '../src/plan.js'
 import { applyPlan } from '../src/apply.js'
 import { buildAll, listPacks } from '../src/build-all.js'
-import { getAdapter, listAdapterIds } from '../src/adapters/index.js'
+import { listAdapterIds } from '../src/adapters/index.js'
+import { loadManifest } from '../src/manifest.js'
+import { resolveWorkspace } from '../src/workspace.js'
 
 const TOOLS = listAdapterIds()
 const here = dirname(fileURLToPath(import.meta.url))
@@ -16,19 +18,32 @@ const packsRoot = resolve(here, '..', '..', 'packs')
 const program = new Command()
 program.name('ramp-pack')
 
+function selectedTools(opts) {
+  const hasTool = opts.tool !== undefined
+  const hasTools = opts.tools !== undefined
+  if (hasTool === hasTools) {
+    throw new Error('select exactly one of --tool or --tools')
+  }
+
+  const raw = hasTool ? [opts.tool] : opts.tools.split(',')
+  const tools = raw.map((tool) => tool.trim())
+  if (tools.some((tool) => tool === '')) {
+    throw new Error('--tools must not contain an empty tool')
+  }
+  return tools
+}
+
 program
   .command('init <pack>')
-  .requiredOption('--tool <tool>', `target tool: ${TOOLS.join(', ')}`)
+  .option('--tool <tool>', `single target tool: ${TOOLS.join(', ')}`)
+  .option('--tools <tools>', 'comma-separated target tools for one shared workspace')
+  .option('--profile <name>', 'named workspace profile from the pack manifest')
+  .option('--spec-root <path>', 'shared relative spec directory')
+  .option('--state-root <path>', 'shared relative workflow state directory')
   .option('--dry-run', 'print planned writes without touching disk', false)
   .option('--force', 'overwrite existing files', false)
   .option('--target <dir>', 'target project dir (default: cwd)', process.cwd())
   .action((pack, opts) => {
-    try {
-      getAdapter(opts.tool)
-    } catch {
-      console.error(`Unknown --tool "${opts.tool}". Valid: ${TOOLS.join(', ')}`)
-      process.exit(1)
-    }
     const packDir = join(packsRoot, pack)
     // A valid pack is a directory with a pack.yaml — this also prevents non-pack
     // dirs (installer/, docs/, a generated dist/) being treated as packs.
@@ -37,11 +52,19 @@ program
       process.exit(1)
     }
     try {
-      const plan = buildPlan(packDir, opts.tool)
+      const tools = selectedTools(opts)
+      const manifest = loadManifest(packDir)
+      const workspace = resolveWorkspace(manifest, {
+        tools,
+        profile: opts.profile,
+        specRoot: opts.specRoot,
+        stateRoot: opts.stateRoot,
+      })
+      const plan = tools.flatMap((tool) => buildPlan(packDir, tool, { workspace }))
       const written = applyPlan(plan, opts.target, { dryRun: opts.dryRun, force: opts.force })
       const verb = opts.dryRun ? 'Would write' : 'Wrote'
       for (const p of written) console.log(`  ${verb}: ${p}`)
-      console.log(`\n${verb} ${written.length} paths for ${pack} → ${opts.tool}.`)
+      console.log(`\n${verb} ${written.length} paths for ${pack} → ${tools.join(', ')}.`)
       if (!opts.dryRun) console.log('Next: review generated files; edit AWS_PROFILE in the MCP config if present.')
     } catch (err) {
       console.error(err.message)

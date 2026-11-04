@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { buildPlan } from '../src/plan.js'
 import { applyPlan } from '../src/apply.js'
+import { resolveWorkspace } from '../src/workspace.js'
 
 let packDir
 beforeEach(() => {
@@ -58,5 +59,28 @@ describe('buildPlan + applyPlan', () => {
     expect(() => applyPlan(plan, target, { dryRun: false, force: true })).not.toThrow()
     const written = readFileSync(join(target, '.kiro/steering/main.md'), 'utf8')
     expect(written).not.toBe('OLD')
+  })
+
+  it('threads a shared workspace through the selected adapter', () => {
+    writeFileSync(
+      join(packDir, 'instructions/main.md'),
+      'Spec {{SPEC_DIR}} State {{STATE_DIR}}',
+    )
+    const workspace = resolveWorkspace({}, { tools: ['kiro', 'claude-code'] })
+    const plan = buildPlan(packDir, 'claude-code', {
+      includeSkills: false,
+      workspace,
+    })
+    const primary = plan.find((entry) => entry.path === 'CLAUDE.md')
+
+    expect(primary.content).toContain('Spec .kiro/specs State aidlc-docs')
+  })
+
+  it('rejects a plan for a tool outside the supplied workspace', () => {
+    const workspace = resolveWorkspace({}, { tools: ['kiro'] })
+
+    expect(() =>
+      buildPlan(packDir, 'claude-code', { includeSkills: false, workspace }),
+    ).toThrow(/workspace.*claude-code|claude-code.*workspace/i)
   })
 })
