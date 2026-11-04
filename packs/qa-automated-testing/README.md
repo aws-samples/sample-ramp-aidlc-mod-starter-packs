@@ -2,7 +2,10 @@
 
 A **tool-agnostic** starter pack for designing and building **automated test suites for web and mobile applications**, driven by the **AI-Driven Development Lifecycle (AI-DLC)** decision-gated workflow. It ships two curated testing skills — one for **web** (Playwright-first) and one for **mobile** (Maestro/Appium-first, with AWS Device Farm guidance) — plus a set of **AWS build skills** for standing up the serverless test infrastructure behind the suite (Lambda test runners, Step Functions orchestration, API Gateway trigger/results APIs, IAM roles, Bedrock for AI-assisted testing, and Lambda MicroVMs for isolated executors) — so the agent proposes current best-practice options instead of guessing.
 
-The pack is authored once as tool-neutral source and works with **Kiro, Claude Code, GitHub Copilot, and Cursor**. Whichever agent you use gains deep testing expertise and follows structured, decision-gated workflows — no manual setup needed.
+The pack combines a shared, tool-neutral lifecycle with QA-specific
+instructions and works with **Kiro, Claude Code, GitHub Copilot, and Cursor**.
+Whichever agent you use gains deep testing expertise and follows structured,
+decision-gated workflows — no manual setup needed.
 
 ## Use case
 
@@ -48,7 +51,7 @@ Run the `ramp-pack` installer from the repo root; it reads the neutral source an
 node installer/bin/ramp-pack.js init qa-automated-testing --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
 ```
 
-Add `--dry-run` to preview, `--force` to overwrite existing files. To rebuild all four committed tool scaffolds in place, run `./scripts/regenerate.sh qa-automated-testing` (requires Node). The tool-neutral source plus the shared `skills-library/` are the single source of truth for both the committed `scaffolded-packs/` and the installer output.
+Add `--dry-run` to preview, `--force` to overwrite existing files. To rebuild all four committed tool scaffolds in place, run `./scripts/regenerate.sh qa-automated-testing` (requires Node). The common lifecycle, pack-local instructions, and shared `skills-library/` are the sources of truth for both the committed `scaffolded-packs/` and the installer output.
 
 ### Then
 
@@ -65,19 +68,34 @@ The workflow guides the agent to ask for your decisions first (writing a `_decis
 ## What's in this pack
 
 ```
-qa-automated-testing/
-├── pack.yaml                 # Manifest: instruction roles, skill list, MCP servers, /aidlc command
-├── instructions/             # Tool-neutral steering (source of truth)
-│   ├── aidlc-workflow.md         # Decision-gated Requirements → Design → Tasks (primary)
-│   ├── skill-activation.md       # When to activate the testing skills + MCP (companion, always)
-│   └── reverse-engineering.md    # Phase 0 playbook (companion, brownfield-only)
-├── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills-library/
-├── add-skills.ps1            # Windows/PowerShell equivalent of add-skills.sh (no Node)
-└── scaffolded-packs/         # Committed per-tool steering (regenerated from source)
-    └── kiro/ claude-code/ copilot/ cursor/   # steering/MCP/command only — NO skills
+common/instructions/
+└── aidlc-workflow.md             # Canonical local decision-gated lifecycle
+
+packs/qa-automated-testing/
+├── pack.yaml                     # Instruction roles, skills, MCP, and command
+├── instructions/
+│   ├── skill-activation.md       # QA skill and MCP activation
+│   └── reverse-engineering.md    # Temporary until the QA overlay task
+├── add-skills.sh                 # Ports named skills from skills-library/
+├── add-skills.ps1                # Windows/PowerShell equivalent
+└── scaffolded-packs/             # Generated per-tool steering
+    └── kiro/ claude-code/ copilot/ cursor/
 ```
 
-> `instructions/` and `pack.yaml` are the **neutral source** you edit. Skills are **not** stored in the pack — they are referenced by name in `pack.yaml` (`skills:`) and live in the shared [`skills-library/`](../../skills-library/) at the repo root (a local `skills/` dir appears only when a pack overrides a library skill). The committed per-tool scaffolds under `scaffolded-packs/` (steering only) are rendered from this neutral source, and `add-skills.sh` ports the named skills from the shared skills-library — regenerate the scaffolds with `./scripts/regenerate.sh qa-automated-testing`.
+Source ownership for authors:
+
+- Edit `common/instructions/aidlc-workflow.md` only for universal lifecycle
+  behavior shared by every local workflow pack.
+- Keep pack-local instructions limited to QA-specific behavior.
+- `reverse-engineering.md` becomes common behavior plus a QA overlay in Wave 2
+  Task 4; it remains pack-local temporarily.
+- Never edit `scaffolded-packs/` directly. Regenerate it with
+  `./scripts/regenerate.sh qa-automated-testing`.
+
+Skills are **not** stored in the pack — they are referenced by name in
+`pack.yaml` (`skills:`) and live in the shared
+[`skills-library/`](../../skills-library/) at the repo root (a local `skills/`
+directory appears only when a pack overrides a library skill).
 
 ### How each instruction maps per tool
 

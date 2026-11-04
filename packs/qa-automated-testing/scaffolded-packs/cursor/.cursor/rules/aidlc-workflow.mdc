@@ -17,14 +17,18 @@ modernize, or change anything that warrants a spec.
 - DO NOT generate `requirements.md`, `design.md`, or `tasks.md` without first creating and completing the matching `_decisions-*.md`
 - DO NOT skip the Reverse Engineering phase when an existing codebase is present
 - DO NOT proceed past an approval gate without the user's explicit approval
+- DO NOT create a `_decisions-*.md` file and its corresponding final spec
+  document in the same interaction
 
 **MANDATORY FIRST ACTIONS (in this exact order):**
 
-1. Check if `aidlc-docs/aidlc-state.md` exists — if yes, **resume** from where we left off
-2. If no state file exists, decide if this is **brownfield** (existing code present) or **greenfield** (no existing code)
+1. Check if `aidlc-docs/aidlc-state.md` exists — if yes, **resume** from
+   where we left off
+2. If no state file exists, decide if this is **brownfield** (existing code
+   present) or **greenfield** (no existing code)
 3. Create `aidlc-docs/aidlc-state.md` and `aidlc-docs/audit.md`
-4. Brownfield → start at **Phase 0**. Greenfield → start at **Phase 1**.
-5. Follow the workflow sequentially with approval gates.
+4. Brownfield → start at **Phase 0**. Greenfield → start at **Phase 1**
+5. Follow the workflow sequentially with approval gates
 
 ---
 
@@ -84,7 +88,9 @@ Before creating ANY spec document (`requirements.md`, `design.md`, `tasks.md`), 
 
 **🔒 ABSOLUTE RULE**: NEVER generate `requirements.md`, `design.md`, or `tasks.md` without first creating and completing the corresponding `_decisions-*.md` file.
 
-**Exception**: Skip the decision file ONLY if the user explicitly says "skip the decision file" or "no decisions needed."
+Creating a decision file and the corresponding final phase document in the
+same interaction is forbidden. Stop after creating the decision file and wait
+for the user's explicit decisions.
 
 ### 🌐 LANGUAGE MATCHING
 Generate decision files and spec documents in the same language as the user's input prompt. Default to English only if language cannot be determined.
@@ -98,6 +104,15 @@ Generate decision files and spec documents in the same language as the user's in
 - "I've prepared some decisions to ensure we build exactly what you need."
 
 Present decision files as a natural part of the planning conversation, not as procedural overhead.
+
+### 💬 QUESTION CHANNEL
+Put phase decisions in decision files, never in chat. The only permitted chat
+exception is when the active reverse-engineering companion instruction
+explicitly declares an Orientation clarification during Phase 0.
+
+This exception is limited to Phase 0 Orientation; it does not apply to phase
+decisions or approval gates. Phase decisions remain in their decision files,
+and approval gates always require the user's explicit approval.
 
 ### 🔒 DECISION ISOLATION
 Each decision file is independent:
@@ -146,7 +161,7 @@ session start, **resume** from the recorded state.
 ```
 
 ### Checkpoint Rules
-- Update `aidlc-state.md` immediately after completing each phase step
+- Update `aidlc-docs/aidlc-state.md` immediately after completing each phase step
 - Mark checkboxes `[x]` in the SAME interaction where work is completed
 - Record current status so a fresh session can resume correctly
 
@@ -207,8 +222,12 @@ Maintain `aidlc-docs/audit.md` as an append-only log.
 - Briefly explain why each decision matters
 - For Design and Tasks phases, **reference the previous phase's decisions** explicitly
 - **Customize** decision points to the actual project — never use generic boilerplate
-- Handle partial responses: acknowledge completed items, prompt for the rest
-- If the user does not respond, ask whether to use agent recommendations as defaults
+- Keep every unanswered item and every proposed default or recommendation in
+  the decision file
+- The user must complete each unanswered item or explicitly confirm a proposed
+  default in that same file
+- Silence is never acceptance; never infer or apply a default from non-response
+  or a chat fallback
 - Validate that all critical decisions have user input before generating the document
 
 ---
@@ -236,24 +255,20 @@ explicitly references an existing system to modernize/extend.
 materially. Stale analysis is worse than no analysis.
 
 ### Activation
-**MANDATORY**: Load and follow `.kiro/steering/reverse-engineering.md`.
+**MANDATORY**: Load and follow
+`.cursor/rules/reverse-engineering.mdc`.
 
-### Outputs (in `aidlc-docs/analysis/`)
-- `business-overview.md`
-- `architecture.md`
-- `code-structure.md`
-- `api-documentation.md`
-- `component-inventory.md`
-- `technology-stack.md`
-- `dependencies.md`
-- `bounded-contexts.md`
-- `modernization-readiness.md` *(coupling, extraction order, blockers)*
+### Outputs
+Generate the artifact set required by the active reverse-engineering
+companion under `aidlc-docs/analysis/`.
+The companion is authoritative for the exact set.
 
 ### Approval Gate
 Present a summary of findings (bounded contexts, key risks, recommended modernization
 order). Wait for the user's explicit approval before moving to Phase 1.
 
-Update `aidlc-state.md`. Append to `audit.md`.
+Append the complete raw approval response to `aidlc-docs/audit.md`, then
+update `aidlc-docs/aidlc-state.md` before entering Phase 1.
 
 ---
 
@@ -288,7 +303,9 @@ Read the completed decisions and generate `requirements.md` covering:
 - Out-of-scope (explicit)
 
 ### Approval Gate
-Wait for explicit user approval. Update `aidlc-state.md` and `audit.md`.
+Wait for explicit user approval. Append the complete raw approval response to
+`aidlc-docs/audit.md`, then update `aidlc-docs/aidlc-state.md` before
+entering Phase 2.
 
 ---
 
@@ -332,7 +349,9 @@ Generate the complete technical design covering:
 3. Data model / ER diagram (when persistent state exists)
 
 ### Approval Gate
-Wait for explicit user approval. Update `aidlc-state.md` and `audit.md`.
+Wait for explicit user approval. Append the complete raw approval response to
+`aidlc-docs/audit.md`, then update `aidlc-docs/aidlc-state.md` before
+entering Phase 3.
 
 ---
 
@@ -430,11 +449,13 @@ outputs from another group go into a later wave.
 - Mark each task `[x]` immediately on completion
 - Follow design choices from Phase 2 — do not silently override
 - Reference Phase 0 artifacts where relevant for brownfield work
-- Update `aidlc-state.md` after each group completes
+- Update `aidlc-docs/aidlc-state.md` after each group completes
 - A wave is complete only when ALL groups in that wave are `[x]`
 
 ### Approval Gate
-Wait for explicit user approval. Update `aidlc-state.md` and `audit.md`.
+Wait for explicit user approval. Append the complete raw approval response to
+`aidlc-docs/audit.md`, then update `aidlc-docs/aidlc-state.md` before
+starting task execution.
 
 ---
 
@@ -444,8 +465,8 @@ After `tasks.md` is approved, the user assigns groups to parallel workers (agent
 
 1. Execute (generate code, IaC, tests, etc.)
 2. Mark the task `[x]` in `tasks.md`
-3. Append progress to `aidlc-state.md`
-4. Append a concise note to `audit.md`
+3. Append progress to `aidlc-docs/aidlc-state.md`
+4. Append a concise note to `aidlc-docs/audit.md`
 
 ### Parallel Execution Protocol
 - Each worker (agent instance or developer) owns ONE group — only touches files within that group's boundary
@@ -455,7 +476,7 @@ After `tasks.md` is approved, the user assigns groups to parallel workers (agent
 
 ### Session Continuity During Execution
 On resume:
-1. Read `aidlc-state.md` for the active spec and phase
+1. Read `aidlc-docs/aidlc-state.md` for the active spec and phase
 2. Read `tasks.md` for the next incomplete group/task
 3. Identify which wave is active and which groups are done
 4. Resume from the next incomplete task in the assigned group
@@ -463,8 +484,8 @@ On resume:
 ### Completion
 When all tasks are `[x]`:
 - Present a final summary: artifacts produced, deployed resources, locations
-- Mark the spec complete in `aidlc-state.md`
-- Append completion entry to `audit.md`
+- Mark the spec complete in `aidlc-docs/aidlc-state.md`
+- Append completion entry to `aidlc-docs/audit.md`
 - Ask whether to start a new spec
 
 ---
@@ -487,7 +508,8 @@ specs/<spec-name>/
 
 - **Phase 0 only when brownfield** — don't invent analysis for greenfield work
 - **Decision-driven** — every phase starts with a `_decisions-*.md`
-- **Questions in decision files**, never in chat
+- **Questions in decision files** — except an explicitly declared Phase 0
+  Orientation clarification from the active reverse-engineering companion
 - **Approval gates are real** — never proceed without explicit user approval
 - **Trackable** — state file + audit log + checkboxes enable session continuity
 
@@ -502,6 +524,7 @@ Every new interaction:
 3. If it doesn't exist, decide brownfield vs greenfield, then start at the right phase
 4. NEVER skip a `_decisions-*.md` before the corresponding spec doc
 5. NEVER skip approval gates
-6. ALWAYS put questions in decision files, never in chat
+6. Put phase questions in decision files; only an explicitly declared Phase 0
+   Orientation clarification may occur in chat
 
 This workflow is the only workflow.
