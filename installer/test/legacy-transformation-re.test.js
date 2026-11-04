@@ -6,6 +6,7 @@ import { resolveInstructionBody } from '../src/instructions/compose.js'
 import { loadManifest } from '../src/manifest.js'
 import { renderInstructions } from '../src/render/instructions.js'
 import { renderCommand } from '../src/render/command.js'
+import { resolveWorkspace } from '../src/workspace.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const packDir = resolve(here, '..', '..', 'packs', 'legacy-transformation-on-aws')
@@ -19,6 +20,15 @@ const workflowOverlay = join(
   'workflow-overlays',
   'legacy-transformation-workflow.md',
 )
+const adaptiveOverlay = join(
+  repoRoot,
+  'workflow-overlays',
+  'legacy-adaptive-reverse-engineering.md',
+)
+const qaPackDir = join(repoRoot, 'packs', 'qa-automated-testing')
+const qaManifest = loadManifest(qaPackDir)
+const commonPackDir = join(repoRoot, 'packs', 'agentic-ai-workflow')
+const commonManifest = loadManifest(commonPackDir)
 const byPath = (writes, path) => writes.find((write) => write.path === path)?.content ?? ''
 
 // Extract a Markdown section (heading line through the line before the next
@@ -64,10 +74,13 @@ function expectModeAndExpansionSemantics(re, wf, source) {
 
   const full = markdownSection(re, '### Full mode')
   expect(full, `${source}: Full requires an explicit request or approved expansion`).toMatch(
-    /Full mode only when[\s\S]*explicitly requests system-wide analysis[\s\S]*or approves an expansion to Full/i,
+    /Full mode only when[\s\S]*explicitly requests system-wide analysis[\s\S]*or\s+explicitly approves a major expansion to Full/i,
   )
 
   const reExpansion = markdownSection(re, '### Expansion')
+  expect(reExpansion, `${source}: direct evidence edges expand automatically`).toMatch(
+    /Follow direct dependencies, callers, data edges, and configuration edges\s+automatically/i,
+  )
   expect(reExpansion, `${source}: crossing a capability/context boundary needs approval first`).toMatch(
     /another business capability or bounded context[\s\S]*ask for approval first[\s\S]*never silently turn a Targeted run into a Full one/i,
   )
@@ -131,9 +144,25 @@ function expectSentinelSweep(re, source) {
   }
 }
 
+function expectTargetTrace(re, source) {
+  const trace = markdownSection(re, '### Trace the target end-to-end')
+  for (const dimension of [
+    /entry point and externally visible behavior/i,
+    /orchestration, application logic, and business rules/i,
+    /data access, storage ownership, and transaction boundaries/i,
+    /side effects and downstream consumers/i,
+    /success, failure, validation, and error contracts/i,
+    /direct callers and dependencies/i,
+    /unit, integration, contract, and end-to-end tests/i,
+    /runtime, deployment, and build configuration/i,
+  ]) {
+    expect(trace, `${source}: trace dimension ${dimension} is mandatory`).toMatch(dimension)
+  }
+}
+
 function expectFullArtifactBundle(re, source) {
   const full = markdownSection(re, '### Full artifact bundle')
-  for (const artifact of [
+  const expectedArtifacts = [
     'business-overview.md',
     'architecture.md',
     'code-structure.md',
@@ -143,30 +172,123 @@ function expectFullArtifactBundle(re, source) {
     'dependencies.md',
     'bounded-contexts.md',
     'coupling-assessment.md',
-  ]) {
-    expect(full, `${source}: Full mode preserves ${artifact}`).toContain(`\`${artifact}\``)
+  ]
+  const artifactBullets = [...full.matchAll(/^- `(?:[^`]+\/)?([^/`]+\.md)` —/gm)]
+    .map((match) => match[1])
+  expect(artifactBullets, `${source}: Full mode has exactly the nine specified artifacts`).toEqual(
+    expectedArtifacts,
+  )
+  for (const artifact of expectedArtifacts) {
+    expect(full, `${source}: Full mode preserves ${artifact}`).toMatch(
+      new RegExp(`(?:analysis/)?${artifact.replace('.', '\\.')}`),
+    )
   }
   expect(full, `${source}: Full mode keeps all nine artifacts, no Targeted substitution`).toMatch(
     /all nine artifacts[\s\S]*do not substitute the Targeted bundle/i,
   )
 }
 
+function expectPriorEvidenceRules(re, source) {
+  const priorEvidence = markdownSection(re, '## Prior analysis (ATX / assessments)')
+  expect(priorEvidence, `${source}: current relevant evidence is reused`).toMatch(
+    /prior analysis is current and relevant to the objective[\s\S]*use it as primary input/i,
+  )
+  expect(priorEvidence, `${source}: reused high-risk claims are spot-verified`).toMatch(
+    /spot-verify high-risk claims/i,
+  )
+  expect(priorEvidence, `${source}: current source or runtime evidence wins conflicts`).toMatch(
+    /prefer current source or runtime evidence when evidence conflicts/i,
+  )
+}
+
+function checklistEntries(section, mode) {
+  const nextMode = mode === 'Targeted' ? 'For Full mode' : '```'
+  const match = section.match(
+    new RegExp(
+      `For ${mode} mode, record exactly:\\n([\\s\\S]*?)(?=\\n${nextMode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`,
+    ),
+  )
+  expect(match, `${mode} checklist body must exist`).not.toBeNull()
+  return [...match[1].matchAll(/^- \[x\] (.+)$/gm)].map((entry) => entry[1])
+}
+
+function expectMetadataContract(re, source) {
+  const metadata = markdownSection(re, '## Record Reverse Engineering Metadata')
+  expect(metadata, `${source}: metadata retains only the selected checklist`).toMatch(
+    /retain only the selected mode's checklist/i,
+  )
+  expect(checklistEntries(metadata, 'Targeted'), `${source}: exact Targeted checklist`).toEqual([
+    'reverse-engineering-scope.md',
+    'target-analysis.md',
+    'target-coupling-assessment.md',
+    'reverse-engineering-timestamp.md',
+  ])
+  expect(checklistEntries(metadata, 'Full'), `${source}: exact Full checklist`).toEqual([
+    'reverse-engineering-scope.md',
+    'business-overview.md',
+    'architecture.md',
+    'code-structure.md',
+    'api-documentation.md',
+    'component-inventory.md',
+    'technology-stack.md',
+    'dependencies.md',
+    'bounded-contexts.md',
+    'coupling-assessment.md',
+    'reverse-engineering-timestamp.md',
+  ])
+
+  for (const field of [
+    /\*\*Policy \/ Mode\*\*: \[[^\]]*active overlay-defined mode[^\]]*\]/i,
+    /\*\*Analysis Objective\*\*:/i,
+    /\*\*Scope Boundary\*\*:/i,
+    /\*\*Prior Evidence Reused\*\*:/i,
+    /\*\*Not Analyzed \/ Open Areas\*\*:/i,
+    /\*\*Status\*\*: \[In Progress \/ Awaiting Approval \/ Complete\]/i,
+  ]) {
+    expect(metadata, `${source}: shared metadata field ${field}`).toMatch(field)
+  }
+}
+
 function expectEvidenceLifecycle(re, wf, source) {
-  const gate = markdownSection(re, '## Step 5: Evidence review and approval gate')
-  expect(gate, `${source}: finished evidence awaits approval, not completion`).toMatch(
+  const synchronization = markdownSection(re, '### Scope lifecycle synchronization')
+  expect(synchronization, `${source}: evidence-ready transition synchronizes scope`).toMatch(
+    /common `Record Evidence-Ready State`[\s\S]*reverse-engineering-scope\.md[\s\S]*`Awaiting Approval`/i,
+  )
+  expect(synchronization, `${source}: the common raw audit precedes synchronized completion`).toMatch(
+    /after[\s\S]*common `Approval Transition`[\s\S]*raw approval audit append[\s\S]*reverse-engineering-scope\.md[\s\S]*reverse-engineering-timestamp\.md[\s\S]*aidlc-state\.md[\s\S]*together to `Complete`/i,
+  )
+  expect(synchronization, `${source}: synchronization does not execute a second gate`).not.toMatch(
+    /stop and wait|append the complete raw approval response/i,
+  )
+
+  const evidenceReady = markdownSection(re, '## Record Evidence-Ready State')
+  expect(evidenceReady, `${source}: finished evidence awaits approval, not completion`).toMatch(
     /set status to `Awaiting Approval`/i,
   )
-  expect(gate, `${source}: pre-approval messaging describes evidence as ready`).toMatch(
+  expect(evidenceReady, `${source}: pre-approval state does not claim completion`).not.toMatch(
+    /Phase 0: Reverse Engineering — Complete/i,
+  )
+
+  const review = markdownSection(re, '## Present Evidence for Review')
+  expect(review, `${source}: pre-approval messaging describes evidence as ready`).toMatch(
     /analysis evidence is ready for review/i,
   )
-  expect(gate, `${source}: completion needs the raw approval audit then Complete`).toMatch(
-    /explicit user approval[\s\S]*complete raw approval response[\s\S]*audit\.md[\s\S]*`Awaiting Approval` to `Complete`/i,
+  expect(review, `${source}: request changes keeps the gate pending`).toMatch(
+    /(?:fill evidence gaps|rescan selected areas)[\s\S]*Awaiting Approval/i,
   )
-  expect(gate, `${source}: does not call the run complete pre-approval`).not.toMatch(/Reverse Engineering Complete/i)
+
+  const approval = markdownSection(re, '## Approval Transition')
+  expect(approval, `${source}: common tail owns the same single gate once`).toMatch(
+    /same single Phase 0 approval gate[\s\S]*Execute it once/i,
+  )
+  expect(approval, `${source}: completion needs the raw approval audit then Complete`).toMatch(
+    /explicit approval[\s\S]*complete raw approval response[\s\S]*audit\.md[\s\S]*Awaiting Approval` to `Complete`[\s\S]*Phase 1: Requirements/i,
+  )
+  expect(review, `${source}: does not call the run complete pre-approval`).not.toMatch(/Reverse Engineering Complete/i)
 
   const wfGate = markdownSection(wf, '## Expansion and approval gate')
-  expect(wfGate, `${source}: workflow transitions Awaiting Approval to Complete only after raw audit`).toMatch(
-    /Awaiting Approval[\s\S]*explicit approval[\s\S]*complete raw approval response[\s\S]*audit\.md[\s\S]*`Complete`/i,
+  expect(wfGate, `${source}: primary summarizes the same single gate`).toMatch(
+    /same single Phase 0 approval gate[\s\S]*exactly once/i,
   )
 }
 
@@ -197,40 +319,51 @@ function expectConditionalInputStrategy(content, source) {
 function expectAdaptiveSemantics(re, wf, source) {
   expectModeAndExpansionSemantics(re, wf, source)
   expectScopeContract(re, wf, source)
+  expectTargetTrace(re, source)
   expectSentinelSweep(re, source)
   expectFullArtifactBundle(re, source)
+  expectPriorEvidenceRules(re, source)
+  expectMetadataContract(re, source)
   expectEvidenceLifecycle(re, wf, source)
   expectOrientationAndClarification(re, wf, source)
   // Targeted artifact section is present and named.
   expect(markdownSection(re, '## Step 2 artifacts (Targeted)')).toMatch(
     /`target-analysis\.md`[\s\S]*`target-coupling-assessment\.md`/,
   )
+  expect(re, `${source}: selected checklist is mutually exclusive`).toMatch(
+    /retain only the selected mode's checklist/i,
+  )
   // The pre-adaptive "scan everything" phrasing must be gone.
   expect(re, `${source}: no blanket whole-repo scan phrasing`).not.toContain('All packages (not just mentioned ones)')
+  expect(re, `${source}: no common generic-only artifacts`).not.toMatch(
+    /code-quality-assessment\.md|modernization-readiness\.md/i,
+  )
+  expect(re, `${source}: no QA-only inventory`).not.toMatch(
+    /Existing Test Inventory|existing-test-inventory\.md|Migration \/ Survivability/i,
+  )
+  expect(re, `${source}: no unsupported coverage artifact`).not.toContain(
+    'reverse-engineering-coverage.md',
+  )
+  expect(re, `${source}: no stale lifecycle stages`).not.toMatch(/\bStage [123]\b/i)
 }
 
 describe('legacy-transformation-on-aws adaptive reverse engineering', () => {
-  it('composes the primary from one nine-slot legacy overlay while retaining local RE', () => {
+  it('composes both instructions from ordered legacy overlays with no local copies', () => {
     expect(existsSync(localWorkflow)).toBe(false)
-    expect(existsSync(localReverseEngineering)).toBe(true)
+    expect(existsSync(localReverseEngineering)).toBe(false)
     expect(existsSync(workflowOverlay)).toBe(true)
-    expect(
-      manifest.workflow.overlays.filter(
-        (name) => name === 'legacy-transformation-workflow.md',
-      ),
-    ).toHaveLength(1)
+    expect(existsSync(adaptiveOverlay)).toBe(true)
+    expect(manifest.workflow.overlays).toEqual([
+      'legacy-transformation-workflow.md',
+      'legacy-adaptive-reverse-engineering.md',
+    ])
 
-    const overlay = readFileSync(workflowOverlay, 'utf8')
+    const overlay = readFileSync(adaptiveOverlay, 'utf8')
     const expectedSlots = [
-      'workflow-identity',
-      'first-actions',
-      'workflow-overview',
-      'state-project-fields',
-      'reverse-engineering-stage',
-      'requirements-domain-decisions',
-      'design-domain-decisions',
-      'tasks-domain-decisions',
-      'execution-guidance',
+      'reverse-engineering-policy',
+      'reverse-engineering-analysis-body',
+      'reverse-engineering-artifact-checklist',
+      'reverse-engineering-review-options',
     ]
     const starts = [...overlay.matchAll(/<!-- RAMP:SLOT ([A-Za-z0-9-]+) START -->/g)]
       .map((match) => match[1])
@@ -239,6 +372,9 @@ describe('legacy-transformation-on-aws adaptive reverse engineering', () => {
 
     expect(starts).toEqual(expectedSlots)
     expect(ends).toEqual(expectedSlots)
+    expect(overlay).toMatch(
+      /replaces:\s*\n  - reverse-engineering-policy\s*\n  - reverse-engineering-analysis-body\s*\n  - reverse-engineering-artifact-checklist\s*\n  - reverse-engineering-review-options/i,
+    )
   })
 
   it('defines the adaptive contract in the canonical instructions', () => {
@@ -355,6 +491,56 @@ describe('legacy-transformation-on-aws adaptive reverse engineering', () => {
   ])('renders the adaptive contract for %s', (tool, reversePath, workflowPath) => {
     const writes = renderInstructions(manifest, packDir, tool)
     expectAdaptiveSemantics(byPath(writes, reversePath), byPath(writes, workflowPath), `${tool} rendered instructions`)
+
+    const workspace = resolveWorkspace(manifest, {
+      tools: [tool],
+      stateRoot: 'customer-state',
+      specRoot: 'customer-specs',
+    })
+    const customWrites = renderInstructions(manifest, packDir, tool, workspace)
+    const customReverseEngineering = byPath(customWrites, reversePath)
+    for (const path of [
+      'customer-state/analysis/reverse-engineering-scope.md',
+      'customer-state/analysis/target-analysis.md',
+      'customer-state/analysis/target-coupling-assessment.md',
+      'customer-state/analysis/business-overview.md',
+      'customer-state/analysis/architecture.md',
+      'customer-state/analysis/code-structure.md',
+      'customer-state/analysis/api-documentation.md',
+      'customer-state/analysis/component-inventory.md',
+      'customer-state/analysis/technology-stack.md',
+      'customer-state/analysis/dependencies.md',
+      'customer-state/analysis/bounded-contexts.md',
+      'customer-state/analysis/coupling-assessment.md',
+      'customer-state/analysis/reverse-engineering-timestamp.md',
+      'customer-state/audit.md',
+      'customer-state/aidlc-state.md',
+    ]) {
+      expect(customReverseEngineering, `${tool}: portable path ${path}`).toContain(path)
+    }
+    expect(customReverseEngineering).not.toContain('aidlc-docs/')
+    expect(customReverseEngineering).not.toContain('RAMP:SLOT')
+    expect(customReverseEngineering).not.toMatch(
+      /\{\{(?:STATE_DIR|SPEC_DIR|INSTRUCTION:)/,
+    )
+  })
+
+  it('keeps QA and generic common reverse engineering isolated', () => {
+    const qa = resolveInstructionBody(
+      qaManifest,
+      qaPackDir,
+      'reverse-engineering.md',
+    )
+    const common = resolveInstructionBody(
+      commonManifest,
+      commonPackDir,
+      'reverse-engineering.md',
+    )
+
+    expect(qa).toContain('Existing Test Inventory')
+    expect(qa).not.toContain('### Targeted mode (default)')
+    expect(common).toContain('## Step 1: Workspace Discovery')
+    expect(common).not.toContain('### Targeted mode (default)')
   })
 
   it('encodes the prior-analysis-aware input strategy in the manifest command body', () => {

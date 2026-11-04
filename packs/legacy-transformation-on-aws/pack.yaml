@@ -16,6 +16,7 @@ workflow:
   provider: local-instructions-v1
   overlays:
     - legacy-transformation-workflow.md
+    - legacy-adaptive-reverse-engineering.md
 
 instructions:
   - file: aidlc-workflow.md

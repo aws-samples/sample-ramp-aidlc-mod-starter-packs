@@ -60,7 +60,7 @@ Run the `ramp-pack` installer from the repo root; it reads the neutral source an
 node installer/bin/ramp-pack.js init legacy-transformation-on-aws --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/monolith
 ```
 
-Add `--dry-run` to preview or `--force` to overwrite existing generated files; this installs steering **and** skills in one step. To rebuild the committed per-tool scaffolds in place, run `./scripts/regenerate.sh legacy-transformation-on-aws` (requires Node). The common lifecycle, named legacy overlay, pack-local companions, and shared `skills-library/` are the sources of truth.
+Add `--dry-run` to preview or `--force` to overwrite existing generated files; this installs steering **and** skills in one step. To rebuild the committed per-tool scaffolds in place, run `./scripts/regenerate.sh legacy-transformation-on-aws` (requires Node). The common lifecycle and reverse-engineering source, named legacy overlays, pack-local skill activation, and shared `skills-library/` are the sources of truth.
 
 ### Then
 
@@ -112,17 +112,19 @@ only after explicit approval.
 
 ```text
 common/instructions/
-└── aidlc-workflow.md             # Canonical decision-gated lifecycle
+├── aidlc-workflow.md             # Canonical decision-gated lifecycle
+└── reverse-engineering.md        # Shared metadata and Phase 0 approval lifecycle
 
 workflow-overlays/
-└── legacy-transformation-workflow.md
-                                   # Adaptive legacy primary specialization
+├── legacy-transformation-workflow.md
+│                                  # Adaptive legacy primary specialization
+└── legacy-adaptive-reverse-engineering.md
+                                   # Targeted/Full evidence specialization
 
 legacy-transformation-on-aws/
 ├── pack.yaml                 # Manifest: instruction roles, MCP servers, skills, /aidlc command
 ├── instructions/
-│   ├── skill-activation.md       # Routing for all 19 bundled skills + AWS Knowledge validation
-│   └── reverse-engineering.md    # Adaptive Targeted/Full companion (pack-local source)
+│   └── skill-activation.md       # Routing for all 19 bundled skills + AWS Knowledge validation
 ├── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills-library/
 ├── add-skills.ps1            # Windows/PowerShell equivalent of add-skills.sh (no Node)
 └── scaffolded-packs/         # Committed, regenerated from source
@@ -132,9 +134,10 @@ legacy-transformation-on-aws/
 > The pack's 19 skills are referenced **by name** from `pack.yaml` (`skills:` list) and resolved from the
 > shared [`skills-library/`](../../skills-library/) at the repo root — the pack has no `skills/` directory of
 > its own (a local `skills/` appears only when a pack overrides a library skill). They are ported into a target
-> project by `add-skills.sh`. Edit the common lifecycle, named overlay,
-> pack-local companions, `pack.yaml`, and this README as source. Never edit
-> `scaffolded-packs/` directly; rebuild it with the installer or
+> project by `add-skills.sh`. Edit the common lifecycle and reverse-engineering
+> source, the two named legacy overlays, pack-local `skill-activation.md`,
+> `pack.yaml`, and this README as source. Never edit `scaffolded-packs/`
+> directly; rebuild it with the installer or
 > `./scripts/regenerate.sh legacy-transformation-on-aws`.
 
 ### How each instruction maps per tool

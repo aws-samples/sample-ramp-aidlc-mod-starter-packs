@@ -3,62 +3,122 @@ inclusion: auto
 ---
 # Adaptive Reverse Engineering
 
-**Purpose**: Analyze an existing brownfield system at a depth proportional to the modernization objective, producing evidence-backed artifacts for decomposition and legacy transformation decisions.
+**Purpose**: Analyze an existing brownfield system at a depth proportional to
+the modernization objective and produce evidence for decomposition and legacy
+transformation.
 
-**Execute when**: Existing source code is present, or the user asks to modernize, migrate, decompose, extend, or reverse engineer an existing system.
+**Execute when**: Existing source is present, or the user asks to modernize,
+migrate, decompose, extend, or reverse engineer an existing system.
 
-**Skip when**: The work is genuinely greenfield with no existing implementation.
+**Skip when**: The work is genuinely greenfield with no existing
+implementation.
 
-**Rerun when**: The relevant code or prior analysis has materially changed. Reuse current evidence where possible, and note anything left unverified.
+**Rerun when**: Relevant code or reused evidence has materially changed. Reuse
+current evidence where possible and disclose what remains unverified.
 
 ## Modes
 
 ### Targeted mode (default)
 
-Use Targeted mode when the prompt names a feature, journey, module, endpoint, data area, bounded context, modernization surface, or other bounded objective. Trace the target end-to-end, run the cross-cutting sentinel sweep, and expand only as evidence requires. A Targeted run must not claim whole-system completeness.
+Use Targeted mode when the objective names a feature, journey, module,
+endpoint, data area, bounded context, modernization surface, or another
+bounded objective. Trace the objective end-to-end, perform the mandatory
+sentinel sweep, and follow direct evidence edges as needed. A Targeted run
+must not claim whole-system completeness.
 
 ### Full mode
 
-Use Full mode only when the user explicitly requests system-wide analysis or approves an expansion to Full. Full mode produces the comprehensive whole-codebase artifact bundle.
+Use Full mode only when the user explicitly requests system-wide analysis or
+explicitly approves a major expansion to Full. Full mode is never an
+automatic consequence of Targeted discovery.
 
 ### Orientation
 
-When the objective or anchors are ambiguous, run a cheap **Orientation** pass first: inspect prior analysis, repository manifests, module topology, entry points, and build files to resolve a defensible target. If that cannot resolve one, ask **one informed scope clarification** in chat and log the exact question and answer in `aidlc-docs/audit.md`. Ask only when no defensible anchor resolves, multiple disjoint targets match, or materially different capabilities share terminology. Do not ask generic questions that repository evidence can answer.
+Run a cheap **Orientation** pass before deep scanning: inspect prior analysis,
+repository manifests, module topology, entry points, and build files to locate
+defensible anchors.
+
+Orientation is temporary, not a completed analysis mode. Final evidence
+artifacts record Targeted or Full.
+
+If cheap evidence still cannot identify a defensible anchor, multiple
+disjoint targets match, or materially different capabilities share
+terminology, ask at most one informed scope clarification in chat. Append the
+exact question and answer to `aidlc-docs/audit.md`. Generic questions that
+repository evidence can answer are forbidden.
 
 ## Prior analysis (ATX / assessments)
 
-Before scanning, check for pre-existing evidence: `ATXDocumentation/`, `ATXModAnalysis/`, migration/portability assessments, architecture/API/data documentation, and prior `aidlc-docs/analysis/` output.
+Before scanning, inspect current evidence such as:
 
-- **If suitable prior analysis exists and is current for the objective**, ingest it as the primary input, spot-verify its high-risk claims, scan the gaps it does not cover, and note which findings came from prior analysis versus your own scan.
-- **Otherwise**, scan the source directly at the depth the selected mode requires.
+- `ATXDocumentation/`;
+- `ATXModAnalysis/`;
+- AWS Transform or other migration and portability assessments;
+- architecture, API, or data documentation; and
+- prior `aidlc-docs/analysis/` artifacts.
 
-**Whole-codebase ATX and Targeted mode compose.** When ATX (or an equivalent assessment) spans the entire codebase, use it as broad **whole-system context** — the architecture, component inventory, and dependency map that situate the objective. It does not replace Targeted mode: for the specific feature, slice, or bounded context the user named, still run **Targeted reverse engineering** to reach the granular, code-level depth (end-to-end trace + sentinel sweep) that decomposition decisions require. Prior analysis gives the whole-system map; Targeted RE provides the granular depth on the objective.
+When prior analysis is current and relevant to the objective:
 
-Treat prior analysis as input, not final truth — prefer current source/runtime evidence when they conflict.
+- use it as primary input;
+- record the exact reused sources;
+- spot-verify high-risk claims;
+- scan gaps it does not cover; and
+- prefer current source or runtime evidence when evidence conflicts.
+
+When prior analysis is absent, stale, or irrelevant, scan source directly at
+the selected mode's depth.
+
+Whole-codebase ATX evidence may provide broad system context for Targeted
+mode, but it does not replace the granular Targeted trace and sentinel sweep.
+
+Every artifact must identify its mode, objective, scope boundary, evidence
+basis, and what was not analyzed. Distinguish inference from observed
+evidence.
 
 ## Step 1: Objective and scope
 
-Before deep scanning, create or update `aidlc-docs/analysis/reverse-engineering-scope.md`:
+Before deep analysis, create or update
+`aidlc-docs/analysis/reverse-engineering-scope.md`:
 
 ```markdown
 # Reverse Engineering Scope
 - **Mode**: [Targeted / Full]
-- **Objective**: [question to answer + downstream outcome]
-- **Target Type / Anchors**: [feature/journey/module/endpoint/data area/bounded context/system-wide; routes, symbols, modules, schemas, files]
+- **Objective**: [question to answer and downstream outcome]
+- **Target Type / Anchors**: [feature, journey, module, endpoint, data area,
+  bounded context, or system-wide; routes, symbols, modules, schemas, files]
 - **In-Scope**: [behavior and surfaces to trace]
 - **Not-In-Scope**: [explicit exclusions]
-- **Prior Analysis**: [reused sources, or "none"]
+- **Prior Analysis**: [reused sources, or none]
 - **Not Analyzed / Open Questions**: [areas not examined and why]
 - **Status**: [In Progress / Awaiting Approval / Complete]
 ```
 
-Use one status field across the scope artifact and `aidlc-state.md`: `In Progress` while gathering evidence, `Awaiting Approval` when evidence is ready for review, and `Complete` only after explicit user approval. Every artifact states its mode, objective, and what was not analyzed.
+Use the same lifecycle status in the scope artifact, shared metadata, and
+`aidlc-docs/aidlc-state.md`.
 
-## Step 2: Targeted path — Orient → Trace → Sentinel Sweep
+### Scope lifecycle synchronization
+
+This extends the record updates in the common lifecycle; it does not create a
+second approval gate or audit action.
+
+- When the common `Record Evidence-Ready State` step runs, update
+  `aidlc-docs/analysis/reverse-engineering-scope.md` in the same transition
+  and set its status to `Awaiting Approval`.
+- After the common `Approval Transition` has received explicit approval and
+  completed its raw approval audit append, update
+  `aidlc-docs/analysis/reverse-engineering-scope.md`,
+  `aidlc-docs/analysis/reverse-engineering-timestamp.md`, and
+  `aidlc-docs/aidlc-state.md` together to `Complete`, recording the approved
+  scope and completion timestamp.
+
+## Step 2: Targeted path — Orient, Trace, Sentinel Sweep
 
 ### Orient
 
-Map the minimum repository structure needed to locate the target: manifests, build files, modules, entry points, likely implementation/data/test/deployment assets, and any relevant prior analysis. This is a locating pass, not a whole-repository scan.
+Map only the repository structure needed to locate the objective: manifests,
+build files, modules, entry points, likely implementation, data, test, and
+deployment assets, and relevant prior evidence. This is a locating pass, not
+a whole-repository scan.
 
 ### Trace the target end-to-end
 
@@ -69,51 +129,67 @@ Map the minimum repository structure needed to locate the target: manifests, bui
 5. Success, failure, validation, and error contracts.
 6. Direct callers and dependencies.
 7. Existing unit, integration, contract, and end-to-end tests.
-8. Runtime, deployment, and build configuration that changes the target's behavior.
+8. Runtime, deployment, and build configuration that changes behavior.
 
-Record meaningful source paths and symbols. Distinguish observed evidence from inference.
+Record meaningful source paths and symbols.
 
 ### Mandatory cross-cutting sentinel sweep
 
-To prevent keyhole analysis, check the target's interaction with:
-- authentication and authorization;
-- session state, static state, and shared memory;
-- global configuration and secrets;
-- shared databases, schemas, and transactions;
-- high-fan-in libraries and shared kernels;
-- filesystem and object storage;
-- events, queues, jobs, schedulers, and callbacks;
-- errors, audit, compliance, and data-handling obligations;
-- logging, metrics, tracing, and alerting;
-- deployment, infrastructure as code, networking, and runtime topology; and
-- tests, CI, release gates, and rollback behavior.
+Check the target's interaction with all eleven categories:
 
-For each sentinel, record the evidence examined, the finding, and any unresolved edge.
+1. authentication and authorization;
+2. session state, static state, and shared memory;
+3. global configuration and secrets;
+4. shared databases, schemas, and transactions;
+5. high-fan-in libraries and shared kernels;
+6. filesystem and object storage;
+7. events, queues, jobs, schedulers, and callbacks;
+8. errors, audit, compliance, and data-handling obligations;
+9. logging, metrics, tracing, and alerting;
+10. deployment, infrastructure as code, networking, and runtime topology; and
+11. tests, CI, release gates, and rollback behavior.
+
+For every sentinel, record the evidence examined, finding, and unresolved
+edge.
 
 ### Expansion
 
-Follow direct dependencies, callers, data edges, and configuration edges automatically as the objective requires. If analysis would cross into another business capability or bounded context, deeply analyze a high-fan-in shared kernel, or switch to Full mode, **ask for approval first** — never silently turn a Targeted run into a Full one.
+Follow direct dependencies, callers, data edges, and configuration edges
+automatically when needed to answer the objective. Before crossing into
+another business capability or bounded context, deeply analyzing a
+high-fan-in shared kernel, or switching to Full, ask for approval first.
+Never silently turn a Targeted run into a Full one.
 
-### Stop when
-
-Objective questions are answered with cited evidence, the end-to-end path is traced, the sentinel sweep has no unresolved critical edge, and remaining unknowns are explicit. If critical evidence is inaccessible, say so and note what would unblock it rather than claiming completeness.
+Stop only when objective questions have cited evidence, the end-to-end path
+is traced, no critical sentinel edge remains undisclosed, and remaining
+unknowns are explicit. If critical evidence is inaccessible, record what is
+missing and what would unblock it; do not claim completeness.
 
 ## Step 2 artifacts (Targeted)
 
 Create under `aidlc-docs/analysis/`:
 
+Create `aidlc-docs/analysis/target-analysis.md` and
+`aidlc-docs/analysis/target-coupling-assessment.md`.
+
 ### `target-analysis.md`
 
 ```markdown
 # Target Analysis
-- **Mode**: Targeted | **Objective**: [...] | **Scope Boundary**: [...] | **Not Analyzed**: [...]
+- **Mode**: Targeted
+- **Objective**: [objective]
+- **Scope Boundary**: [scope]
+- **Not Analyzed**: [explicit gaps]
 
 ## Externally Visible Behavior
 [entry points, inputs, outputs, actors, success and error contracts]
+
 ## End-to-End Trace
 [entry → orchestration/business rules → data/transactions → side effects/consumers]
+
 ## Runtime and Deployment Behavior
 [configuration, infrastructure, build, and operational behavior]
+
 ## Test Evidence
 [tests found, gaps, and parity risks]
 ```
@@ -126,70 +202,184 @@ Create under `aidlc-docs/analysis/`:
 
 ## Direct Callers and Dependencies
 [code, API, event, data, and runtime dependencies]
+
 ## Data and Transaction Coupling
 [shared tables, ownership, transactions, consistency risks]
+
 ## Cross-Cutting Sentinel Results
 | Sentinel | Evidence | Finding | Unresolved Edge |
 |----------|----------|---------|-----------------|
+
 ## Modernization Implications
 [decomposition difficulty, blockers, seams, and safe next steps]
 ```
 
-## Step 3: Full path — whole-codebase discovery
+The selected Targeted bundle is exactly:
 
-Run this path only in Full mode; still apply the prior-analysis strategy and the Step 1 scope.
+- `reverse-engineering-scope.md`;
+- `target-analysis.md`;
+- `target-coupling-assessment.md`; and
+- shared `reverse-engineering-timestamp.md`.
 
-### Discovery
+## Step 3: Full path — explicit or approved whole-system analysis
 
-- Scan all in-scope packages/solutions and package types: Application, Infrastructure, Models, Clients, Tests, Workers, and front ends.
-- Identify languages, frameworks, business purpose, and business transactions.
-- Discover infrastructure (CDK/Terraform/CloudFormation/containers/runtime hosting), build systems and dependencies, services/APIs/functions/workers/queues/schedulers/data stores, and tests/CI/observability/release gates.
+Run this branch only in Full mode. Apply the same prior-analysis and explicit
+scope rules.
+
+Discovery covers all in-scope packages and solutions, relevant package types,
+languages and frameworks, business purpose and transactions, infrastructure,
+build systems and dependencies, services, APIs, functions, workers, queues,
+schedulers, data stores, tests, CI, observability, and release gates.
 
 ### Full artifact bundle
 
-Create these under `aidlc-docs/analysis/`, each with a one-line mode/objective/scope/not-analyzed header:
+Create exactly these nine comprehensive artifacts under
+`aidlc-docs/analysis/`, each with mode, objective, scope, and not-analyzed
+context:
 
-- `business-overview.md` — business context diagram, description, transactions, dictionary, and component-level business purposes.
-- `architecture.md` — system overview, architecture diagram, component descriptions, data flow, integration points, and infrastructure.
-- `code-structure.md` — build system, key classes/modules, file inventory, design patterns, and critical dependencies with migration concerns.
-- `api-documentation.md` — endpoints (method/path/handler/auth/request/response/status/side effects), contract summary table, and data models.
-- `component-inventory.md` — application/infrastructure/shared/test components with totals.
-- `technology-stack.md` — languages/frameworks, data layer, infrastructure/cloud, front end, DevOps/observability, and test tooling.
-- `dependencies.md` — internal dependency diagram, external dependencies with migration concerns, and cross-cutting concerns.
-- `bounded-contexts.md` — identified contexts (capability, entry points, logic, data access, models, storage, events), context map, shared kernel, and cross-context dependencies.
-- `coupling-assessment.md` — coupling matrix, data coupling, extraction difficulty per context, strangler-fig readiness, and modernization risks.
+- `aidlc-docs/analysis/business-overview.md` — business context diagram,
+  transactions, dictionary, and component purpose.
+- `aidlc-docs/analysis/architecture.md` — system architecture, components,
+  data flow, integrations, and infrastructure.
+- `aidlc-docs/analysis/code-structure.md` — build, modules and classes, file
+  inventory, patterns, and dependency risks.
+- `aidlc-docs/analysis/api-documentation.md` — endpoints, handlers, auth,
+  request and response contracts, status, side effects, summary, and data
+  models.
+- `aidlc-docs/analysis/component-inventory.md` — application,
+  infrastructure, shared, and test components with totals.
+- `aidlc-docs/analysis/technology-stack.md` — languages, frameworks, data,
+  cloud infrastructure, front end, DevOps, observability, and testing.
+- `aidlc-docs/analysis/dependencies.md` — internal dependency diagram,
+  external migration concerns, and cross-cutting concerns.
+- `aidlc-docs/analysis/bounded-contexts.md` — contexts, capability, entry
+  points, logic, data, models, storage, events, context map, shared kernel, and
+  dependencies.
+- `aidlc-docs/analysis/coupling-assessment.md` — coupling matrix, data
+  coupling, extraction difficulty, strangler readiness, and modernization
+  risks.
 
-Use Mermaid diagrams where a bundle item calls for one (business context, architecture, data flow, class/module, dependency, and context maps). Full mode must retain all nine artifacts; do not substitute the Targeted bundle.
+Use Mermaid where the artifact contract calls for business context,
+architecture and data flow, class or module, dependency, or context maps.
+Full mode must retain all nine artifacts; do not substitute the Targeted bundle.
 
-## Step 4: Metadata and state
+The selected Full bundle is the nine artifacts above plus:
+
+- `reverse-engineering-scope.md`; and
+- shared `reverse-engineering-timestamp.md`.
+
+<!-- No domain-specific full-analysis module by default. -->
+
+## Record Reverse Engineering Metadata
 
 Create `aidlc-docs/analysis/reverse-engineering-timestamp.md`:
 
 ```markdown
 # Reverse Engineering Metadata
-- **Analysis Date**: [ISO timestamp] | **Analyzer**: AI-DLC | **Workspace**: [path]
-- **Mode**: [Targeted / Full] | **Objective**: [...] | **Scope Boundary**: [...]
-- **Prior Analysis**: [reused sources, or none] | **Not Analyzed**: [areas]
-- **Status**: [In Progress / Awaiting Approval / Complete]
+
+**Analysis Date**: [ISO timestamp]
+**Analyzer**: AI-DLC
+**Policy / Mode**: [Full / Comprehensive / active overlay-defined mode]
+**Analysis Objective**: [Purpose of this analysis]
+**Scope Boundary**: [Workspace, repositories, packages, or components analyzed]
+**Prior Evidence Reused**: [Artifact paths and timestamps, or none]
+**Not Analyzed / Open Areas**: [Explicit exclusions, unavailable evidence, or none]
+**Analysis Time**: [Elapsed time]
+**Status**: [In Progress / Awaiting Approval / Complete]
+**Workspace**: [Workspace path]
+**Total Files Analyzed**: [Number]
 
 ## Artifacts Generated
-[list the Targeted or Full bundle actually generated]
+Retain only the selected mode's checklist in the produced metadata.
+
+For Targeted mode, record exactly:
+- [x] reverse-engineering-scope.md
+- [x] target-analysis.md
+- [x] target-coupling-assessment.md
+- [x] reverse-engineering-timestamp.md
+
+For Full mode, record exactly:
+- [x] reverse-engineering-scope.md
+- [x] business-overview.md
+- [x] architecture.md
+- [x] code-structure.md
+- [x] api-documentation.md
+- [x] component-inventory.md
+- [x] technology-stack.md
+- [x] dependencies.md
+- [x] bounded-contexts.md
+- [x] coupling-assessment.md
+- [x] reverse-engineering-timestamp.md
+<!-- No domain-specific full-analysis artifact by default. -->
 ```
 
-Update `aidlc-docs/aidlc-state.md` in the same interaction with mode, objective, scope boundary, status, and any approved expansion. Append the mode selection, scope, expansions, discrepancies, and user approvals to `aidlc-docs/audit.md`. Do not set `Complete` during evidence collection.
+## Record Evidence-Ready State
 
-## Step 5: Evidence review and approval gate
+When the analysis artifacts are ready for review:
 
-When mode-specific evidence is ready, set status to `Awaiting Approval` and present a summary covering evidence, findings, coupling/blockers, modernization implications, and what was not analyzed. Say **"reverse-engineering analysis evidence is ready for review"**, not that the run is complete.
+1. Update `aidlc-docs/analysis/reverse-engineering-timestamp.md` with the
+   final scope, open areas, analysis time, and set status to `Awaiting Approval`.
+2. Update `aidlc-docs/aidlc-state.md` without marking Phase 0 complete:
 
-For Targeted evidence, offer exactly these choices:
-1. **Accept and continue** to Stage 3 using the Targeted bundle.
-2. **Fill evidence gaps** within the current scope.
-3. **Expand selected areas** (approval required before any major expansion).
-4. **Run Full RE** across the system.
+```markdown
+## Reverse Engineering Status
+- [ ] Phase 0: Reverse Engineering — Awaiting Approval
+- **Artifacts Location**: aidlc-docs/analysis/
+- **Analysis Scope**: [scope boundary]
+- **Last Updated**: [ISO timestamp]
+```
 
-For Full evidence, offer:
-1. **Accept and continue** to Stage 3 using the Full bundle.
-2. **Fill evidence gaps or rescan selected areas**.
+Do not check the Phase 0 completion box or set status to `Complete` before the
+approval transition below.
 
-**Approval transition**: wait for explicit user approval, append the complete raw approval response to `aidlc-docs/audit.md` with its timestamp, then update the scope artifact, timestamp, and `aidlc-state.md` from `Awaiting Approval` to `Complete`, mark the Stage 2 approval checkbox, and proceed to Stage 3. Without explicit approval plus the raw audit entry, the run stays `Awaiting Approval` and must not be called complete.
+## Present Evidence for Review
+
+Tell the user:
+
+```markdown
+# 🔍 Reverse-Engineering Analysis Evidence Is Ready for Review
+
+[AI-generated summary of key findings — bounded contexts identified, coupling hotspots, recommended modernization order, major risks]
+
+> **📋 REVIEW REQUIRED**
+> Please examine the reverse-engineering artifacts at:
+> `aidlc-docs/analysis/`
+
+> **🚀 WHAT'S NEXT?**
+>
+> **For Targeted evidence**
+> 1. **Accept and continue** — approve the Targeted evidence and continue to
+>    Phase 1 Requirements.
+> 2. **Fill evidence gaps** — remain within the current scope and keep the
+>    gate at `Awaiting Approval`.
+> 3. **Expand selected areas** — approve a named major scope expansion before
+>    it is scanned.
+> 4. **Run Full reverse engineering** — approve whole-system expansion.
+>
+> **For Full evidence**
+> 1. **Accept and continue** — approve the Full evidence and continue to
+>    Phase 1 Requirements.
+> 2. **Fill evidence gaps or rescan selected areas** — keep the gate at
+>    `Awaiting Approval`.
+```
+
+The reverse-engineering analysis evidence is ready for review. Summarize what
+was analyzed and what remains open; do not describe Phase 0 as complete.
+
+## Approval Transition
+
+This is the same single Phase 0 approval gate referenced by the primary
+workflow. Execute it once:
+
+1. Stop and wait for the user's explicit approval.
+2. Append the complete raw approval response with an ISO timestamp to
+   `aidlc-docs/audit.md` exactly once.
+3. Only after that audit append, update
+   `aidlc-docs/analysis/reverse-engineering-timestamp.md` and
+   `aidlc-docs/aidlc-state.md` from `Awaiting Approval` to `Complete`,
+   recording the approved scope and completion timestamp.
+4. Mark the Phase 0 state checkbox complete.
+5. Only then enter Phase 1: Requirements.
+
+If the user requests changes, update the affected evidence, keep status at
+`Awaiting Approval`, and present the evidence for review again.
