@@ -17,11 +17,14 @@ function run(args) {
 describe('ramp-pack init workspace options', () => {
   it('installs Kiro and Claude Code with one shared spec root', () => {
     const target = mkdtempSync(join(tmpdir(), 'ramp-cli-'))
+    const cache = join(target, 'unused-cache')
     const result = run([
       'init',
       'qa-automated-testing',
       '--tools',
       'kiro,claude-code',
+      '--cache',
+      cache,
       '--target',
       target,
     ])
@@ -37,6 +40,37 @@ describe('ramp-pack init workspace options', () => {
     )
     expect(existsSync(join(target, '.kiro/specs'))).toBe(false)
     expect(existsSync(join(target, 'aidlc-docs'))).toBe(false)
+    expect(existsSync(cache)).toBe(false)
+  })
+
+  it('accepts build-all --cache without touching it for scaffold-only output', () => {
+    const root = mkdtempSync(join(tmpdir(), 'ramp-cli-build-'))
+    const out = join(root, 'out')
+    const cache = join(root, 'unused-cache')
+    const result = run([
+      'build-all',
+      '--pack',
+      'qa-automated-testing',
+      '--out',
+      out,
+      '--cache',
+      cache,
+    ])
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(
+      existsSync(
+        join(
+          out,
+          'qa-automated-testing',
+          'kiro',
+          '.kiro',
+          'steering',
+          'aidlc-workflow.md',
+        ),
+      ),
+    ).toBe(true)
+    expect(existsSync(cache)).toBe(false)
   })
 
   it.each([

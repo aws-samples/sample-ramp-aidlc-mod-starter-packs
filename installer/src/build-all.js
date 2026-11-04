@@ -1,11 +1,12 @@
 import { readdirSync, existsSync, rmSync, mkdirSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { buildPlan } from './plan.js'
 import { applyPlan } from './apply.js'
 import { loadManifest } from './manifest.js'
 import { renderAddSkills } from './render/add-skills.js'
 import { listAdapterIds } from './adapters/index.js'
 import { resolveWorkspace } from './workspace.js'
+import { createSkillResolver } from './dependencies/resolver.js'
 
 export const TOOLS = listAdapterIds()
 
@@ -29,6 +30,8 @@ export function listPacks(packsRoot) {
 // - inPlace=false: write to <outDir>/<pack>/<tool>/ + <outDir>/<pack>/add-skills.sh
 export function buildAll({
   packsRoot,
+  repoRoot = resolve(packsRoot, '..'),
+  cacheDir,
   outDir,
   pack,
   tools = TOOLS,
@@ -42,6 +45,14 @@ export function buildAll({
 }) {
   const packs = pack ? [pack] : listPacks(packsRoot)
   if (packs.length === 0) throw new Error(`no packs found under ${packsRoot}`)
+  const resolver = includeSkills
+    ? createSkillResolver({
+        repoRoot,
+        ...(cacheDir !== undefined ? { cacheDir } : {}),
+        allowLegacyLocal: true,
+        strictProvenance: false,
+      })
+    : null
   const results = []
   for (const p of packs) {
     const packDir = join(packsRoot, p)
@@ -60,6 +71,7 @@ export function buildAll({
       tool,
       plan: buildPlan(packDir, tool, {
         includeSkills,
+        ...(resolver ? { resolver } : {}),
         ...(sharedWorkspace ? { workspace: sharedWorkspace } : {}),
       }),
     }))

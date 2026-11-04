@@ -9,11 +9,13 @@ import { buildAll, listPacks } from '../src/build-all.js'
 import { listAdapterIds } from '../src/adapters/index.js'
 import { loadManifest } from '../src/manifest.js'
 import { resolveWorkspace } from '../src/workspace.js'
+import { createSkillResolver } from '../src/dependencies/resolver.js'
 
 const TOOLS = listAdapterIds()
 const here = dirname(fileURLToPath(import.meta.url))
 // Packs live under <repo>/packs/, each in its own directory containing a pack.yaml.
-const packsRoot = resolve(here, '..', '..', 'packs')
+const repoRoot = resolve(here, '..', '..')
+const packsRoot = join(repoRoot, 'packs')
 
 const program = new Command()
 program.name('ramp-pack')
@@ -40,6 +42,7 @@ program
   .option('--profile <name>', 'named workspace profile from the pack manifest')
   .option('--spec-root <path>', 'shared relative spec directory')
   .option('--state-root <path>', 'shared relative workflow state directory')
+  .option('--cache <dir>', 'skill cache root; overrides RAMP_SKILLS_CACHE')
   .option('--dry-run', 'print planned writes without touching disk', false)
   .option('--force', 'overwrite existing files', false)
   .option('--target <dir>', 'target project dir (default: cwd)', process.cwd())
@@ -60,7 +63,14 @@ program
         specRoot: opts.specRoot,
         stateRoot: opts.stateRoot,
       })
-      const plan = tools.flatMap((tool) => buildPlan(packDir, tool, { workspace }))
+      const resolver = createSkillResolver({
+        repoRoot,
+        ...(opts.cache !== undefined ? { cacheDir: opts.cache } : {}),
+        allowLegacyLocal: true,
+        strictProvenance: false,
+      })
+      const plan = tools.flatMap((tool) =>
+        buildPlan(packDir, tool, { workspace, resolver }))
       const written = applyPlan(plan, opts.target, { dryRun: opts.dryRun, force: opts.force })
       const verb = opts.dryRun ? 'Would write' : 'Wrote'
       for (const p of written) console.log(`  ${verb}: ${p}`)
@@ -81,6 +91,7 @@ program
   .option('--pack <pack>', 'build a single pack instead of all')
   .option('--in-place', 'write committed scaffolds into packs/<pack>/scaffolded-packs/', false)
   .option('--with-skills', 'also copy skills (default: steering-only + add-skills.sh)', false)
+  .option('--cache <dir>', 'skill cache root when --with-skills is used')
   .action((opts) => {
     try {
       if (opts.pack && !existsSync(join(packsRoot, opts.pack, 'pack.yaml'))) {
@@ -90,6 +101,8 @@ program
       const outDir = resolve(process.cwd(), opts.out)
       const results = buildAll({
         packsRoot,
+        repoRoot,
+        cacheDir: opts.cache,
         outDir,
         pack: opts.pack,
         includeSkills: opts.withSkills,

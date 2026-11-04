@@ -28,6 +28,13 @@ describe('buildPlan + applyPlan', () => {
     expect(paths).toContain('.mcp.json')
     expect(paths).toContain('.claude/commands/aidlc.md')
     expect(paths).toContain('.claude/skills/aws-lambda')
+    expect(
+      plan.find((entry) => entry.path === '.claude/skills/aws-lambda')
+        .provenance,
+    ).toMatchObject({
+      kind: 'pack-override',
+      name: 'aws-lambda',
+    })
   })
 
   it('dry-run writes nothing but returns planned paths', () => {
@@ -82,5 +89,59 @@ describe('buildPlan + applyPlan', () => {
     expect(() =>
       buildPlan(packDir, 'claude-code', { includeSkills: false, workspace }),
     ).toThrow(/workspace.*claude-code|claude-code.*workspace/i)
+  })
+
+  it('threads one injected resolver and the manifest pack id into skill entries', () => {
+    const calls = []
+    const selected = join(packDir, 'selected-skill')
+    const provenance = {
+      kind: 'legacy-local',
+      attribution: 'legacy-unattributed',
+      name: 'aws-lambda',
+    }
+    const resolver = {
+      resolveSkill(name, options) {
+        calls.push([name, options])
+        return { directory: selected, provenance }
+      },
+    }
+
+    const plan = buildPlan(packDir, 'claude-code', { resolver })
+    const skill = plan.find(
+      (entry) => entry.path === '.claude/skills/aws-lambda',
+    )
+    expect(calls).toEqual([
+      ['aws-lambda', { packDir, packId: 'demo' }],
+    ])
+    expect(skill).toEqual({
+      path: '.claude/skills/aws-lambda',
+      content: selected,
+      kind: 'copy',
+      provenance,
+    })
+  })
+
+  it('does not touch an injected resolver when skills are excluded', () => {
+    const resolver = {
+      resolveSkill() {
+        throw new Error('resolver must not be called')
+      },
+    }
+    expect(() =>
+      buildPlan(packDir, 'kiro', { includeSkills: false, resolver }),
+    ).not.toThrow()
+  })
+
+  it('fails unresolved skill planning before any target write', () => {
+    const target = mkdtempSync(join(tmpdir(), 'proj-'))
+    const resolver = {
+      resolveSkill() {
+        throw new Error('unresolved skill')
+      },
+    }
+    expect(() => buildPlan(packDir, 'kiro', { resolver })).toThrow(
+      /unresolved skill/i,
+    )
+    expect(existsSync(join(target, '.kiro'))).toBe(false)
   })
 })

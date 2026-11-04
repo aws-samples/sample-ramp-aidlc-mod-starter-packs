@@ -4,6 +4,8 @@ import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync, statSy
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { buildAll, listPacks } from '../src/build-all.js'
+import { hashSkillTree } from '../src/dependencies/checksum.js'
+import { writeSkillLock } from '../src/dependencies/manifests.js'
 
 let packsRoot
 beforeEach(() => {
@@ -53,9 +55,17 @@ describe('buildAll (Model C: lean scaffolds + add-skills.sh)', () => {
     writeFileSync(join(p, 'skills/api-gateway/SKILL.md'), '# apigw')
 
     const out = mkdtempSync(join(tmpdir(), 'out-'))
-    buildAll({ packsRoot, outDir: out, includeSkills: true, emitSkillScript: false })
+    const cacheDir = join(out, 'unused-cache')
+    buildAll({
+      packsRoot,
+      outDir: out,
+      cacheDir,
+      includeSkills: true,
+      emitSkillScript: false,
+    })
     expect(existsSync(join(out, 'demo/kiro/.kiro/skills/aws-lambda/SKILL.md'))).toBe(true)
     expect(existsSync(join(out, 'demo/add-skills.sh'))).toBe(false)
+    expect(existsSync(cacheDir)).toBe(false)
   })
 
   it('keeps default multi-target builds as independent standalone projections', () => {
@@ -105,5 +115,107 @@ describe('buildAll (Model C: lean scaffolds + add-skills.sh)', () => {
       }),
     ).toThrow(message)
     expect(existsSync(join(out, 'demo'))).toBe(false)
+  })
+
+  it('uses one explicit cache for skill-inclusive builds', () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), 'resolver-repo-'))
+    const isolatedPacks = join(repoRoot, 'custom-packs')
+    const packDir = join(isolatedPacks, 'demo')
+    mkdirSync(join(packDir, 'instructions'), { recursive: true })
+    writeFileSync(join(packDir, 'instructions', 'main.md'), 'MAIN')
+    writeFileSync(
+      join(packDir, 'pack.yaml'),
+      [
+        'name: demo',
+        'title: Demo',
+        'description: d',
+        'instructions:',
+        '  - file: main.md',
+        '    role: primary',
+        'command:',
+        '  name: aidlc',
+        '  description: go',
+        'skills:',
+        '  - aws-lambda',
+        '',
+      ].join('\n'),
+    )
+    mkdirSync(join(repoRoot, 'dependencies'), { recursive: true })
+    writeFileSync(
+      join(repoRoot, 'dependencies', 'skills.sources.yaml'),
+      [
+        'schemaVersion: 1',
+        'sources:',
+        '  - id: agent-toolkit-for-aws',
+        '    repository: https://github.com/aws/agent-toolkit-for-aws.git',
+        '    priority: 10',
+        '    license: Apache-2.0',
+        '    licensePath: LICENSE',
+        '    noticePath: NOTICE',
+        '',
+      ].join('\n'),
+    )
+    const reference = join(repoRoot, 'reference')
+    mkdirSync(reference, { recursive: true })
+    writeFileSync(join(reference, 'SKILL.md'), '# lambda\n')
+    const hashed = hashSkillTree(reference)
+    const entry = {
+      name: 'aws-lambda',
+      source: 'agent-toolkit-for-aws',
+      repository: 'https://github.com/aws/agent-toolkit-for-aws.git',
+      commit: 'a'.repeat(40),
+      path: 'skills/core-skills/aws-lambda',
+      treeSha256: hashed.treeSha256,
+      files: hashed.files,
+      license: 'Apache-2.0',
+      licensePath: 'LICENSE',
+      noticePath: 'NOTICE',
+    }
+    writeSkillLock(repoRoot, {
+      schemaVersion: 1,
+      skills: new Map([['aws-lambda', entry]]),
+    })
+    const cacheDir = join(repoRoot, 'configured-cache')
+    const cached = join(
+      cacheDir,
+      'sources',
+      entry.source,
+      entry.commit,
+      entry.path,
+    )
+    mkdirSync(cached, { recursive: true })
+    writeFileSync(join(cached, 'SKILL.md'), '# lambda\n')
+    const out = mkdtempSync(join(tmpdir(), 'out-'))
+
+    buildAll({
+      packsRoot: isolatedPacks,
+      repoRoot,
+      cacheDir,
+      outDir: out,
+      tools: ['kiro'],
+      includeSkills: true,
+      emitSkillScript: false,
+    })
+
+    expect(
+      readFileSync(
+        join(out, 'demo', 'kiro', '.kiro', 'skills', 'aws-lambda', 'SKILL.md'),
+        'utf8',
+      ),
+    ).toBe('# lambda\n')
+  })
+
+  it('does not validate or create cache input for scaffold-only builds', () => {
+    const out = mkdtempSync(join(tmpdir(), 'out-'))
+    expect(() =>
+      buildAll({
+        packsRoot,
+        outDir: out,
+        cacheDir: 42,
+        includeSkills: false,
+        emitSkillScript: false,
+      }),
+    ).not.toThrow()
+    expect(existsSync(join(out, 'demo', 'kiro'))).toBe(true)
   })
 })

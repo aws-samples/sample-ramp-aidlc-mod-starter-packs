@@ -10,14 +10,30 @@ import { resolveWorkspace } from './workspace.js'
 // dir — used by `init` for a full local install. Set false for the committed
 // scaffolds, where skills are ported separately by the generated add-skills.sh
 // (keeps the committed output tiny and avoids re-forking the skill library).
-export function buildPlan(packDir, tool, { includeSkills = true, workspace } = {}) {
+export function buildPlan(
+  packDir,
+  tool,
+  {
+    includeSkills = true,
+    workspace,
+    resolver,
+    repoRoot,
+    cacheDir,
+  } = {},
+) {
   const manifest = loadManifest(packDir)
   const resolvedWorkspace = workspace ?? resolveWorkspace(manifest, { tools: [tool] })
   if (!resolvedWorkspace.tools?.includes(tool)) {
     throw new Error(`workspace does not include tool: ${tool}`)
   }
   return [
-    ...(includeSkills ? planSkills(packDir, manifest, tool) : []),
+    ...(includeSkills
+      ? planSkills(packDir, manifest, tool, {
+          resolver,
+          repoRoot,
+          cacheDir,
+        })
+      : []),
     ...renderInstructions(manifest, packDir, tool, resolvedWorkspace),
     renderMcp(manifest, tool),
     renderCommand(manifest, tool),
