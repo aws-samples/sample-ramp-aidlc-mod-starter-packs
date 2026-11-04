@@ -51,7 +51,7 @@ Run the `ramp-pack` installer from the repo root; it reads the neutral source an
 node installer/bin/ramp-pack.js init qa-automated-testing --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
 ```
 
-Add `--dry-run` to preview, `--force` to overwrite existing files. To rebuild all four committed tool scaffolds in place, run `./scripts/regenerate.sh qa-automated-testing` (requires Node). The common lifecycle, pack-local instructions, and shared `skills-library/` are the sources of truth for both the committed `scaffolded-packs/` and the installer output.
+Add `--dry-run` to preview, `--force` to overwrite existing files. To rebuild all four committed tool scaffolds in place, run `./scripts/regenerate.sh qa-automated-testing` (requires Node). The common lifecycle, named QA overlay, pack-local instructions, and shared `skills-library/` are the sources of truth for both the committed `scaffolded-packs/` and the installer output.
 
 ### Then
 
@@ -69,13 +69,16 @@ The workflow guides the agent to ask for your decisions first (writing a `_decis
 
 ```
 common/instructions/
-└── aidlc-workflow.md             # Canonical local decision-gated lifecycle
+├── aidlc-workflow.md             # Canonical local decision-gated lifecycle
+└── reverse-engineering.md        # Canonical brownfield evidence lifecycle
+
+workflow-overlays/
+└── qa-existing-test-inventory.md # QA evidence module and artifact entry
 
 packs/qa-automated-testing/
 ├── pack.yaml                     # Instruction roles, skills, MCP, and command
 ├── instructions/
-│   ├── skill-activation.md       # QA skill and MCP activation
-│   └── reverse-engineering.md    # Temporary until the QA overlay task
+│   └── skill-activation.md       # QA skill and MCP activation
 ├── add-skills.sh                 # Ports named skills from skills-library/
 ├── add-skills.ps1                # Windows/PowerShell equivalent
 └── scaffolded-packs/             # Generated per-tool steering
@@ -86,9 +89,12 @@ Source ownership for authors:
 
 - Edit `common/instructions/aidlc-workflow.md` only for universal lifecycle
   behavior shared by every local workflow pack.
+- Edit `common/instructions/reverse-engineering.md` only for universal
+  brownfield evidence and approval behavior.
+- Keep the QA-specific existing-test evidence in
+  `workflow-overlays/qa-existing-test-inventory.md`; the manifest declares
+  exactly where it replaces the two named common slots.
 - Keep pack-local instructions limited to QA-specific behavior.
-- `reverse-engineering.md` becomes common behavior plus a QA overlay in Wave 2
-  Task 4; it remains pack-local temporarily.
 - Never edit `scaffolded-packs/` directly. Regenerate it with
   `./scripts/regenerate.sh qa-automated-testing`.
 

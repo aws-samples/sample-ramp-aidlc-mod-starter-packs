@@ -14,7 +14,8 @@ catalog:
 
 workflow:
   provider: local-instructions-v1
-  overlays: []
+  overlays:
+    - qa-existing-test-inventory.md
 
 instructions:
   - file: aidlc-workflow.md

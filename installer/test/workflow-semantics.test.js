@@ -19,6 +19,12 @@ const commonReverseEngineering = join(
   'reverse-engineering.md',
 )
 const localWorkflow = join(packDir, 'instructions', 'aidlc-workflow.md')
+const localReverseEngineering = join(packDir, 'instructions', 'reverse-engineering.md')
+const qaReverseEngineeringOverlay = join(
+  repoRoot,
+  'workflow-overlays',
+  'qa-existing-test-inventory.md',
+)
 const manifest = loadManifest(packDir)
 const commonRePackDir = join(repoRoot, 'packs', 'agentic-ai-workflow')
 const commonReManifest = loadManifest(commonRePackDir)
@@ -46,6 +52,17 @@ function reverseEngineeringContent(
   const write = renderInstructions(commonReManifest, commonRePackDir, tool, workspace)
     .find((entry) => entry.path === path)
   expect(write, `reverse-engineering companion for ${tool}`).toBeDefined()
+  return write.content
+}
+
+function qaReverseEngineeringContent(
+  tool,
+  workspace = resolveWorkspace(manifest, { tools: [tool] }),
+) {
+  const path = getAdapter(tool).instructions.companionPath('reverse-engineering.md')
+  const write = renderInstructions(manifest, packDir, tool, workspace)
+    .find((entry) => entry.path === path)
+  expect(write, `QA reverse-engineering companion for ${tool}`).toBeDefined()
   return write.content
 }
 
@@ -382,5 +399,87 @@ describe.each(listAdapterIds())('common reverse-engineering rendering for %s', (
       '`Awaiting Approval` to `Complete`',
     )
     expectOrdered(content, '`Awaiting Approval` to `Complete`', 'Requirements')
+  })
+})
+
+describe('QA reverse-engineering overlay', () => {
+  it('owns only the named overlay while inheriting the common companion', () => {
+    expect(existsSync(localReverseEngineering)).toBe(false)
+    expect(existsSync(qaReverseEngineeringOverlay)).toBe(true)
+    expect(
+      manifest.workflow.overlays.filter(
+        (name) => name === 'qa-existing-test-inventory.md',
+      ),
+    ).toHaveLength(1)
+  })
+
+  it('adds the complete QA inventory once to the composed reverse-engineering flow', () => {
+    const content = resolveInstructionBody(
+      manifest,
+      packDir,
+      'reverse-engineering.md',
+    )
+    const evidenceFields = [
+      'Test Suites Found',
+      'Coverage Signal',
+      'CI Test Gates',
+      'Test Data Approach',
+      'Reliability Signals',
+      'Migration / Survivability',
+      'Summary',
+    ]
+
+    for (const field of evidenceFields) expect(content).toContain(field)
+    expect(content.match(/^## Existing Test Inventory$/gm) ?? []).toHaveLength(1)
+    expect(
+      content.match(
+        /Create `\{\{STATE_DIR\}\}\/analysis\/existing-test-inventory\.md`:/g,
+      ) ?? [],
+    ).toHaveLength(1)
+    expect(
+      content.match(/^- \[x\] existing-test-inventory\.md$/gm) ?? [],
+    ).toHaveLength(1)
+    expect(content).toMatch(/additional (?:comprehensive|full)-analysis module/i)
+    expect(content).toMatch(
+      /not\s+a qualified combination with adaptive Targeted mode/i,
+    )
+    expect(content).not.toContain('RAMP:SLOT')
+  })
+
+  it('does not leak QA evidence or legacy adaptive behavior into other policies', () => {
+    const qaContent = resolveInstructionBody(
+      manifest,
+      packDir,
+      'reverse-engineering.md',
+    )
+    const commonContent = resolveInstructionBody(
+      commonReManifest,
+      commonRePackDir,
+      'reverse-engineering.md',
+    )
+
+    expect(commonContent).not.toContain('Existing Test Inventory')
+    expect(commonContent).not.toContain('existing-test-inventory.md')
+    expect(commonContent).not.toContain('Migration / Survivability')
+    expect(qaContent).not.toMatch(
+      /## Targeted Analysis|## Full Analysis|Orientation pass|decomposition-plan/i,
+    )
+  })
+})
+
+describe.each(listAdapterIds())('QA reverse-engineering rendering for %s', (tool) => {
+  it('resolves the inventory path under a custom state root', () => {
+    const workspace = resolveWorkspace(manifest, {
+      tools: [tool],
+      stateRoot: 'customer-state',
+    })
+    const content = qaReverseEngineeringContent(tool, workspace)
+
+    expect(content).toContain(
+      'customer-state/analysis/existing-test-inventory.md',
+    )
+    expect(content).not.toContain('aidlc-docs/')
+    expect(content).not.toContain('RAMP:SLOT')
+    expect(content).not.toMatch(/\{\{(?:INSTRUCTION:|SPEC_DIR|STATE_DIR)/)
   })
 })

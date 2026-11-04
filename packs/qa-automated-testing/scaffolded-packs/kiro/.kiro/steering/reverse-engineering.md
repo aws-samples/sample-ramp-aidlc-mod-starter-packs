@@ -14,6 +14,9 @@ the workspace).
 **Rerun behavior**: Always rerun when the brownfield codebase has changed
 materially. Stale analysis is worse than no analysis.
 
+**Default policy**: Run a comprehensive full-workspace analysis and generate
+the complete baseline artifact set below.
+
 ## Step 1: Workspace Discovery
 
 ### 1.1 Scan the Workspace
@@ -286,13 +289,99 @@ Create `aidlc-docs/analysis/code-quality-assessment.md`:
 - **Anti-patterns**: [List with locations]
 ```
 
-## Step 10: Existing Test Inventory
+## Step 10: Bounded Context Analysis
 
-The codebase being analyzed is the **subject of a QA automation effort** — so the
-*existing tests* are first-class signal, not a footnote. Inventory what test
-automation already exists before any new test design, so the downstream work can
-build on, replace, or migrate it deliberately rather than duplicating or ignoring
-it. Skip only if a scan confirms there are genuinely no tests (and say so).
+Identify natural service boundaries in the codebase. Critical input for any
+decomposition, modernization, or feature-slice planning that follows.
+
+Create `aidlc-docs/analysis/bounded-contexts.md`:
+
+```markdown
+# Bounded Context Analysis
+
+## Identified Bounded Contexts
+
+### [Context Name]
+- **Business Capability**: [What business function this context serves]
+- **Controllers / Routes**: [Which entry points belong here]
+- **Services / Application Logic**: [Which service classes belong here]
+- **Repositories / Data Access**: [Which data access components belong here]
+- **Models / Entities**: [Which domain models belong here]
+- **Storage**: [Which tables / collections / buckets / indexes this context owns]
+- **Events**: [Which domain events / queue messages / topics belong here]
+
+## Context Map
+[Mermaid diagram showing bounded contexts and their relationships]
+
+## Shared Kernel
+- **Shared Models**: [Models used across multiple contexts]
+- **Shared Utilities**: [Config, security, common infrastructure]
+- **Shared Storage**: [Tables / data accessed by multiple contexts]
+
+## Cross-Context Dependencies
+### [Context A] → [Context B]
+- **Type**: [Data dependency / API call / Shared storage / Event]
+- **Direction**: [Upstream / Downstream / Bidirectional]
+- **Coupling Level**: [High / Medium / Low]
+- **Description**: [How they interact]
+```
+
+## Step 11: Modernization Readiness Assessment
+
+Create `aidlc-docs/analysis/modernization-readiness.md`:
+
+```markdown
+# Modernization Readiness
+
+## Coupling Matrix
+| Component | Afferent (incoming) | Efferent (outgoing) | Coupling Score |
+|-----------|---------------------|---------------------|----------------|
+| [class / module / package] | [count] | [count] | [High / Med / Low] |
+
+## Data Coupling Analysis
+- **Shared Storage Across Contexts**: [Tables / indexes accessed by multiple bounded contexts]
+- **Foreign Key / Reference Dependencies**: [Cross-context relationships]
+- **Transaction Boundaries**: [Operations spanning multiple contexts]
+- **Data Ownership Conflicts**: [Storage with unclear ownership]
+
+## Statelessness Audit
+- Endpoints relying on server-side session
+- State cached in process memory
+- File system writes outside request scope
+- Other implicit shared state
+
+## Modernization Difficulty per Bounded Context
+
+### [Context Name]
+- **Modernization Difficulty**: [Easy / Medium / Hard]
+- **Rationale**: [Why this rating]
+- **Blockers**: [What makes it hard — shared state, transactions, third-party SDKs, regulatory constraints]
+- **Recommended Order**: [1st, 2nd, 3rd, etc. with rationale]
+
+## Migration / Cutover Readiness
+- **Routing Feasibility**: [Can traffic be redirected per endpoint or per context?]
+- **Stateless Endpoints**: [Which endpoints are stateless and easy to redirect?]
+- **Session / State Dependencies**: [Anything that complicates routing]
+- **Auth Migration Complexity**: [How hard is it to decouple auth from the monolith?]
+
+## Risk Assessment
+- **Storage Decomposition Risk**: [Shared schema complexity]
+- **Data Consistency Risk**: [Cross-context transactions]
+- **Auth / Security Risk**: [Centralized security coupling]
+- **Third-Party / SDK Risk**: [Vendor SDKs, deprecated APIs, version constraints]
+- **Compliance Risk**: [Regulatory or contractual constraints affecting modernization]
+```
+
+## Existing Test Inventory
+
+This additional comprehensive-analysis module treats existing tests as
+first-class evidence for a QA automation effort. Inventory what automation
+already exists before new test design so downstream work can deliberately
+reuse, harden, migrate, replace, or retire it. Skip the artifact only when a
+scan confirms there are genuinely no tests, and record that result.
+
+This module runs with the common comprehensive/full-analysis policy. It is not
+a qualified combination with adaptive Targeted mode.
 
 Create `aidlc-docs/analysis/existing-test-inventory.md`:
 
@@ -344,90 +433,7 @@ Create `aidlc-docs/analysis/existing-test-inventory.md`:
 - **Biggest opportunity**: [Where new automation adds the most value given what exists]
 ```
 
-## Step 11: Bounded Context Analysis
-
-Identify natural service boundaries in the codebase. Critical input for any
-decomposition, modernization, or feature-slice planning that follows.
-
-Create `aidlc-docs/analysis/bounded-contexts.md`:
-
-```markdown
-# Bounded Context Analysis
-
-## Identified Bounded Contexts
-
-### [Context Name]
-- **Business Capability**: [What business function this context serves]
-- **Controllers / Routes**: [Which entry points belong here]
-- **Services / Application Logic**: [Which service classes belong here]
-- **Repositories / Data Access**: [Which data access components belong here]
-- **Models / Entities**: [Which domain models belong here]
-- **Storage**: [Which tables / collections / buckets / indexes this context owns]
-- **Events**: [Which domain events / queue messages / topics belong here]
-
-## Context Map
-[Mermaid diagram showing bounded contexts and their relationships]
-
-## Shared Kernel
-- **Shared Models**: [Models used across multiple contexts]
-- **Shared Utilities**: [Config, security, common infrastructure]
-- **Shared Storage**: [Tables / data accessed by multiple contexts]
-
-## Cross-Context Dependencies
-### [Context A] → [Context B]
-- **Type**: [Data dependency / API call / Shared storage / Event]
-- **Direction**: [Upstream / Downstream / Bidirectional]
-- **Coupling Level**: [High / Medium / Low]
-- **Description**: [How they interact]
-```
-
-## Step 12: Modernization Readiness Assessment
-
-Create `aidlc-docs/analysis/modernization-readiness.md`:
-
-```markdown
-# Modernization Readiness
-
-## Coupling Matrix
-| Component | Afferent (incoming) | Efferent (outgoing) | Coupling Score |
-|-----------|---------------------|---------------------|----------------|
-| [class / module / package] | [count] | [count] | [High / Med / Low] |
-
-## Data Coupling Analysis
-- **Shared Storage Across Contexts**: [Tables / indexes accessed by multiple bounded contexts]
-- **Foreign Key / Reference Dependencies**: [Cross-context relationships]
-- **Transaction Boundaries**: [Operations spanning multiple contexts]
-- **Data Ownership Conflicts**: [Storage with unclear ownership]
-
-## Statelessness Audit
-- Endpoints relying on server-side session
-- State cached in process memory
-- File system writes outside request scope
-- Other implicit shared state
-
-## Modernization Difficulty per Bounded Context
-
-### [Context Name]
-- **Modernization Difficulty**: [Easy / Medium / Hard]
-- **Rationale**: [Why this rating]
-- **Blockers**: [What makes it hard — shared state, transactions, third-party SDKs, regulatory constraints]
-- **Recommended Order**: [1st, 2nd, 3rd, etc. with rationale]
-
-## Migration / Cutover Readiness
-- **Routing Feasibility**: [Can traffic be redirected per endpoint or per context?]
-- **Stateless Endpoints**: [Which endpoints are stateless and easy to redirect?]
-- **Session / State Dependencies**: [Anything that complicates routing]
-- **Auth Migration Complexity**: [How hard is it to decouple auth from the monolith?]
-
-## Risk Assessment
-- **Storage Decomposition Risk**: [Shared schema complexity]
-- **Data Consistency Risk**: [Cross-context transactions]
-- **Auth / Security Risk**: [Centralized security coupling]
-- **Third-Party / SDK Risk**: [Vendor SDKs, deprecated APIs, version constraints]
-- **Compliance Risk**: [Regulatory or contractual constraints affecting modernization]
-```
-
-## Step 13: Create Timestamp File
+## Record Reverse Engineering Metadata
 
 Create `aidlc-docs/analysis/reverse-engineering-timestamp.md`:
 
@@ -436,6 +442,13 @@ Create `aidlc-docs/analysis/reverse-engineering-timestamp.md`:
 
 **Analysis Date**: [ISO timestamp]
 **Analyzer**: AI-DLC
+**Policy / Mode**: [Full / Comprehensive / active overlay-defined mode]
+**Analysis Objective**: [Purpose of this analysis]
+**Scope Boundary**: [Workspace, repositories, packages, or components analyzed]
+**Prior Evidence Reused**: [Artifact paths and timestamps, or none]
+**Not Analyzed / Open Areas**: [Explicit exclusions, unavailable evidence, or none]
+**Analysis Time**: [Elapsed time]
+**Status**: [In Progress / Awaiting Approval / Complete]
 **Workspace**: [Workspace path]
 **Total Files Analyzed**: [Number]
 
@@ -448,38 +461,66 @@ Create `aidlc-docs/analysis/reverse-engineering-timestamp.md`:
 - [x] technology-stack.md
 - [x] dependencies.md
 - [x] code-quality-assessment.md
-- [x] existing-test-inventory.md
 - [x] bounded-contexts.md
 - [x] modernization-readiness.md
+- [x] existing-test-inventory.md
 ```
 
-## Step 14: Update State Tracking
+## Record Evidence-Ready State
 
-Update `aidlc-docs/aidlc-state.md`:
+When the analysis artifacts are ready for review:
+
+1. Update `aidlc-docs/analysis/reverse-engineering-timestamp.md` with the
+   final scope, open areas, analysis time, and set status to `Awaiting Approval`.
+2. Update `aidlc-docs/aidlc-state.md` without marking Phase 0 complete:
 
 ```markdown
 ## Reverse Engineering Status
-- [x] Reverse Engineering — Completed on [timestamp]
+- [ ] Phase 0: Reverse Engineering — Awaiting Approval
 - **Artifacts Location**: aidlc-docs/analysis/
+- **Analysis Scope**: [scope boundary]
+- **Last Updated**: [ISO timestamp]
 ```
 
-## Step 15: Present Completion Message to User
+Do not check the Phase 0 completion box or set status to `Complete` before the
+approval transition below.
+
+## Present Evidence for Review
+
+Tell the user:
 
 ```markdown
-# 🔍 Reverse Engineering Complete
+# 🔍 Reverse-Engineering Analysis Evidence Is Ready for Review
 
 [AI-generated summary of key findings — bounded contexts identified, coupling hotspots, recommended modernization order, major risks]
 
 > **📋 REVIEW REQUIRED**
-> Please examine the reverse engineering artifacts at: `aidlc-docs/analysis/`
+> Please examine the reverse-engineering artifacts at:
+> `aidlc-docs/analysis/`
 
 > **🚀 WHAT'S NEXT?**
 >
 > 🔧 **Request Changes** — ask for modifications to the analysis
-> ✅ **Approve & Continue** — proceed to **Phase 1: Requirements**
+> ✅ **Approve Evidence** — accept the evidence and complete the Phase 0 gate
 ```
 
-## Step 16: Wait for User Approval
+The reverse-engineering analysis evidence is ready for review. Summarize what
+was analyzed and what remains open; do not describe Phase 0 as complete.
 
-- **MANDATORY**: Do not proceed until the user explicitly approves
-- **MANDATORY**: Log the user's response verbatim in `aidlc-docs/audit.md`
+## Approval Transition
+
+This is the same single Phase 0 approval gate referenced by the primary
+workflow. Execute it once:
+
+1. Stop and wait for the user's explicit approval.
+2. Append the complete raw approval response with an ISO timestamp to
+   `aidlc-docs/audit.md` exactly once.
+3. Only after that audit append, update
+   `aidlc-docs/analysis/reverse-engineering-timestamp.md` and
+   `aidlc-docs/aidlc-state.md` from `Awaiting Approval` to `Complete`,
+   recording the approved scope and completion timestamp.
+4. Mark the Phase 0 state checkbox complete.
+5. Only then enter Phase 1: Requirements.
+
+If the user requests changes, update the affected evidence, keep status at
+`Awaiting Approval`, and present the evidence for review again.
