@@ -1,6 +1,20 @@
+schemaVersion: 2
+kind: ramp-pack
+
 name: legacy-transformation-on-aws
 title: Legacy Transformation on AWS
 description: Brownfield monolith decomposition to microservices on AWS via the AI-DLC decision-driven workflow.
+version: 0.1.0
+
+catalog:
+  outcome: transform
+  domain: application-modernization
+  executionModel: assisted-builder
+  maturity: preview
+
+workflow:
+  provider: local-instructions-v1
+  overlays: []
 
 instructions:
   - file: aidlc-workflow.md
@@ -62,3 +76,8 @@ skills:
   - ecs-operation-review
   - ecs-recon
   - ecs-security
+
+distribution:
+  targets: [kiro, claude-code, copilot, cursor]
+  qualifiedTargets: [kiro, claude-code]
+  profiles: []

@@ -1,6 +1,20 @@
+schemaVersion: 2
+kind: ramp-pack
+
 name: qa-automated-testing
 title: QA Automated Testing
 description: Automated test suites for web and mobile applications, driven by the AI-DLC decision-gated workflow.
+version: 0.1.0
+
+catalog:
+  outcome: automate
+  domain: quality-engineering
+  executionModel: assisted-builder
+  maturity: preview
+
+workflow:
+  provider: local-instructions-v1
+  overlays: []
 
 instructions:
   - file: aidlc-workflow.md
@@ -31,3 +45,8 @@ skills:
   - connecting-lambda-to-api-gateway
   - mobile-test-automation
   - web-test-automation
+
+distribution:
+  targets: [kiro, claude-code, copilot, cursor]
+  qualifiedTargets: [kiro, claude-code]
+  profiles: []

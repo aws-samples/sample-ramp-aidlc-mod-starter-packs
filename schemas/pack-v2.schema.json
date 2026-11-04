@@ -1,0 +1,249 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pack-v2.schema.json",
+  "title": "RAMP starter pack manifest v2",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "name",
+    "title",
+    "description",
+    "version",
+    "catalog",
+    "workflow",
+    "instructions",
+    "distribution"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "kind": {
+      "const": "ramp-pack"
+    },
+    "name": {
+      "$ref": "#/$defs/identifier"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\\+([0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*))?$"
+    },
+    "catalog": {
+      "type": "object",
+      "required": [
+        "outcome",
+        "domain",
+        "executionModel",
+        "maturity"
+      ],
+      "properties": {
+        "outcome": {
+          "enum": [
+            "transform",
+            "reimagine",
+            "automate",
+            "foundation"
+          ]
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "executionModel": {
+          "enum": [
+            "assisted-builder",
+            "autonomous-pipeline",
+            "foundation"
+          ]
+        },
+        "maturity": {
+          "enum": [
+            "experimental",
+            "preview",
+            "stable",
+            "deprecated"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "workflow": {
+      "type": "object",
+      "required": [
+        "provider",
+        "overlays"
+      ],
+      "properties": {
+        "provider": {
+          "const": "local-instructions-v1"
+        },
+        "overlays": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/safePath"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "instructions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "file",
+          "role"
+        ],
+        "properties": {
+          "file": {
+            "$ref": "#/$defs/safePath"
+          },
+          "role": {
+            "enum": [
+              "primary",
+              "companion"
+            ]
+          },
+          "load": {
+            "enum": [
+              "always",
+              "auto"
+            ]
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "command": {
+      "type": "object"
+    },
+    "mcp": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "skills": {
+      "$ref": "#/$defs/skillList"
+    },
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "skills": {
+          "$ref": "#/$defs/skillList"
+        }
+      },
+      "additionalProperties": true
+    },
+    "distribution": {
+      "type": "object",
+      "required": [
+        "targets",
+        "qualifiedTargets",
+        "profiles"
+      ],
+      "properties": {
+        "targets": {
+          "$ref": "#/$defs/nonEmptyTargets"
+        },
+        "qualifiedTargets": {
+          "$ref": "#/$defs/targets"
+        },
+        "profiles": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "targets"
+            ],
+            "properties": {
+              "name": {
+                "$ref": "#/$defs/identifier"
+              },
+              "targets": {
+                "$ref": "#/$defs/nonEmptyTargets"
+              },
+              "workspaceMode": {
+                "enum": [
+                  "standalone",
+                  "shared"
+                ]
+              },
+              "specRoot": {
+                "$ref": "#/$defs/safePath"
+              },
+              "stateRoot": {
+                "$ref": "#/$defs/safePath"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!\\.{1,2}$)[^/\\\\]+$"
+    },
+    "safePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z]:[\\\\/])(?![\\\\/])(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"
+    },
+    "skillList": {
+      "oneOf": [
+        {
+          "const": "all"
+        },
+        {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        }
+      ]
+    },
+    "targets": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "kiro",
+          "claude-code",
+          "copilot",
+          "cursor"
+        ]
+      }
+    },
+    "nonEmptyTargets": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/targets"
+        }
+      ],
+      "minItems": 1
+    }
+  }
+}
