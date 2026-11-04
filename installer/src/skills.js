@@ -1,12 +1,6 @@
 import { readdirSync, existsSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-
-const ROOTS = {
-  kiro: '.kiro/skills',
-  'claude-code': '.claude/skills',
-  copilot: '.github/skills',
-  cursor: '.cursor/skills',
-}
+import { getAdapter } from './adapters/index.js'
 
 // The shared skill library is a sibling of the packs root at the repo root.
 // Walk up from the pack dir until we find it, so resolution works whether packs
@@ -31,8 +25,7 @@ function findLibrary(packDir) {
 // manifest.skills is normally an explicit list; the legacy value "all" means
 // "every dir in the pack-local skills/", used only by unit tests / local packs.
 export function planSkills(packDir, manifest, tool, { libraryDir } = {}) {
-  const root = ROOTS[tool]
-  if (!root) throw new Error(`unknown tool: ${tool}`)
+  const root = getAdapter(tool).skillsRoot
 
   const localSkillsDir = join(packDir, 'skills')
   const lib = libraryDir ?? findLibrary(packDir)

@@ -1,12 +1,4 @@
-const PATHS = {
-  kiro: '.kiro/settings/mcp.json',
-  'claude-code': '.mcp.json',
-  copilot: '.vscode/mcp.json',
-  cursor: '.cursor/mcp.json',
-}
-
-// VS Code / Copilot uses the top-level key `servers`; the others use `mcpServers`.
-const ROOT_KEY = { copilot: 'servers' }
+import { getAdapter } from '../adapters/index.js'
 
 // A remote server is commonly declared as the `npx mcp-remote <url>` stdio shim.
 // VS Code speaks HTTP MCP natively, so detect that shape and return the URL.
@@ -20,18 +12,17 @@ function remoteUrl(s) {
 }
 
 export function renderMcp(manifest, tool) {
+  const adapter = getAdapter(tool)
   const servers = manifest.mcp ?? []
   if (servers.length === 0) return null
-  const path = PATHS[tool]
-  if (!path) throw new Error(`unknown tool: ${tool}`)
 
   const out = {}
   for (const s of servers) {
     const entry = {}
     // Copilot: prefer native HTTP transport for remote servers instead of the
     // `mcp-remote` stdio shim, and use the `type: http` + `url` schema.
-    const url = tool === 'copilot' ? remoteUrl(s) : s.url
-    if (tool === 'copilot' && url) {
+    const url = adapter.mcp.preferNativeHttp ? remoteUrl(s) : s.url
+    if (adapter.mcp.preferNativeHttp && url) {
       entry.type = s.transport ?? 'http'
       entry.url = url
     } else {
@@ -41,12 +32,15 @@ export function renderMcp(manifest, tool) {
       if (s.transport) entry.type = s.transport
     }
     if (s.env) entry.env = s.env
-    if (tool === 'kiro') {
+    if (adapter.mcp.preserveAgentFields) {
       if (s.autoApprove) entry.autoApprove = s.autoApprove
       if (s.disabled !== undefined) entry.disabled = s.disabled
     }
     out[s.id] = entry
   }
-  const rootKey = ROOT_KEY[tool] ?? 'mcpServers'
-  return { path, content: JSON.stringify({ [rootKey]: out }, null, 2) + '\n', kind: 'text' }
+  return {
+    path: adapter.mcp.path,
+    content: JSON.stringify({ [adapter.mcp.rootKey]: out }, null, 2) + '\n',
+    kind: 'text',
+  }
 }

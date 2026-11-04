@@ -4,8 +4,9 @@ import { buildPlan } from './plan.js'
 import { applyPlan } from './apply.js'
 import { loadManifest } from './manifest.js'
 import { renderAddSkills } from './render/add-skills.js'
+import { listAdapterIds } from './adapters/index.js'
 
-export const TOOLS = ['kiro', 'claude-code', 'copilot', 'cursor']
+export const TOOLS = listAdapterIds()
 
 // Discover packs: any direct child of packsRoot containing a pack.yaml.
 export function listPacks(packsRoot) {

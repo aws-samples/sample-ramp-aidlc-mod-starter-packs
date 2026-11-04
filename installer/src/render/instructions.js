@@ -1,16 +1,6 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { join, basename, resolve } from 'node:path'
-
-// Per-tool location for the AI-DLC spec bundle. Kiro has a native spec directory
-// (`.kiro/specs`); the other tools have no equivalent, so specs live at the repo
-// root. Neutral instructions opt in by writing the `{{SPEC_DIR}}` token, which is
-// substituted here. Packs that don't use the token are unaffected.
-const SPEC_DIR = {
-  kiro: '.kiro/specs',
-  'claude-code': 'specs',
-  copilot: 'specs',
-  cursor: 'specs',
-}
+import { getAdapter } from '../adapters/index.js'
 
 // Shared instruction defaults live in <repo>/common/instructions/. A pack may
 // omit an instruction file it declares in pack.yaml and inherit the common
@@ -42,44 +32,60 @@ function resolveInstruction(packDir, file) {
 // can carry a leading blank line (left behind when Kiro frontmatter is stripped);
 // trimming keeps every tool's output starting on real content. Also substitutes
 // per-tool tokens (currently `{{SPEC_DIR}}`).
-const body = (packDir, file, tool) => {
+const body = (packDir, file, specRoot) => {
   const raw = readFileSync(resolveInstruction(packDir, file), 'utf8').trim() + '\n'
-  return raw.replaceAll('{{SPEC_DIR}}', SPEC_DIR[tool])
+  return raw.replaceAll('{{SPEC_DIR}}', specRoot)
 }
 const stem = (file) => basename(file, '.md')
 
 export function renderInstructions(manifest, packDir, tool) {
+  const adapter = getAdapter(tool)
+  const instructions = adapter.instructions
   const primary = manifest.instructions.find((i) => i.role === 'primary')
   const companions = manifest.instructions.filter((i) => i.role === 'companion')
 
-  if (tool === 'kiro') {
+  if (instructions.kind === 'kiro-steering') {
     return manifest.instructions.map((i) => ({
-      path: `.kiro/steering/${i.file}`,
-      content: `---\ninclusion: ${i.load}\n---\n${body(packDir, i.file, tool)}`,
+      path: i.role === 'primary'
+        ? instructions.primaryPath(i.file)
+        : instructions.companionPath(i.file),
+      content: `---\ninclusion: ${i.load}\n---\n${body(packDir, i.file, adapter.defaultSpecRoot)}`,
       kind: 'text',
     }))
   }
 
-  if (tool === 'claude-code') {
+  if (instructions.kind === 'claude-rules') {
     const header = companions.length
       ? 'Companion rules files load automatically and MUST be followed:\n' +
-        companions.map((c) => `- \`.claude/rules/${c.file}\``).join('\n') +
+        companions.map((c) => `- \`${instructions.companionPath(c.file)}\``).join('\n') +
         '\n\n'
       : ''
-    const writes = [{ path: 'CLAUDE.md', content: header + body(packDir, primary.file, tool), kind: 'text' }]
+    const writes = [{
+      path: instructions.primaryPath(primary.file),
+      content: header + body(packDir, primary.file, adapter.defaultSpecRoot),
+      kind: 'text',
+    }]
     for (const c of companions) {
-      writes.push({ path: `.claude/rules/${c.file}`, content: body(packDir, c.file, tool), kind: 'text' })
+      writes.push({
+        path: instructions.companionPath(c.file),
+        content: body(packDir, c.file, adapter.defaultSpecRoot),
+        kind: 'text',
+      })
     }
     return writes
   }
 
-  if (tool === 'copilot') {
+  if (instructions.kind === 'copilot-instructions') {
     // Primary → the always-on repo-wide instructions file (kept lean).
     // Companions → separate .github/instructions/*.instructions.md files, so the
     // always-on file is not bloated. `applyTo: '**'` mirrors load:always;
     // omitting applyTo mirrors load:auto (Copilot applies it conditionally).
     const writes = [
-      { path: '.github/copilot-instructions.md', content: body(packDir, primary.file, tool), kind: 'text' },
+      {
+        path: instructions.primaryPath(primary.file),
+        content: body(packDir, primary.file, adapter.defaultSpecRoot),
+        kind: 'text',
+      },
     ]
     for (const c of companions) {
       // load:always → applyTo:'**' (attached to every request).
@@ -90,21 +96,23 @@ export function renderInstructions(manifest, packDir, tool) {
           ? `---\napplyTo: '**'\n---\n`
           : `---\ndescription: ${c.description ?? stem(c.file)}\n---\n`
       writes.push({
-        path: `.github/instructions/${stem(c.file)}.instructions.md`,
-        content: fm + body(packDir, c.file, tool),
+        path: instructions.companionPath(c.file),
+        content: fm + body(packDir, c.file, adapter.defaultSpecRoot),
         kind: 'text',
       })
     }
     return writes
   }
 
-  if (tool === 'cursor') {
+  if (instructions.kind === 'cursor-rules') {
     return manifest.instructions.map((i) => ({
-      path: `.cursor/rules/${stem(i.file)}.mdc`,
-      content: `---\nalwaysApply: ${i.role === 'primary'}\n---\n${body(packDir, i.file, tool)}`,
+      path: i.role === 'primary'
+        ? instructions.primaryPath(i.file)
+        : instructions.companionPath(i.file),
+      content: `---\nalwaysApply: ${i.role === 'primary'}\n---\n${body(packDir, i.file, adapter.defaultSpecRoot)}`,
       kind: 'text',
     }))
   }
 
-  throw new Error(`unknown tool: ${tool}`)
+  throw new Error(`unsupported instruction adapter kind: ${instructions.kind}`)
 }

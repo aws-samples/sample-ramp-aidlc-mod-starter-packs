@@ -1,3 +1,5 @@
+import { getAdapter } from '../adapters/index.js'
+
 const BODY =
   'You are an AI-DLC modernization architect. Begin the decision-gated workflow ' +
   'defined in the primary instructions. Start from the entry step: detect greenfield ' +
@@ -10,24 +12,26 @@ function renderBody(cmd) {
 }
 
 export function renderCommand(manifest, tool) {
+  const adapter = getAdapter(tool)
   const cmd = manifest.command
   if (!cmd) return null
 
   const body = renderBody(cmd)
 
-  if (tool === 'claude-code') {
+  if (adapter.command.kind === 'claude-command') {
     return {
-      path: `.claude/commands/${cmd.name}.md`,
+      path: adapter.command.path(cmd.name),
       content: `---\ndescription: ${cmd.description}\n---\n${body}`,
       kind: 'text',
     }
   }
-  if (tool === 'copilot') {
+  if (adapter.command.kind === 'copilot-prompt') {
     return {
-      path: `.github/prompts/${cmd.name}.prompt.md`,
+      path: adapter.command.path(cmd.name),
       content: `---\ndescription: ${cmd.description}\nargument-hint: "describe what you're building"\n---\n${body}`,
       kind: 'text',
     }
   }
-  return null // kiro, cursor
+  if (adapter.command.kind === 'none') return null
+  throw new Error(`unsupported command adapter kind: ${adapter.command.kind}`)
 }

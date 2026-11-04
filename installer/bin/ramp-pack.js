@@ -6,8 +6,9 @@ import { existsSync } from 'node:fs'
 import { buildPlan } from '../src/plan.js'
 import { applyPlan } from '../src/apply.js'
 import { buildAll, listPacks } from '../src/build-all.js'
+import { getAdapter, listAdapterIds } from '../src/adapters/index.js'
 
-const TOOLS = ['kiro', 'claude-code', 'copilot', 'cursor']
+const TOOLS = listAdapterIds()
 const here = dirname(fileURLToPath(import.meta.url))
 // Packs live under <repo>/packs/, each in its own directory containing a pack.yaml.
 const packsRoot = resolve(here, '..', '..', 'packs')
@@ -22,7 +23,9 @@ program
   .option('--force', 'overwrite existing files', false)
   .option('--target <dir>', 'target project dir (default: cwd)', process.cwd())
   .action((pack, opts) => {
-    if (!TOOLS.includes(opts.tool)) {
+    try {
+      getAdapter(opts.tool)
+    } catch {
       console.error(`Unknown --tool "${opts.tool}". Valid: ${TOOLS.join(', ')}`)
       process.exit(1)
     }
