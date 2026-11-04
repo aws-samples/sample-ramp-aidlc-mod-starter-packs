@@ -1,3 +1,4 @@
+<!-- RAMP:SLOT reverse-engineering-policy START -->
 # Reverse Engineering
 
 **Purpose**: Analyze an existing codebase and generate comprehensive design
@@ -11,6 +12,11 @@ the workspace).
 **Rerun behavior**: Always rerun when the brownfield codebase has changed
 materially. Stale analysis is worse than no analysis.
 
+**Default policy**: Run a comprehensive full-workspace analysis and generate
+the complete baseline artifact set below.
+<!-- RAMP:SLOT reverse-engineering-policy END -->
+
+<!-- RAMP:SLOT reverse-engineering-analysis-body START -->
 ## Step 1: Workspace Discovery
 
 ### 1.1 Scan the Workspace
@@ -48,7 +54,7 @@ materially. Stale analysis is worse than no analysis.
 
 ## Step 2: Generate Business Overview Documentation
 
-Create `aidlc-docs/analysis/business-overview.md`:
+Create `{{STATE_DIR}}/analysis/business-overview.md`:
 
 ```markdown
 # Business Overview
@@ -69,7 +75,7 @@ Create `aidlc-docs/analysis/business-overview.md`:
 
 ## Step 3: Generate Architecture Documentation
 
-Create `aidlc-docs/analysis/architecture.md`:
+Create `{{STATE_DIR}}/analysis/architecture.md`:
 
 ```markdown
 # System Architecture
@@ -103,7 +109,7 @@ Create `aidlc-docs/analysis/architecture.md`:
 
 ## Step 4: Generate Code Structure Documentation
 
-Create `aidlc-docs/analysis/code-structure.md`:
+Create `{{STATE_DIR}}/analysis/code-structure.md`:
 
 ```markdown
 # Code Structure
@@ -136,7 +142,7 @@ Create `aidlc-docs/analysis/code-structure.md`:
 
 ## Step 5: Generate API Documentation
 
-Create `aidlc-docs/analysis/api-documentation.md`:
+Create `{{STATE_DIR}}/analysis/api-documentation.md`:
 
 ```markdown
 # API Documentation
@@ -173,7 +179,7 @@ Create `aidlc-docs/analysis/api-documentation.md`:
 
 ## Step 6: Generate Component Inventory
 
-Create `aidlc-docs/analysis/component-inventory.md`:
+Create `{{STATE_DIR}}/analysis/component-inventory.md`:
 
 ```markdown
 # Component Inventory
@@ -200,7 +206,7 @@ Create `aidlc-docs/analysis/component-inventory.md`:
 
 ## Step 7: Generate Technology Stack Documentation
 
-Create `aidlc-docs/analysis/technology-stack.md`:
+Create `{{STATE_DIR}}/analysis/technology-stack.md`:
 
 ```markdown
 # Technology Stack
@@ -229,7 +235,7 @@ Create `aidlc-docs/analysis/technology-stack.md`:
 
 ## Step 8: Generate Dependencies Documentation
 
-Create `aidlc-docs/analysis/dependencies.md`:
+Create `{{STATE_DIR}}/analysis/dependencies.md`:
 
 ```markdown
 # Dependencies
@@ -258,7 +264,7 @@ Create `aidlc-docs/analysis/dependencies.md`:
 
 ## Step 9: Generate Code Quality Assessment
 
-Create `aidlc-docs/analysis/code-quality-assessment.md`:
+Create `{{STATE_DIR}}/analysis/code-quality-assessment.md`:
 
 ```markdown
 # Code Quality Assessment
@@ -288,7 +294,7 @@ Create `aidlc-docs/analysis/code-quality-assessment.md`:
 Identify natural service boundaries in the codebase. Critical input for any
 decomposition, modernization, or feature-slice planning that follows.
 
-Create `aidlc-docs/analysis/bounded-contexts.md`:
+Create `{{STATE_DIR}}/analysis/bounded-contexts.md`:
 
 ```markdown
 # Bounded Context Analysis
@@ -322,7 +328,7 @@ Create `aidlc-docs/analysis/bounded-contexts.md`:
 
 ## Step 11: Modernization Readiness Assessment
 
-Create `aidlc-docs/analysis/modernization-readiness.md`:
+Create `{{STATE_DIR}}/analysis/modernization-readiness.md`:
 
 ```markdown
 # Modernization Readiness
@@ -365,20 +371,33 @@ Create `aidlc-docs/analysis/modernization-readiness.md`:
 - **Third-Party / SDK Risk**: [Vendor SDKs, deprecated APIs, version constraints]
 - **Compliance Risk**: [Regulatory or contractual constraints affecting modernization]
 ```
+<!-- RAMP:SLOT reverse-engineering-analysis-body END -->
 
-## Step 12: Create Timestamp File
+<!-- RAMP:SLOT full-existing-test-inventory START -->
+<!-- No domain-specific full-analysis module by default. -->
+<!-- RAMP:SLOT full-existing-test-inventory END -->
 
-Create `aidlc-docs/analysis/reverse-engineering-timestamp.md`:
+## Record Reverse Engineering Metadata
+
+Create `{{STATE_DIR}}/analysis/reverse-engineering-timestamp.md`:
 
 ```markdown
 # Reverse Engineering Metadata
 
 **Analysis Date**: [ISO timestamp]
 **Analyzer**: AI-DLC
+**Policy / Mode**: [Full / Comprehensive / active overlay-defined mode]
+**Analysis Objective**: [Purpose of this analysis]
+**Scope Boundary**: [Workspace, repositories, packages, or components analyzed]
+**Prior Evidence Reused**: [Artifact paths and timestamps, or none]
+**Not Analyzed / Open Areas**: [Explicit exclusions, unavailable evidence, or none]
+**Analysis Time**: [Elapsed time]
+**Status**: [In Progress / Awaiting Approval / Complete]
 **Workspace**: [Workspace path]
 **Total Files Analyzed**: [Number]
 
 ## Artifacts Generated
+<!-- RAMP:SLOT reverse-engineering-artifact-checklist START -->
 - [x] business-overview.md
 - [x] architecture.md
 - [x] code-structure.md
@@ -389,35 +408,69 @@ Create `aidlc-docs/analysis/reverse-engineering-timestamp.md`:
 - [x] code-quality-assessment.md
 - [x] bounded-contexts.md
 - [x] modernization-readiness.md
+<!-- RAMP:SLOT reverse-engineering-artifact-checklist END -->
+<!-- RAMP:SLOT full-artifact-checklist-extra START -->
+<!-- No domain-specific full-analysis artifact by default. -->
+<!-- RAMP:SLOT full-artifact-checklist-extra END -->
 ```
 
-## Step 13: Update State Tracking
+## Record Evidence-Ready State
 
-Update `aidlc-docs/aidlc-state.md`:
+When the analysis artifacts are ready for review:
+
+1. Update `{{STATE_DIR}}/analysis/reverse-engineering-timestamp.md` with the
+   final scope, open areas, analysis time, and set status to `Awaiting Approval`.
+2. Update `{{STATE_DIR}}/aidlc-state.md` without marking Phase 0 complete:
 
 ```markdown
 ## Reverse Engineering Status
-- [x] Reverse Engineering — Completed on [timestamp]
-- **Artifacts Location**: aidlc-docs/analysis/
+- [ ] Phase 0: Reverse Engineering — Awaiting Approval
+- **Artifacts Location**: {{STATE_DIR}}/analysis/
+- **Analysis Scope**: [scope boundary]
+- **Last Updated**: [ISO timestamp]
 ```
 
-## Step 14: Present Completion Message to User
+Do not check the Phase 0 completion box or set status to `Complete` before the
+approval transition below.
+
+## Present Evidence for Review
+
+Tell the user:
 
 ```markdown
-# 🔍 Reverse Engineering Complete
+# 🔍 Reverse-Engineering Analysis Evidence Is Ready for Review
 
 [AI-generated summary of key findings — bounded contexts identified, coupling hotspots, recommended modernization order, major risks]
 
 > **📋 REVIEW REQUIRED**
-> Please examine the reverse engineering artifacts at: `aidlc-docs/analysis/`
+> Please examine the reverse-engineering artifacts at:
+> `{{STATE_DIR}}/analysis/`
 
 > **🚀 WHAT'S NEXT?**
 >
+<!-- RAMP:SLOT reverse-engineering-review-options START -->
 > 🔧 **Request Changes** — ask for modifications to the analysis
-> ✅ **Approve & Continue** — proceed to **Phase 1: Requirements**
+> ✅ **Approve Evidence** — accept the evidence and complete the Phase 0 gate
+<!-- RAMP:SLOT reverse-engineering-review-options END -->
 ```
 
-## Step 15: Wait for User Approval
+The reverse-engineering analysis evidence is ready for review. Summarize what
+was analyzed and what remains open; do not describe Phase 0 as complete.
 
-- **MANDATORY**: Do not proceed until the user explicitly approves
-- **MANDATORY**: Log the user's response verbatim in `aidlc-docs/audit.md`
+## Approval Transition
+
+This is the same single Phase 0 approval gate referenced by the primary
+workflow. Execute it once:
+
+1. Stop and wait for the user's explicit approval.
+2. Append the complete raw approval response with an ISO timestamp to
+   `{{STATE_DIR}}/audit.md` exactly once.
+3. Only after that audit append, update
+   `{{STATE_DIR}}/analysis/reverse-engineering-timestamp.md` and
+   `{{STATE_DIR}}/aidlc-state.md` from `Awaiting Approval` to `Complete`,
+   recording the approved scope and completion timestamp.
+4. Mark the Phase 0 state checkbox complete.
+5. Only then enter Phase 1: Requirements.
+
+If the user requests changes, update the affected evidence, keep status at
+`Awaiting Approval`, and present the evidence for review again.

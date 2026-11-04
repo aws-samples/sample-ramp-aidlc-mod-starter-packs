@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { getAdapter, listAdapterIds } from '../src/adapters/index.js'
+import { resolveInstructionBody } from '../src/instructions/compose.js'
 import { loadManifest } from '../src/manifest.js'
 import { renderInstructions } from '../src/render/instructions.js'
 import { resolveWorkspace } from '../src/workspace.js'
@@ -11,8 +12,16 @@ const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(here, '..', '..')
 const packDir = join(repoRoot, 'packs', 'qa-automated-testing')
 const commonWorkflow = join(repoRoot, 'common', 'instructions', 'aidlc-workflow.md')
+const commonReverseEngineering = join(
+  repoRoot,
+  'common',
+  'instructions',
+  'reverse-engineering.md',
+)
 const localWorkflow = join(packDir, 'instructions', 'aidlc-workflow.md')
 const manifest = loadManifest(packDir)
+const commonRePackDir = join(repoRoot, 'packs', 'agentic-ai-workflow')
+const commonReManifest = loadManifest(commonRePackDir)
 
 const nativeReverseEngineeringPaths = {
   kiro: '.kiro/steering/reverse-engineering.md',
@@ -26,6 +35,17 @@ function primaryContent(tool, workspace = resolveWorkspace(manifest, { tools: [t
   const write = renderInstructions(manifest, packDir, tool, workspace)
     .find((entry) => entry.path === path)
   expect(write, `primary instruction for ${tool}`).toBeDefined()
+  return write.content
+}
+
+function reverseEngineeringContent(
+  tool,
+  workspace = resolveWorkspace(commonReManifest, { tools: [tool] }),
+) {
+  const path = getAdapter(tool).instructions.companionPath('reverse-engineering.md')
+  const write = renderInstructions(commonReManifest, commonRePackDir, tool, workspace)
+    .find((entry) => entry.path === path)
+  expect(write, `reverse-engineering companion for ${tool}`).toBeDefined()
   return write.content
 }
 
@@ -241,5 +261,126 @@ describe('QA workflow workspace portability', () => {
     expect(content).toContain('customer-state/audit.md')
     expect(content).toContain('customer-state/analysis/')
     expect(content).not.toContain('aidlc-docs/')
+  })
+})
+
+describe('canonical reverse-engineering lifecycle', () => {
+  it('exposes exactly the six non-nested composition boundaries', () => {
+    const source = readFileSync(commonReverseEngineering, 'utf8')
+    const expectedSlots = [
+      'reverse-engineering-policy',
+      'reverse-engineering-analysis-body',
+      'full-existing-test-inventory',
+      'reverse-engineering-artifact-checklist',
+      'full-artifact-checklist-extra',
+      'reverse-engineering-review-options',
+    ]
+    const starts = [...source.matchAll(/<!-- RAMP:SLOT ([A-Za-z0-9-]+) START -->/g)]
+      .map((match) => match[1])
+    const ends = [...source.matchAll(/<!-- RAMP:SLOT ([A-Za-z0-9-]+) END -->/g)]
+      .map((match) => match[1])
+
+    expect(starts).toEqual(expectedSlots)
+    expect(ends).toEqual(expectedSlots)
+  })
+
+  it('keeps policy-neutral lifecycle outside slots and uses portable state paths', () => {
+    const source = readFileSync(commonReverseEngineering, 'utf8')
+    const content = resolveInstructionBody(
+      commonReManifest,
+      commonRePackDir,
+      'reverse-engineering.md',
+    )
+
+    expect(source).not.toContain('aidlc-docs/')
+    expect(content).not.toContain('RAMP:SLOT')
+    expect(content).toContain('{{STATE_DIR}}/analysis/business-overview.md')
+    expect(content).toContain('{{STATE_DIR}}/aidlc-state.md')
+    expect(content).toContain('{{STATE_DIR}}/audit.md')
+  })
+
+  it('holds evidence at Awaiting Approval until the single Phase 0 gate completes', () => {
+    const content = resolveInstructionBody(
+      commonReManifest,
+      commonRePackDir,
+      'reverse-engineering.md',
+    )
+    const evidenceStart = content.indexOf('## Record Evidence-Ready State')
+    const approvalStart = content.indexOf('## Approval Transition', evidenceStart)
+    expect(evidenceStart).toBeGreaterThanOrEqual(0)
+    expect(approvalStart).toBeGreaterThan(evidenceStart)
+
+    const preApproval = content.slice(evidenceStart, approvalStart)
+    expect(preApproval).toMatch(/status to `Awaiting Approval`/i)
+    expect(preApproval).toMatch(/reverse-engineering analysis evidence is ready for review/i)
+    expect(preApproval).not.toMatch(/\[x\].*Reverse Engineering.*Complete/i)
+    expect(preApproval).not.toMatch(/Reverse Engineering Complete/i)
+
+    const approval = content.slice(approvalStart)
+    expect(approval).toMatch(/same single Phase 0 approval gate/i)
+    expect((approval.match(/complete raw approval response/gi) ?? [])).toHaveLength(1)
+    expectOrdered(approval, 'explicit approval', 'complete raw approval response')
+    expectOrdered(
+      approval,
+      'complete raw approval response',
+      '{{STATE_DIR}}/audit.md',
+    )
+    expectOrdered(
+      approval,
+      '{{STATE_DIR}}/audit.md',
+      '`Awaiting Approval` to `Complete`',
+    )
+    expectOrdered(approval, '`Awaiting Approval` to `Complete`', 'Requirements')
+  })
+
+  it('preserves the generic full-analysis artifact contract', () => {
+    const content = resolveInstructionBody(
+      commonReManifest,
+      commonRePackDir,
+      'reverse-engineering.md',
+    )
+    const artifacts = [
+      'business-overview.md',
+      'architecture.md',
+      'code-structure.md',
+      'api-documentation.md',
+      'component-inventory.md',
+      'technology-stack.md',
+      'dependencies.md',
+      'code-quality-assessment.md',
+      'bounded-contexts.md',
+      'modernization-readiness.md',
+      'reverse-engineering-timestamp.md',
+    ]
+
+    for (const artifact of artifacts) expect(content).toContain(artifact)
+    expect(content).not.toContain('Existing Test Inventory')
+    expect(content).not.toContain('existing-test-inventory.md')
+  })
+})
+
+describe.each(listAdapterIds())('common reverse-engineering rendering for %s', (tool) => {
+  it('resolves custom state roots without leaking slots or tokens', () => {
+    const workspace = resolveWorkspace(commonReManifest, {
+      tools: [tool],
+      stateRoot: 'customer-state',
+    })
+    const content = reverseEngineeringContent(tool, workspace)
+
+    expect(content).toContain('customer-state/analysis/business-overview.md')
+    expect(content).toContain('customer-state/aidlc-state.md')
+    expect(content).toContain('customer-state/audit.md')
+    expect(content).not.toContain('aidlc-docs/')
+    expect(content).not.toContain('RAMP:SLOT')
+    expect(content).not.toMatch(/\{\{(?:INSTRUCTION:|SPEC_DIR|STATE_DIR)/)
+    expect(content).toMatch(/same single Phase 0 approval gate/i)
+    expectOrdered(content, 'explicit approval', 'complete raw approval response')
+    expectOrdered(content, 'complete raw approval response', 'customer-state/audit.md')
+    expectOrdered(
+      content,
+      'customer-state/audit.md',
+      '`Awaiting Approval` to `Complete`',
+    )
+    expectOrdered(content, '`Awaiting Approval` to `Complete`', 'Requirements')
   })
 })

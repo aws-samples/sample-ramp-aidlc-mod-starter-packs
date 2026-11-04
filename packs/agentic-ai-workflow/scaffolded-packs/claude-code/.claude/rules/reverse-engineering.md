@@ -11,6 +11,9 @@ the workspace).
 **Rerun behavior**: Always rerun when the brownfield codebase has changed
 materially. Stale analysis is worse than no analysis.
 
+**Default policy**: Run a comprehensive full-workspace analysis and generate
+the complete baseline artifact set below.
+
 ## Step 1: Workspace Discovery
 
 ### 1.1 Scan the Workspace
@@ -366,7 +369,9 @@ Create `aidlc-docs/analysis/modernization-readiness.md`:
 - **Compliance Risk**: [Regulatory or contractual constraints affecting modernization]
 ```
 
-## Step 12: Create Timestamp File
+<!-- No domain-specific full-analysis module by default. -->
+
+## Record Reverse Engineering Metadata
 
 Create `aidlc-docs/analysis/reverse-engineering-timestamp.md`:
 
@@ -375,6 +380,13 @@ Create `aidlc-docs/analysis/reverse-engineering-timestamp.md`:
 
 **Analysis Date**: [ISO timestamp]
 **Analyzer**: AI-DLC
+**Policy / Mode**: [Full / Comprehensive / active overlay-defined mode]
+**Analysis Objective**: [Purpose of this analysis]
+**Scope Boundary**: [Workspace, repositories, packages, or components analyzed]
+**Prior Evidence Reused**: [Artifact paths and timestamps, or none]
+**Not Analyzed / Open Areas**: [Explicit exclusions, unavailable evidence, or none]
+**Analysis Time**: [Elapsed time]
+**Status**: [In Progress / Awaiting Approval / Complete]
 **Workspace**: [Workspace path]
 **Total Files Analyzed**: [Number]
 
@@ -389,35 +401,64 @@ Create `aidlc-docs/analysis/reverse-engineering-timestamp.md`:
 - [x] code-quality-assessment.md
 - [x] bounded-contexts.md
 - [x] modernization-readiness.md
+<!-- No domain-specific full-analysis artifact by default. -->
 ```
 
-## Step 13: Update State Tracking
+## Record Evidence-Ready State
 
-Update `aidlc-docs/aidlc-state.md`:
+When the analysis artifacts are ready for review:
+
+1. Update `aidlc-docs/analysis/reverse-engineering-timestamp.md` with the
+   final scope, open areas, analysis time, and set status to `Awaiting Approval`.
+2. Update `aidlc-docs/aidlc-state.md` without marking Phase 0 complete:
 
 ```markdown
 ## Reverse Engineering Status
-- [x] Reverse Engineering — Completed on [timestamp]
+- [ ] Phase 0: Reverse Engineering — Awaiting Approval
 - **Artifacts Location**: aidlc-docs/analysis/
+- **Analysis Scope**: [scope boundary]
+- **Last Updated**: [ISO timestamp]
 ```
 
-## Step 14: Present Completion Message to User
+Do not check the Phase 0 completion box or set status to `Complete` before the
+approval transition below.
+
+## Present Evidence for Review
+
+Tell the user:
 
 ```markdown
-# 🔍 Reverse Engineering Complete
+# 🔍 Reverse-Engineering Analysis Evidence Is Ready for Review
 
 [AI-generated summary of key findings — bounded contexts identified, coupling hotspots, recommended modernization order, major risks]
 
 > **📋 REVIEW REQUIRED**
-> Please examine the reverse engineering artifacts at: `aidlc-docs/analysis/`
+> Please examine the reverse-engineering artifacts at:
+> `aidlc-docs/analysis/`
 
 > **🚀 WHAT'S NEXT?**
 >
 > 🔧 **Request Changes** — ask for modifications to the analysis
-> ✅ **Approve & Continue** — proceed to **Phase 1: Requirements**
+> ✅ **Approve Evidence** — accept the evidence and complete the Phase 0 gate
 ```
 
-## Step 15: Wait for User Approval
+The reverse-engineering analysis evidence is ready for review. Summarize what
+was analyzed and what remains open; do not describe Phase 0 as complete.
 
-- **MANDATORY**: Do not proceed until the user explicitly approves
-- **MANDATORY**: Log the user's response verbatim in `aidlc-docs/audit.md`
+## Approval Transition
+
+This is the same single Phase 0 approval gate referenced by the primary
+workflow. Execute it once:
+
+1. Stop and wait for the user's explicit approval.
+2. Append the complete raw approval response with an ISO timestamp to
+   `aidlc-docs/audit.md` exactly once.
+3. Only after that audit append, update
+   `aidlc-docs/analysis/reverse-engineering-timestamp.md` and
+   `aidlc-docs/aidlc-state.md` from `Awaiting Approval` to `Complete`,
+   recording the approved scope and completion timestamp.
+4. Mark the Phase 0 state checkbox complete.
+5. Only then enter Phase 1: Requirements.
+
+If the user requests changes, update the affected evidence, keep status at
+`Awaiting Approval`, and present the evidence for review again.
