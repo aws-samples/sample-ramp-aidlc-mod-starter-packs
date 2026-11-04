@@ -13,6 +13,7 @@ __pycache__/
 *.pyc
 cdk.out/
 .aws-sam/
+.ramp-cache/
 dist/
 build/
 

@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ramp-skill-v1.schema.json",
+  "title": "RAMP portable skill metadata v1",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "name",
+    "version",
+    "license"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "kind": {
+      "const": "ramp-skill"
+    },
+    "name": {
+      "$ref": "#/$defs/identifier"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\\+([0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*))?$"
+    },
+    "license": {
+      "$ref": "#/$defs/license"
+    },
+    "basedOn": {
+      "type": "object",
+      "required": [
+        "source",
+        "commit",
+        "path"
+      ],
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/identifier"
+        },
+        "commit": {
+          "$ref": "#/$defs/commit"
+        },
+        "path": {
+          "$ref": "#/$defs/portablePath"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ownerPack": {
+      "$ref": "#/$defs/identifier"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "license": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9.+-]*(?:\\s+(?:AND|OR|WITH)\\s+[A-Za-z0-9][A-Za-z0-9.+-]*)*$"
+    },
+    "portablePath": {
+      "type": "string",
+      "pattern": "^(?!/)(?![A-Za-z]:)(?:(?!(?:\\.|\\.\\.)(?:/|$))[^/\\\\\\u0000\\t\\r\\n]+)(?:/(?!(?:\\.|\\.\\.)(?:/|$))[^/\\\\\\u0000\\t\\r\\n]+)*$"
+    }
+  }
+}

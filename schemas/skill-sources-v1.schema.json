@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "skill-sources-v1.schema.json",
+  "title": "RAMP allowed upstream skill sources v1",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "sources"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "repository",
+          "priority",
+          "license",
+          "licensePath",
+          "noticePath"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/identifier"
+          },
+          "repository": {
+            "type": "string",
+            "pattern": "^https://github\\.com/(?!\\.{1,2}/)[A-Za-z0-9_.-]+/(?!\\.{1,2}\\.git$)[A-Za-z0-9_.-]+\\.git$"
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "license": {
+            "$ref": "#/$defs/license"
+          },
+          "licensePath": {
+            "$ref": "#/$defs/portablePath"
+          },
+          "noticePath": {
+            "$ref": "#/$defs/portablePath"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "license": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9.+-]*(?:\\s+(?:AND|OR|WITH)\\s+[A-Za-z0-9][A-Za-z0-9.+-]*)*$"
+    },
+    "portablePath": {
+      "type": "string",
+      "pattern": "^(?!/)(?![A-Za-z]:)(?:(?!(?:\\.|\\.\\.)(?:/|$))[^/\\\\\\u0000\\t\\r\\n]+)(?:/(?!(?:\\.|\\.\\.)(?:/|$))[^/\\\\\\u0000\\t\\r\\n]+)*$"
+    }
+  }
+}

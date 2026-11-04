@@ -1,0 +1,14 @@
+schemaVersion: 1
+sources:
+  - id: agent-toolkit-for-aws
+    repository: https://github.com/aws/agent-toolkit-for-aws.git
+    priority: 10
+    license: Apache-2.0
+    licensePath: LICENSE
+    noticePath: NOTICE
+  - id: agent-plugins
+    repository: https://github.com/awslabs/agent-plugins.git
+    priority: 20
+    license: Apache-2.0
+    licensePath: LICENSE
+    noticePath: NOTICE
