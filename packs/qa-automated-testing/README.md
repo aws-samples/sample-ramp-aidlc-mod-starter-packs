@@ -53,6 +53,11 @@ node installer/bin/ramp-pack.js init qa-automated-testing --tool <kiro|claude-co
 
 Add `--dry-run` to preview, `--force` to overwrite existing files. To rebuild all four committed tool scaffolds in place, run `./scripts/regenerate.sh qa-automated-testing` (requires Node). The common lifecycle, named QA overlay, pack-local instructions, and shared `skills-library/` are the sources of truth for both the committed `scaffolded-packs/` and the installer output.
 
+Use `--spec-root <safe-relative-path>` and
+`--state-root <safe-relative-path>` to select custom workspace roots. For
+example, `--spec-root customer-specs --state-root customer-state` keeps every
+selected tool on the same specification and state locations.
+
 ### Then
 
 1. **(Brownfield only)** Put the app you're testing in the workspace (or a `existing-codebase/` subfolder). The workflow detects existing code and runs **Phase 0 Reverse Engineering** first.
@@ -69,8 +74,8 @@ The workflow guides the agent to ask for your decisions first (writing a `_decis
 
 ```
 common/instructions/
-├── aidlc-workflow.md             # Canonical local decision-gated lifecycle
-└── reverse-engineering.md        # Canonical brownfield evidence lifecycle
+├── aidlc-workflow.md             # Inherited primary decision-gated lifecycle
+└── reverse-engineering.md        # Inherited brownfield evidence companion
 
 workflow-overlays/
 └── qa-existing-test-inventory.md # QA evidence module and artifact entry
@@ -87,15 +92,19 @@ packs/qa-automated-testing/
 
 Source ownership for authors:
 
+- The pack's primary `aidlc-workflow.md` and companion
+  `reverse-engineering.md` are both inherited from `common/instructions/`;
+  there are no pack-local copies.
 - Edit `common/instructions/aidlc-workflow.md` only for universal lifecycle
   behavior shared by every local workflow pack.
 - Edit `common/instructions/reverse-engineering.md` only for universal
   brownfield evidence and approval behavior.
-- Keep the QA-specific existing-test evidence in
+- The only QA workflow overlay is
   `workflow-overlays/qa-existing-test-inventory.md`; the manifest declares
-  exactly where it replaces the two named common slots.
+  exactly where it replaces the two named common reverse-engineering slots.
 - Keep pack-local instructions limited to QA-specific behavior.
-- Never edit `scaffolded-packs/` directly. Regenerate it with
+- Treat `scaffolded-packs/` as derived output. Never edit it directly;
+  regenerate it with
   `./scripts/regenerate.sh qa-automated-testing`.
 
 Skills are **not** stored in the pack — they are referenced by name in

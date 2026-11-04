@@ -2,6 +2,7 @@ import { dirname, join, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { getAdapter, listAdapterIds } from '../src/adapters/index.js'
+import { listPacks } from '../src/build-all.js'
 import { resolveInstructionBody } from '../src/instructions/compose.js'
 import { loadManifest } from '../src/manifest.js'
 import { buildPlan } from '../src/plan.js'
@@ -10,6 +11,7 @@ import { resolveWorkspace } from '../src/workspace.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(here, '..', '..')
+const packsRoot = join(repoRoot, 'packs')
 const tools = listAdapterIds()
 
 const sources = [
@@ -168,8 +170,15 @@ const packNames = [...new Set(sources.map(({ pack }) => pack))]
 const multiRepoPackNames = [
   ...new Set(multiRepoSources.map(({ pack }) => pack)),
 ]
+const allPackNames = listPacks(packsRoot)
 const packDir = (pack) => join(repoRoot, 'packs', pack)
 const manifestFor = (pack) => loadManifest(packDir(pack))
+const declaredTools = (manifest) =>
+  manifest.schemaVersion === 2 ? manifest.distribution.targets : tools
+const allPackToolCases = allPackNames.flatMap((pack) => {
+  const manifest = manifestFor(pack)
+  return declaredTools(manifest).map((tool) => ({ pack, tool }))
+})
 const count = (text, needle) => text.split(needle).length - 1
 const portable = (path) => path.split(sep).join('/')
 const ownedToken = /\{\{(?:SPEC_DIR|STATE_DIR|INSTRUCTION:[^}]+)\}\}/
@@ -189,6 +198,14 @@ function privateInstructionRoot(tool) {
   return portable(
     dirname(getAdapter(tool).instructions.companionPath('__ramp__.md')),
   )
+}
+
+function instructionTokenCounts(content) {
+  const result = new Map()
+  for (const match of content.matchAll(/\{\{INSTRUCTION:([^}]+)\}\}/g)) {
+    result.set(match[1], (result.get(match[1]) ?? 0) + 1)
+  }
+  return result
 }
 
 function renderedSource(expectation, tool, workspace) {
@@ -551,6 +568,195 @@ describe.each(multiRepoPackNames)(
     })
   },
 )
+
+describe.each(allPackToolCases)(
+  'all-pack custom portability: $pack / $tool',
+  ({ pack, tool }) => {
+    const manifest = manifestFor(pack)
+    const directory = packDir(pack)
+
+    it('renders every declared instruction with owned roots and native references', () => {
+      const workspace = resolveWorkspace(manifest, {
+        tools: [tool],
+        specRoot: 'portable-specs',
+        stateRoot: 'portable-state',
+      })
+      const writes = renderInstructions(manifest, directory, tool, workspace)
+
+      for (const instruction of manifest.instructions) {
+        const source = resolveInstructionBody(
+          manifest,
+          directory,
+          instruction.file,
+        )
+        const renderedPath = nativeInstructionPath(
+          manifest,
+          tool,
+          instruction.file,
+        )
+        const write = writes.find((candidate) => candidate.path === renderedPath)
+        expect(write, `${pack}/${tool}: rendered ${renderedPath}`).toBeDefined()
+        const content = write.content
+
+        expect(content, `${pack}/${tool}/${renderedPath}: owned token`).not.toMatch(
+          ownedToken,
+        )
+        expect(
+          content,
+          `${pack}/${tool}/${renderedPath}: fixed workflow root`,
+        ).not.toMatch(/aidlc-docs|aidlc-specs/)
+
+        for (const otherTool of tools) {
+          if (otherTool === tool) continue
+          expect(
+            content,
+            `${pack}/${tool}/${renderedPath}: no ${otherTool} private root`,
+          ).not.toContain(`${privateInstructionRoot(otherTool)}/`)
+        }
+
+        if (source.includes('{{SPEC_DIR}}')) {
+          expect(
+            content,
+            `${pack}/${tool}/${renderedPath}: custom spec root`,
+          ).toContain('portable-specs')
+        }
+        if (source.includes('{{STATE_DIR}}')) {
+          expect(
+            content,
+            `${pack}/${tool}/${renderedPath}: custom state root`,
+          ).toContain('portable-state')
+        }
+
+        for (const [file, expected] of instructionTokenCounts(source)) {
+          const native = nativeInstructionPath(manifest, tool, file)
+          expect(
+            count(content, native),
+            `${pack}/${tool}/${renderedPath}: native ${file}`,
+          ).toBeGreaterThanOrEqual(expected)
+
+          for (const otherTool of tools) {
+            if (otherTool === tool) continue
+            const other = nativeInstructionPath(manifest, otherTool, file)
+            if (other === native) continue
+            expect(
+              content,
+              `${pack}/${tool}/${renderedPath}: no ${otherTool} ${file}`,
+            ).not.toContain(other)
+          }
+        }
+
+        expect(
+          content.split('portable-specs/decomposition-plan/').join(''),
+          `${pack}/${tool}/${renderedPath}: decomposition plan root`,
+        ).not.toContain('decomposition-plan/')
+        expect(
+          content.split('portable-specs/upgrade-containerisation/').join(''),
+          `${pack}/${tool}/${renderedPath}: upgrade spec root`,
+        ).not.toContain('upgrade-containerisation/')
+      }
+    })
+  },
+)
+
+describe.each(allPackToolCases)(
+  'all-pack standalone defaults: $pack / $tool',
+  ({ pack, tool }) => {
+    const manifest = manifestFor(pack)
+    const directory = packDir(pack)
+
+    it('uses the adapter standalone root for every source-owned path', () => {
+      const workspace = resolveWorkspace(manifest, { tools: [tool] })
+      const writes = renderInstructions(manifest, directory, tool, workspace)
+      const specRoot = tool === 'kiro' ? '.kiro/specs' : 'specs'
+
+      for (const instruction of manifest.instructions) {
+        const source = resolveInstructionBody(
+          manifest,
+          directory,
+          instruction.file,
+        )
+        const renderedPath = nativeInstructionPath(
+          manifest,
+          tool,
+          instruction.file,
+        )
+        const content = writes.find(
+          (candidate) => candidate.path === renderedPath,
+        )?.content
+        expect(content, `${pack}/${tool}: rendered ${renderedPath}`).toBeDefined()
+
+        if (source.includes('{{SPEC_DIR}}')) {
+          expect(
+            content,
+            `${pack}/${tool}/${renderedPath}: standalone spec root`,
+          ).toContain(`${specRoot}/`)
+        }
+        if (source.includes('{{STATE_DIR}}')) {
+          expect(
+            content,
+            `${pack}/${tool}/${renderedPath}: standalone state root`,
+          ).toContain('aidlc-docs')
+        }
+        if (tool !== 'kiro') {
+          expect(content, `${pack}/${tool}/${renderedPath}: no Kiro root`)
+            .not.toContain('.kiro/specs')
+        }
+      }
+    })
+  },
+)
+
+describe.each(allPackNames)('all-pack shared defaults: %s', (pack) => {
+  const manifest = manifestFor(pack)
+  const directory = packDir(pack)
+
+  it.each([
+    [['kiro', 'claude-code'], '.kiro/specs'],
+    [['claude-code', 'cursor'], 'specs'],
+  ])('shares %s at %s for every source-owned path', (participants, specRoot) => {
+    if (!participants.every((tool) => declaredTools(manifest).includes(tool))) {
+      return
+    }
+    const workspace = resolveWorkspace(manifest, { tools: participants })
+
+    for (const tool of participants) {
+      const writes = renderInstructions(manifest, directory, tool, workspace)
+      for (const instruction of manifest.instructions) {
+        const source = resolveInstructionBody(
+          manifest,
+          directory,
+          instruction.file,
+        )
+        const renderedPath = nativeInstructionPath(
+          manifest,
+          tool,
+          instruction.file,
+        )
+        const content = writes.find(
+          (candidate) => candidate.path === renderedPath,
+        )?.content
+        expect(content, `${pack}/${tool}: rendered ${renderedPath}`).toBeDefined()
+
+        if (source.includes('{{SPEC_DIR}}')) {
+          expect(
+            content,
+            `${pack}/${tool}/${renderedPath}: shared spec root`,
+          ).toContain(`${specRoot}/`)
+        }
+        if (source.includes('{{STATE_DIR}}')) {
+          expect(
+            content,
+            `${pack}/${tool}/${renderedPath}: shared state root`,
+          ).toContain('aidlc-docs')
+        }
+        if (!participants.includes('kiro')) {
+          expect(content, `${pack}/${tool}/${renderedPath}: no Kiro root`)
+            .not.toContain('.kiro/specs')
+        }
+      }
+    }
+  })
+})
 
 describe('COTS root-neutral launchers', () => {
   const pack = 'cots-rewrite-on-cloudnative'

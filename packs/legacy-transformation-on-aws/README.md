@@ -62,6 +62,11 @@ node installer/bin/ramp-pack.js init legacy-transformation-on-aws --tool <kiro|c
 
 Add `--dry-run` to preview or `--force` to overwrite existing generated files; this installs steering **and** skills in one step. To rebuild the committed per-tool scaffolds in place, run `./scripts/regenerate.sh legacy-transformation-on-aws` (requires Node). The common lifecycle and reverse-engineering source, named legacy overlays, pack-local skill activation, and shared `skills-library/` are the sources of truth.
 
+Use `--spec-root <safe-relative-path>` and
+`--state-root <safe-relative-path>` to select custom workspace roots. For
+example, `--spec-root customer-specs --state-root customer-state` keeps every
+selected tool on the same specification and state locations.
+
 ### Then
 
 1. Open the project in your tool and start a conversation. Try a bounded objective or an explicit whole-system request:
@@ -75,8 +80,9 @@ The workflow detects the workspace, selects Targeted or Full reverse engineering
 
 ## Proportional reverse-engineering artifacts
 
-Both modes write analysis under `aidlc-docs/analysis/` and state the mode,
-objective, scope boundary, prior evidence used, and what was not analyzed.
+Both modes write analysis under the resolved state root
+(`aidlc-docs/analysis/` by default) and state the mode, objective, scope
+boundary, prior evidence used, and what was not analyzed.
 
 ### Targeted bundle
 
@@ -112,8 +118,8 @@ only after explicit approval.
 
 ```text
 common/instructions/
-├── aidlc-workflow.md             # Canonical decision-gated lifecycle
-└── reverse-engineering.md        # Shared metadata and Phase 0 approval lifecycle
+├── aidlc-workflow.md             # Inherited primary decision-gated lifecycle
+└── reverse-engineering.md        # Inherited Phase 0 evidence companion
 
 workflow-overlays/
 ├── legacy-transformation-workflow.md
@@ -134,10 +140,13 @@ legacy-transformation-on-aws/
 > The pack's 19 skills are referenced **by name** from `pack.yaml` (`skills:` list) and resolved from the
 > shared [`skills-library/`](../../skills-library/) at the repo root — the pack has no `skills/` directory of
 > its own (a local `skills/` appears only when a pack overrides a library skill). They are ported into a target
-> project by `add-skills.sh`. Edit the common lifecycle and reverse-engineering
-> source, the two named legacy overlays, pack-local `skill-activation.md`,
-> `pack.yaml`, and this README as source. Never edit `scaffolded-packs/`
-> directly; rebuild it with the installer or
+> project by `add-skills.sh`. The primary workflow and reverse-engineering
+> companion both inherit their common sources, then the manifest applies
+> `legacy-transformation-workflow.md` and
+> `legacy-adaptive-reverse-engineering.md` as the two named specializations.
+> Edit those common sources, overlays, pack-local `skill-activation.md`,
+> `pack.yaml`, and this README as source. Treat `scaffolded-packs/` as derived
+> output: never edit it directly; rebuild it with the installer or
 > `./scripts/regenerate.sh legacy-transformation-on-aws`.
 
 ### How each instruction maps per tool

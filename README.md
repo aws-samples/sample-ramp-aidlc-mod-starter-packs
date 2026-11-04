@@ -1,6 +1,6 @@
 # AI-DLC for Modernization Starter Packs
 
-A collection of ready-to-use, **tool-agnostic** starter packs that apply the **AI-Driven Development Lifecycle (AI-DLC)** to real-world application modernization scenarios. Each pack is a pre-configured starting point — instructions, skills, and MCP server registrations — that works with **Kiro, Claude Code, GitHub Copilot, and Cursor**, so you can drop it into your own project and start a structured, decision-driven engagement immediately.
+A collection of ready-to-use, **tool-agnostic** starter packs that apply the **AI-Driven Development Lifecycle (AI-DLC)** to real-world application modernization scenarios. Each pack is an **agent-assisted customer accelerator**, not a prebuilt fixed system: it combines reusable lifecycle guidance, scenario-specific instructions, skills, and MCP server registrations, then helps the team design and build the right outcome for that customer. Packs work with **Kiro, Claude Code, GitHub Copilot, and Cursor**.
 
 Each pack is authored once as tool-neutral source; the per-tool steering configs are pre-generated into each pack's `scaffolded-packs/`, and skills are ported in with a small editable `add-skills.sh` — see [How to use a pack](#how-to-use-a-pack).
 
@@ -80,6 +80,18 @@ Learn more:
 
 Each pack's README documents its instructions, skills, MCP servers, and getting-started flow in detail.
 
+### Workspace paths
+
+The installer resolves one specification root and one state root for everyone
+working in the same repository:
+
+- Standalone Kiro uses `.kiro/specs`; standalone Claude Code, Copilot, and
+  Cursor use `specs`.
+- When Kiro participates in a shared multi-tool repository, every selected
+  tool uses `.kiro/specs`. A shared repository without Kiro uses `specs`.
+- State defaults to `aidlc-docs`.
+- `--spec-root` and `--state-root` select custom safe relative roots.
+
 ## Repository layout
 
 ```
@@ -90,6 +102,7 @@ aidlc-for-modernization-starter-packs/
 ├── skills-library/               # Single canonical home for every Agent Skill (shared across packs)
 ├── common/                       # Shared instruction defaults (e.g. reverse-engineering.md)
 │   └── instructions/
+├── workflow-overlays/            # Named, manifest-declared lifecycle specializations
 ├── scripts/regenerate.sh         # Convenience wrapper to regenerate pack output locally
 ├── packs/                        # All scenario packs live here
 │   ├── legacy-transformation-on-aws/         # Legacy transformation — e.g. monolith → microservices
@@ -136,11 +149,23 @@ packs/<pack>/
 
 Most packs share the same AI-DLC configuration primitives, authored once in the neutral source and rendered into each tool's native location by the installer:
 
+- **Canonical lifecycle** — `common/instructions/aidlc-workflow.md` owns the
+  shared local Requirements → Design → Tasks lifecycle, while
+  `common/instructions/reverse-engineering.md` owns the shared brownfield
+  evidence and approval lifecycle.
+- **Named overlays** (`workflow-overlays/*.md`) — manifest-declared
+  specializations that replace explicit common slots without forking the
+  entire lifecycle.
 - **Instructions** (`instructions/*.md`) — the workflow, decision gates, and when to activate skills/MCP. Rendered per tool (Kiro `steering/` with `inclusion:`, Claude Code `CLAUDE.md` + `.claude/rules/`, Copilot `.github/copilot-instructions.md` + `.github/instructions/`, Cursor `.cursor/rules/*.mdc`).
 - **Skills** (`skills-library/*/`) — curated, domain-specific knowledge bundles (e.g., AWS Lambda, API Gateway, Aurora DSQL) following the [Agent Skills open standard](https://agentskills.io/), stored once in the shared library, referenced by name from each `pack.yaml`, and copied verbatim into each tool's skills directory at render time.
 - **MCP servers** (declared in `pack.yaml`) — runtime tools the agent calls during a conversation, rendered into each tool's MCP config. The **AWS Knowledge MCP** appears in every pack for validating AWS guidance, service limits, and regional availability.
 
 Because instructions and skills are plain Markdown, treat them as code: version them, review them, and adapt them to your own use cases.
+
+For authors, edit the applicable common instruction, named overlay, or
+pack-local neutral source, then regenerate. Never hand-edit files under
+`scaffolded-packs/`; they are derived projections and the test suite verifies
+their paths and bytes against the production renderer.
 
 > **Note:** `packs/regression-software-testing` is a lightweight, steering-only pack — a set of Markdown docs you point any agent at directly; it has no `pack.yaml` and isn't rendered by the installer.
 

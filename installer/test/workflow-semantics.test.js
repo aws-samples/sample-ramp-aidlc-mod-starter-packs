@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { existsSync, readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { dirname, join, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { getAdapter, listAdapterIds } from '../src/adapters/index.js'
 import { resolveInstructionBody } from '../src/instructions/compose.js'
@@ -31,6 +31,7 @@ const commonRePackDir = join(repoRoot, 'packs', 'agentic-ai-workflow')
 const commonReManifest = loadManifest(commonRePackDir)
 const legacyPackDir = join(repoRoot, 'packs', 'legacy-transformation-on-aws')
 const legacyManifest = loadManifest(legacyPackDir)
+const portable = (path) => path.split(sep).join('/')
 
 const nativeReverseEngineeringPaths = {
   kiro: '.kiro/steering/reverse-engineering.md',
@@ -80,6 +81,31 @@ function legacyPrimaryContent(
   return write.content
 }
 
+function renderedInstructionContent(
+  packManifest,
+  directory,
+  tool,
+  file,
+  workspace,
+) {
+  const declaration = packManifest.instructions.find(
+    (instruction) => instruction.file === file,
+  )
+  expect(declaration, `${packManifest.name}: declared ${file}`).toBeDefined()
+  const instructionPaths = getAdapter(tool).instructions
+  const path = declaration.role === 'primary'
+    ? instructionPaths.primaryPath(file)
+    : instructionPaths.companionPath(file)
+  const write = renderInstructions(
+    packManifest,
+    directory,
+    tool,
+    workspace,
+  ).find((entry) => entry.path === path)
+  expect(write, `${packManifest.name}/${tool}: rendered ${path}`).toBeDefined()
+  return write.content
+}
+
 function expectOrdered(content, earlier, later) {
   const earlierIndex = content.indexOf(earlier)
   const laterIndex = content.indexOf(later)
@@ -88,13 +114,20 @@ function expectOrdered(content, earlier, later) {
   expect(earlierIndex, `${earlier} must precede ${later}`).toBeLessThan(laterIndex)
 }
 
-function expectBoundedPhaseGate(content, artifact, nextStage) {
+function expectBoundedPhaseGate(
+  content,
+  artifact,
+  nextStage,
+  stateRoot = 'aidlc-docs',
+) {
   const start = content.indexOf(artifact)
   const end = content.indexOf(nextStage, start)
   expect(start, `missing phase artifact: ${artifact}`).toBeGreaterThanOrEqual(0)
   expect(end, `missing next stage after ${artifact}: ${nextStage}`).toBeGreaterThan(start)
 
   const phase = content.slice(start, end + nextStage.length)
+  const auditPath = `\`${stateRoot}/audit.md\``
+  const statePath = `update \`${stateRoot}/aidlc-state.md\``
   expectOrdered(phase, artifact, '### Approval Gate')
   expectOrdered(phase, '### Approval Gate', 'Wait for explicit user approval.')
   expectOrdered(
@@ -105,14 +138,14 @@ function expectBoundedPhaseGate(content, artifact, nextStage) {
   expectOrdered(
     phase,
     'Append the complete raw approval response',
-    '`aidlc-docs/audit.md`',
+    auditPath,
   )
   expectOrdered(
     phase,
-    '`aidlc-docs/audit.md`',
-    'update `aidlc-docs/aidlc-state.md`',
+    auditPath,
+    statePath,
   )
-  expectOrdered(phase, 'update `aidlc-docs/aidlc-state.md`', nextStage)
+  expectOrdered(phase, statePath, nextStage)
 }
 
 describe('canonical RAMP workflow source', () => {
@@ -585,3 +618,203 @@ describe.each(['claude-code', 'copilot'])('legacy launcher portability for %s', 
     expect(content).not.toMatch(/\{\{(?:STATE_DIR|SPEC_DIR)/)
   })
 })
+
+const pilotCases = [
+  {
+    pack: 'qa-automated-testing',
+    directory: packDir,
+    manifest,
+    decisionMarkers: [
+      '### Step 1.2 — Wait for User Input',
+      '### Step 2.2 — Wait for User Input',
+      '### Step 3.2 — Wait for User Input',
+    ],
+  },
+  {
+    pack: 'legacy-transformation-on-aws',
+    directory: legacyPackDir,
+    manifest: legacyManifest,
+    decisionMarkers: [
+      '### Step 1.2 — Approve Requirements Decisions',
+      '### Step 2.2 — Approve Design Decisions',
+      '### Step 3.2 — Approve Task Decisions',
+    ],
+  },
+].flatMap((pilot) =>
+  listAdapterIds().map((tool) => ({ ...pilot, tool })),
+)
+
+describe.each(pilotCases)(
+  'cross-pilot lifecycle: $pack / $tool',
+  ({ pack, directory, manifest: packManifest, decisionMarkers, tool }) => {
+    const workspace = resolveWorkspace(packManifest, {
+      tools: [tool],
+      specRoot: 'customer-specs',
+      stateRoot: 'customer-state',
+    })
+    const primary = renderedInstructionContent(
+      packManifest,
+      directory,
+      tool,
+      'aidlc-workflow.md',
+      workspace,
+    )
+    const reverseEngineering = renderedInstructionContent(
+      packManifest,
+      directory,
+      tool,
+      'reverse-engineering.md',
+      workspace,
+    )
+    const nativeReverseEngineering = getAdapter(tool)
+      .instructions.companionPath('reverse-engineering.md')
+
+    it('resumes first and keeps Phase 0 on one auditable approval lifecycle', () => {
+      const phaseStart = primary.indexOf('# PHASE 0:')
+      const phaseEnd = primary.indexOf('# PHASE 1:', phaseStart)
+      expect(phaseStart, `${pack}/${tool}: Phase 0`).toBeGreaterThanOrEqual(0)
+      expect(phaseEnd, `${pack}/${tool}: Phase 1`).toBeGreaterThan(phaseStart)
+
+      const beforePhaseZero = primary.slice(0, phaseStart)
+      expect(beforePhaseZero).toContain('customer-state/aidlc-state.md')
+      expect(beforePhaseZero).toMatch(/resume/i)
+      expect(primary).toMatch(/append-only/i)
+      expect(primary).toMatch(/complete raw approval response/i)
+
+      const phaseZero = primary.slice(phaseStart, phaseEnd)
+      const approvalMarker = pack === 'legacy-transformation-on-aws'
+        ? 'After explicit approval, execute the **same single Phase 0 approval gate**'
+        : "Wait for the user's explicit approval before moving to Phase 1."
+      expectOrdered(phaseZero, nativeReverseEngineering, approvalMarker)
+      expectOrdered(
+        phaseZero,
+        approvalMarker,
+        'complete raw approval response',
+      )
+      expectOrdered(
+        phaseZero,
+        'complete raw approval response',
+        'customer-state/audit.md',
+      )
+      expectOrdered(
+        phaseZero,
+        'customer-state/audit.md',
+        'customer-state/aidlc-state.md',
+      )
+
+      const evidenceStart = reverseEngineering.indexOf(
+        '## Record Evidence-Ready State',
+      )
+      const approvalStart = reverseEngineering.indexOf(
+        '## Approval Transition',
+        evidenceStart,
+      )
+      expect(evidenceStart, `${pack}/${tool}: evidence state`)
+        .toBeGreaterThanOrEqual(0)
+      expect(approvalStart, `${pack}/${tool}: approval transition`)
+        .toBeGreaterThan(evidenceStart)
+      expect(reverseEngineering.slice(evidenceStart, approvalStart))
+        .toMatch(/Awaiting Approval/)
+
+      const approval = reverseEngineering.slice(approvalStart)
+      expectOrdered(approval, 'explicit approval', 'complete raw approval response')
+      expectOrdered(
+        approval,
+        'complete raw approval response',
+        'customer-state/audit.md',
+      )
+      expectOrdered(
+        approval,
+        'customer-state/audit.md',
+        '`Awaiting Approval` to `Complete`',
+      )
+      expectOrdered(
+        approval,
+        '`Awaiting Approval` to `Complete`',
+        'Phase 1: Requirements',
+      )
+    })
+
+    it('keeps each decision and artifact gate bounded before the next stage', () => {
+      const phases = [
+        {
+          start: '# PHASE 1:',
+          next: '# PHASE 2:',
+          create: '### Step 1.1 — Create `_decisions-requirements.md`',
+          decision: decisionMarkers[0],
+          generate: '### Step 1.3 — Generate `requirements.md`',
+        },
+        {
+          start: '# PHASE 2:',
+          next: '# PHASE 3:',
+          create: '### Step 2.1 — Create `_decisions-design.md`',
+          decision: decisionMarkers[1],
+          generate: '### Step 2.3 — Generate `design.md`',
+        },
+        {
+          start: '# PHASE 3:',
+          next: '# Task Execution',
+          create: '### Step 3.1 — Create `_decisions-tasks.md`',
+          decision: decisionMarkers[2],
+          generate: '### Step 3.3 — Generate `tasks.md`',
+        },
+      ]
+
+      for (const phase of phases) {
+        const start = primary.indexOf(phase.start)
+        const end = primary.indexOf(phase.next, start)
+        expect(start, `${pack}/${tool}: ${phase.start}`)
+          .toBeGreaterThanOrEqual(0)
+        expect(end, `${pack}/${tool}: ${phase.next}`).toBeGreaterThan(start)
+        const bounded = primary.slice(start, end)
+
+        expectOrdered(bounded, phase.create, phase.decision)
+        expectOrdered(bounded, phase.decision, phase.generate)
+        if (pack === 'legacy-transformation-on-aws') {
+          const decisionStart = bounded.indexOf(phase.decision)
+          const generationStart = bounded.indexOf(phase.generate, decisionStart)
+          const decisionGate = bounded.slice(decisionStart, generationStart)
+          expect(decisionGate).toMatch(/explicitly approve/i)
+          expectOrdered(
+            decisionGate,
+            'complete raw approval response',
+            'customer-state/audit.md',
+          )
+          expectOrdered(
+            decisionGate,
+            'customer-state/audit.md',
+            'customer-state/aidlc-state.md',
+          )
+        }
+        expectBoundedPhaseGate(
+          primary,
+          phase.generate,
+          phase.next,
+          'customer-state',
+        )
+      }
+    })
+
+    it('renders only custom roots, native paths, and resolved content', () => {
+      for (const content of [primary, reverseEngineering]) {
+        expect(content).toContain('customer-state')
+        expect(content).not.toMatch(/aidlc-docs|aidlc-specs/)
+        expect(content).not.toContain('RAMP:SLOT')
+        expect(content).not.toMatch(
+          /\{\{(?:SPEC_DIR|STATE_DIR|INSTRUCTION:[^}]+)\}\}/,
+        )
+
+        for (const otherTool of listAdapterIds()) {
+          if (otherTool === tool) continue
+          const foreignRoot = dirname(
+            getAdapter(otherTool).instructions.companionPath('__ramp__.md'),
+          )
+          expect(content).not.toContain(`${portable(foreignRoot)}/`)
+        }
+      }
+
+      expect(primary).toContain('customer-specs')
+      expect(primary).toContain(nativeReverseEngineering)
+    })
+  },
+)
