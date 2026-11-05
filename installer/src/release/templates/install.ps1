@@ -1113,7 +1113,10 @@ function Restore-Transaction {
         }
       }
       else {
-        [System.IO.File]::Delete($destination)
+        # A planned file may sit in a folder the commit never created.
+        $kind = Get-PathKind $destination
+        if ($kind -ceq 'file') { [System.IO.File]::Delete($destination) }
+        elseif ($kind -cne 'absent') { $restoreFailed = $true }
       }
     }
     catch { $restoreFailed = $true }

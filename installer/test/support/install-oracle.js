@@ -112,6 +112,25 @@ function linkDirectory(target, path) {
   symlinkSync(target, path, process.platform === 'win32' ? 'junction' : 'dir')
 }
 
+// Root ignores directory modes, so the forced-failure tests skip as root.
+const asRoot = process.getuid?.() === 0
+
+// Makes a directory refuse new entries until the returned undo runs: mode
+// 0555 on POSIX, and on Windows, where directory modes do not block writes, a
+// deny ACE for add-file and add-subdirectory.
+function denyNewEntries(directory) {
+  if (process.platform === 'win32') {
+    const deny = spawnSync('icacls', [directory, '/deny', '*S-1-1-0:(WD,AD)'], { encoding: 'utf8' })
+    expect(deny.status, deny.stdout).toBe(0)
+    return () => {
+      spawnSync('icacls', [directory, '/remove:d', '*S-1-1-0'])
+    }
+  }
+  const mode = lstatSync(directory).mode & 0o777
+  chmodSync(directory, 0o555)
+  return () => chmodSync(directory, mode)
+}
+
 // Registers the shared scenarios for one engine:
 // { run(state, target, ...args), runBounded(state, target, args, ms), timeout }.
 // Arguments are written in install.sh form; an engine maps them.
@@ -504,9 +523,7 @@ export function registerInstallerContract(engine) {
     expect(snapshot(target)).toEqual(before)
   })
 
-  // Root ignores the read-only directory mode, and Windows directory modes do
-  // not block writes, so the forced failure cannot occur there.
-  test.skipIf(process.getuid?.() === 0 || onWindows)('removes transaction staging after a recoverable state-publish failure', () => {
+  test.skipIf(asRoot)('removes transaction staging after a recoverable state-publish failure', () => {
     const first = bundle({ owner: 'owner-first' })
     const second = bundle({
       owner: 'owner-second',
@@ -514,21 +531,37 @@ export function registerInstallerContract(engine) {
     })
     const target = tempRoot('ramp-install-target-')
     expectSuccess(run(first, target))
-    const installed = join(target, '.ramp/installed')
     const before = snapshot(target)
-    // The directory mode follows the host umask; restore exactly what it was.
-    const installedMode = lstatSync(installed).mode & 0o777
-    chmodSync(installed, 0o555)
+    const undo = denyNewEntries(join(target, '.ramp/installed'))
     let result
     try {
       result = run(second, target)
     } finally {
-      chmodSync(installed, installedMode)
+      undo()
     }
 
     expect(result.status).not.toBe(0)
+    expect(result.stderr).toContain('install transaction failed and was restored')
     expect(snapshot(target)).toEqual(before)
     expect(readdirSync(join(target, '.ramp')).some((name) => name.startsWith('.transaction.')))
       .toBe(false)
+  })
+
+  test.skipIf(asRoot)('restores a failed write that precedes a new file in a new folder', () => {
+    const state = bundle({ files: { 'd/x.txt': 'x\n', 'e/y.txt': 'y\n' } })
+    const target = tempRoot('ramp-install-target-')
+    mkdirSync(join(target, 'd'))
+    const before = snapshot(target)
+    const undo = denyNewEntries(join(target, 'd'))
+    let result
+    try {
+      result = run(state, target)
+    } finally {
+      undo()
+    }
+
+    expect(result.status).not.toBe(0)
+    expect(result.stderr).toContain('install transaction failed and was restored')
+    expect(snapshot(target)).toEqual(before)
   })
 }
