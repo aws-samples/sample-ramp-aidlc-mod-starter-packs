@@ -213,6 +213,32 @@ export function registerInstallerContract(engine) {
     }
   })
 
+  test('tells how to recover from a stale lock without removing it', () => {
+    const state = bundle()
+    const target = tempRoot('ramp-install-target-')
+    mkdirSync(join(target, '.ramp/install.lock'), { recursive: true })
+    const before = snapshot(target)
+    const result = run(state, target)
+    expect(result.status).not.toBe(0)
+    expect(result.stderr).toContain('another RAMP installer holds the target lock')
+    expect(result.stderr).toContain('remove .ramp/install.lock')
+    expect(snapshot(target)).toEqual(before)
+  })
+
+  test('names what an interrupted installer left behind', () => {
+    const state = bundle()
+    const target = tempRoot('ramp-install-target-')
+    expectSuccess(run(state, target))
+    write(target, '.ramp/.transaction.99999/old/guide.md', 'guide\n')
+    write(target, '.ramp/installed/demo--kiro--standalone.tsv.new', 'partial')
+    const before = snapshot(target)
+    const result = run(state, target, '--uninstall')
+    expect(result.status).not.toBe(0)
+    expect(result.stderr).toContain('.ramp/.transaction.99999')
+    expect(result.stderr).toContain('.ramp/installed/demo--kiro--standalone.tsv.new')
+    expect(snapshot(target)).toEqual(before)
+  })
+
   test('rejects a tampered source before target writes', () => {
     const state = bundle()
     const target = tempRoot('ramp-install-target-')

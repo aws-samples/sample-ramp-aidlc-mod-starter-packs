@@ -1031,6 +1031,22 @@ prepare_rollback_plan() {
   done < "$current"
 }
 
+# An installer killed outright leaves its transaction folder or an unpublished
+# state temporary behind; name each with the way back, without touching it.
+report_leftovers() {
+  local item
+  [ -d "$target/$STATE_ROOT" ] && [ ! -L "$target/$STATE_ROOT" ] || return 0
+  for item in "$target/$STATE_ROOT"/.transaction.*; do
+    lexists "$item" || continue
+    echo "warning: an interrupted installer left $STATE_ROOT/$(basename "$item"); its old and state.old folders hold the bytes from before that run; remove it once the target is as expected" >&2
+  done
+  [ -d "$installed_dir" ] && [ ! -L "$installed_dir" ] || return 0
+  for item in "$installed_dir"/*.new "$installed_dir"/.*.new; do
+    lexists "$item" || continue
+    echo "warning: an interrupted installer left $STATE_ROOT/installed/$(basename "$item"), which was never published; remove it and run again" >&2
+  done
+}
+
 preflight() {
   verify_source_records || return 1
   load_state || return 1
@@ -1068,6 +1084,7 @@ record_missing_directories() {
   done
 }
 
+report_leftovers
 preflight || {
   echo "error: installer preflight failed" >&2
   exit 1
@@ -1101,6 +1118,7 @@ else
 fi
 mkdir "$target/$STATE_ROOT/install.lock" 2>/dev/null || {
   echo "error: another RAMP installer holds the target lock" >&2
+  echo "recovery: if no RAMP installer is running on this target, remove $STATE_ROOT/install.lock and run again" >&2
   exit 1
 }
 lock_created=1

@@ -1103,6 +1103,36 @@ function New-RollbackPlan {
   return $true
 }
 
+# An installer killed outright leaves its transaction folder or an unpublished
+# state temporary behind; name each with the way back, without touching it.
+function Write-Leftovers {
+  $ramp = Join-Relative $script:TargetDir $script:StateRoot
+  if ((Get-PathKind $ramp) -cne 'directory') { return }
+  $names = New-Object 'System.Collections.Generic.List[string]'
+  foreach ($entry in [System.IO.Directory]::GetFileSystemEntries($ramp)) {
+    $names.Add([System.IO.Path]::GetFileName($entry))
+  }
+  $names.Sort([System.StringComparer]::Ordinal)
+  foreach ($name in $names) {
+    if ($name.StartsWith('.transaction.', [System.StringComparison]::Ordinal)) {
+      Write-InstallerError ('warning: an interrupted installer left ' + $script:StateRoot + '/' + $name +
+        '; its old and state.old folders hold the bytes from before that run; remove it once the target is as expected')
+    }
+  }
+  if ((Get-PathKind $script:InstalledDir) -cne 'directory') { return }
+  $names.Clear()
+  foreach ($entry in [System.IO.Directory]::GetFileSystemEntries($script:InstalledDir)) {
+    $names.Add([System.IO.Path]::GetFileName($entry))
+  }
+  $names.Sort([System.StringComparer]::Ordinal)
+  foreach ($name in $names) {
+    if ($name.EndsWith('.new', [System.StringComparison]::Ordinal)) {
+      Write-InstallerError ('warning: an interrupted installer left ' + $script:StateRoot + '/installed/' + $name +
+        ', which was never published; remove it and run again')
+    }
+  }
+}
+
 function Invoke-Preflight {
   if (-not (Test-SourceRecords)) { return $false }
   if (-not (Import-InstalledState)) { return $false }
@@ -1417,6 +1447,7 @@ function Invoke-Installer {
   $script:OriginState = $script:InstalledDir + $script:Separator + '.origins.tsv'
   $script:OwnerBackup = $script:BackupsDir + $script:Separator + $script:Owner
 
+  Write-Leftovers
   if (-not (Invoke-Preflight)) { Stop-Installer 'error: installer preflight failed' }
   Write-ConflictReport
   if ($script:Operation -ceq 'dry-run') {
@@ -1459,7 +1490,9 @@ function Invoke-Installer {
     )
   }
   catch {
-    Stop-Installer 'error: another RAMP installer holds the target lock'
+    Write-InstallerError 'error: another RAMP installer holds the target lock'
+    Stop-Installer ('recovery: if no RAMP installer is running on this target, remove ' +
+      $script:StateRoot + '/install.lock and run again')
   }
   $script:LockCreated = $true
 
