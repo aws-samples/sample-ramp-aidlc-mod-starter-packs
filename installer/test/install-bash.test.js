@@ -88,6 +88,32 @@ describe('generated Bash bundle installer', () => {
     expectSuccess(run(state, target, '--uninstall'))
   })
 
+  // An mkdir shim writes a customer file just before the lock is taken, so
+  // only the locked second preflight can see it.
+  it('catches a change made between the first preflight and the lock', () => {
+    const state = bundle({ files: { 'early.txt': 'early\n', 'late.txt': 'bundle\n' } })
+    const target = tempRoot('ramp-install-target-')
+    const realMkdir = spawnSync('sh', ['-c', 'command -v mkdir'], { encoding: 'utf8' }).stdout.trim()
+    const shims = tempRoot('ramp-install-shims-')
+    write(shims, 'mkdir', [
+      '#!/bin/sh',
+      'for last; do :; done',
+      'case "$last" in */.ramp/install.lock) printf \'customer\\n\' > "$RAMP_TEST_LATE" ;; esac',
+      `exec ${realMkdir} "$@"`,
+      '',
+    ].join('\n'), 0o755)
+    const result = spawnSync('bash', [state.script, '--target', target], {
+      cwd: tempRoot('ramp-install-cwd-'),
+      encoding: 'utf8',
+      env: { ...process.env, PATH: `${shims}:${process.env.PATH}`, RAMP_TEST_LATE: join(target, 'late.txt') },
+      timeout: 20_000,
+    })
+    expect(result.status).not.toBe(0)
+    expect(readFileSync(join(state.root, 'install-conflicts.txt'), 'utf8'))
+      .toBe('late.txt\tcustomer file differs\n')
+    expect(snapshot(target)).toEqual([['late.txt', Buffer.from('customer\n'), expect.any(Number)]])
+  })
+
   it('installs into relative targets that look like cd options or CDPATH names', () => {
     const state = bundle()
     const parent = tempRoot('ramp-install-parent-')

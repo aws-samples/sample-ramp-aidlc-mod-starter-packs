@@ -275,6 +275,98 @@ export function registerInstallerContract(engine) {
     expect(snapshot(target).map(([path]) => path).filter((path) => !path.startsWith('.ramp'))).toEqual([])
   })
 
+  test('refuses linked or special destinations and linked state folders', async () => {
+    const outside = tempRoot('ramp-install-outside-')
+    write(outside, 'guide.md', 'guide\n')
+    mkdirSync(join(outside, 'state'))
+    const outsideBefore = snapshot(outside)
+    const blocked = async (target, state, args = []) => {
+      const before = snapshot(target)
+      const result = await engine.runBounded(state, target, args)
+      expect(result.timedOut).toBe(false)
+      expect(result.status).not.toBe(0)
+      expect(snapshot(target)).toEqual(before)
+    }
+
+    const finalLink = tempRoot('ramp-install-target-')
+    symlinkSync(join(outside, 'guide.md'), join(finalLink, 'guide.md'))
+    await blocked(finalLink, bundle())
+
+    const parentLink = tempRoot('ramp-install-target-')
+    linkDirectory(outside, join(parentLink, 'docs'))
+    await blocked(parentLink, bundle({ files: { 'docs/guide.md': 'guide\n' } }))
+
+    if (!onWindows) {
+      const fifo = tempRoot('ramp-install-target-')
+      expect(spawnSync('mkfifo', [join(fifo, 'guide.md')]).status).toBe(0)
+      await blocked(fifo, bundle())
+    }
+
+    const installedLink = tempRoot('ramp-install-target-')
+    mkdirSync(join(installedLink, '.ramp'))
+    linkDirectory(join(outside, 'state'), join(installedLink, '.ramp/installed'))
+    await blocked(installedLink, bundle())
+
+    const v2 = bundle({ version: '1.1.0', bundleId: 'demo--kiro--v1.1.0', files: { 'guide.md': 'new\n' } })
+    const backupsLink = tempRoot('ramp-install-target-')
+    expectSuccess(run(bundle(), backupsLink))
+    rmSync(join(backupsLink, '.ramp/backups'), { recursive: true, force: true })
+    linkDirectory(join(outside, 'state'), join(backupsLink, '.ramp/backups'))
+    await blocked(backupsLink, v2)
+
+    expect(snapshot(outside)).toEqual(outsideBefore)
+  }, Math.max(60_000, (engine.timeout ?? 0) * 3))
+
+  test('rolls back, then reinstalls and upgrades again', () => {
+    const v1 = bundle({ files: { 'guide.md': 'one\n' } })
+    const v2 = bundle({ version: '1.1.0', bundleId: 'demo--kiro--v1.1.0', files: { 'guide.md': 'two\n' } })
+    const target = tempRoot('ramp-install-target-')
+    expectSuccess(run(v1, target))
+    expectSuccess(run(v2, target))
+    expectSuccess(run(v2, target, '--rollback'))
+    const rolledBack = snapshot(target)
+    expectSuccess(run(v1, target))
+    expect(snapshot(target)).toEqual(rolledBack)
+    expectSuccess(run(v2, target))
+    expect(readFileSync(join(target, 'guide.md'), 'utf8')).toBe('two\n')
+    expectSuccess(run(v2, target, '--rollback'))
+    expect(readFileSync(join(target, 'guide.md'), 'utf8')).toBe('one\n')
+  })
+
+  test.skipIf(onWindows)('upgrades and rolls back a mode-only change', () => {
+    const v1 = bundle({ files: { 'run.sh': { bytes: '#!/bin/sh\n', mode: 0o100644 } } })
+    const v2 = bundle({
+      version: '1.1.0',
+      bundleId: 'demo--kiro--v1.1.0',
+      files: { 'run.sh': { bytes: '#!/bin/sh\n', mode: 0o100755 } },
+    })
+    const target = tempRoot('ramp-install-target-')
+    expectSuccess(run(v1, target))
+    expectSuccess(run(v2, target))
+    expect(lstatSync(join(target, 'run.sh')).mode & 0o777).toBe(0o755)
+    expectSuccess(run(v2, target, '--rollback'))
+    expect(lstatSync(join(target, 'run.sh')).mode & 0o777).toBe(0o644)
+  })
+
+  test('blocks an update while another owner claims the old bytes', () => {
+    const first = bundle({ owner: 'owner-first', files: { 'guide.md': 'same\n' } })
+    const second = bundle({ owner: 'owner-second', files: { 'guide.md': 'same\n' } })
+    const changed = bundle({
+      owner: 'owner-first',
+      version: '1.1.0',
+      bundleId: 'demo--kiro--v1.1.0',
+      files: { 'guide.md': 'changed\n' },
+    })
+    const target = tempRoot('ramp-install-target-')
+    expectSuccess(run(first, target))
+    expectSuccess(run(second, target))
+    const before = snapshot(target)
+    expect(run(changed, target).status).not.toBe(0)
+    expect(snapshot(target)).toEqual(before)
+    expect(readFileSync(join(changed.root, 'install-conflicts.txt'), 'utf8'))
+      .toBe('guide.md\tanother owner requires different content\n')
+  })
+
   test('rejects a tampered source before target writes', () => {
     const state = bundle()
     const target = tempRoot('ramp-install-target-')
