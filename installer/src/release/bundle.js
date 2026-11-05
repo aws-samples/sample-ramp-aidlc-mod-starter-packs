@@ -31,7 +31,7 @@ import {
   readOrdinaryFile,
 } from './entries.js'
 import { createInputClosure } from './input-closure.js'
-import { renderInstallManifest } from './install-manifest.js'
+import { INSTALL_STATE_ROOT, renderInstallManifest } from './install-manifest.js'
 import { renderInstallers } from './installers.js'
 import {
   collectLegalPayloads,
@@ -69,7 +69,7 @@ const INSTALLER_LAYOUT = {
   manifestName: 'install-files.tsv',
   overlayRoot: 'overlay',
   conflictName: 'install-conflicts.txt',
-  stateRoot: '.ramp',
+  stateRoot: INSTALL_STATE_ROOT,
 }
 const DEPENDENCY_INPUTS = [
   'dependencies/skills.sources.yaml',

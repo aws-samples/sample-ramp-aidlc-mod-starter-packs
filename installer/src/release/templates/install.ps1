@@ -220,7 +220,7 @@ function Test-PortableSegment {
     if ($code -lt 0x20 -or $code -gt 0x7e) { return $false }
   }
   if ($Segment.Length -gt 255) { return $false }
-  if ($Segment.IndexOfAny([char[]]'<>:"\|?*') -ge 0) { return $false }
+  if ($Segment.IndexOfAny([char[]]'<>:"\|?*/') -ge 0) { return $false }
   if ($Segment.StartsWith(' ', [System.StringComparison]::Ordinal) -or
       $Segment.EndsWith(' ', [System.StringComparison]::Ordinal) -or
       $Segment.EndsWith('.', [System.StringComparison]::Ordinal)) {
@@ -435,6 +435,8 @@ function Read-InstallManifest {
           -not (Test-PortablePath $path)) {
         return $null
       }
+      # A path under the state root would sit among the owner state files.
+      if ($path.Split('/')[0].ToLowerInvariant() -ceq $script:StateRoot.ToLowerInvariant()) { return $null }
       if ($previous.Length -gt 0) {
         if (-not (Test-OrdinalBefore $previous $path)) { return $null }
         if ($path.StartsWith($previous + '/', [System.StringComparison]::Ordinal)) { return $null }

@@ -74,7 +74,7 @@ portable_segment() {
     [ "$segment" != "." ] &&
     [ "$segment" != ".." ] || return 1
   [ "${#segment}" -le 255 ] || return 1
-  case "$segment" in *[!\ -~]*|*[\<\>:\"\\\|\?\*]*) return 1 ;; esac
+  case "$segment" in *[!\ -~]*|*[/\<\>:\"\\\|\?\*]*) return 1 ;; esac
   case "$segment" in \ *|*[.\ ]) return 1 ;; esac
   base="${segment%%.*}"
   case "$base" in
@@ -422,6 +422,9 @@ EOF
   # Paths are printable ASCII here, so tolower folds exactly as tr would.
   awk -F '\t' '{ print tolower($3) }' "$output" > "$lower_file"
   [ -z "$(sort "$lower_file" | uniq -d)" ] || return 1
+  # A path under the state root would sit among the owner state files.
+  awk -F '/' -v root="$STATE_ROOT" '$1 == tolower(root) { bad = 1 } END { exit bad ? 1 : 0 }' \
+    "$lower_file" || return 1
   folded_paths_have_no_ancestors "$lower_file" || return 1
   directory_prefixes_fold_uniquely "$output" || return 1
   rm -f "$lower_file"
@@ -605,8 +608,11 @@ load_state() {
     [ -d "$installed_dir" ] && [ ! -L "$installed_dir" ] || return 1
     for item in "$installed_dir"/* "$installed_dir"/.[!.]* "$installed_dir"/..?*; do
       lexists "$item" || continue
-      name="$(basename "$item")"
+      # $(basename) would drop a trailing newline and hide the entry from
+      # the *.tsv parse loop below, so names are taken with ${##*/}.
+      name="${item##*/}"
       case "$name" in
+        *[!\ -~]*) return 1 ;;
         .origins.tsv)
           [ -f "$item" ] && [ ! -L "$item" ] || return 1
           ;;
@@ -620,7 +626,8 @@ load_state() {
     for state in "$installed_dir"/*.tsv; do
       lexists "$state" || continue
       [ ! -L "$state" ] && [ -f "$state" ] || return 1
-      state_owner="$(basename "$state" .tsv)"
+      state_owner="${state##*/}"
+      state_owner="${state_owner%.tsv}"
       portable_segment "$state_owner" && [ "$state_owner" != ".origins" ] || return 1
       parsed="$work/state-$state_count.tsv"
       parse_manifest "$state" "$parsed" "$state_owner" || return 1
@@ -907,7 +914,7 @@ find_backup() {
     for candidate in "$owner_backup"/* "$owner_backup"/.[!.]* "$owner_backup"/..?*; do
       lexists "$candidate" || continue
       [ -d "$candidate" ] && [ ! -L "$candidate" ] || return 1
-      generation="$(basename "$candidate")"
+      generation="${candidate##*/}"
       portable_segment "$generation" || return 1
       case "$generation" in .*) return 1 ;; esac
       rollback_dir="$candidate"
@@ -992,7 +999,7 @@ EOF
     printf '%s\n' "$path" >> "$listed_files"
   done < "$rollback_dir/SHA256SUMS"
   cmp -s "$listed_files" "$expected_files" || return 1
-  [ "$(basename "$rollback_dir")" = "$previous_version" ] || return 1
+  [ "${rollback_dir##*/}" = "$previous_version" ] || return 1
   while IFS="$TAB" read -r hash expected_mode path; do
     [ "0$(mode_file "$rollback_dir/overlay/$path")" = "$expected_mode" ] ||
       return 1
@@ -1093,12 +1100,12 @@ report_leftovers() {
   [ -d "$target/$STATE_ROOT" ] && [ ! -L "$target/$STATE_ROOT" ] || return 0
   for item in "$target/$STATE_ROOT"/.transaction.*; do
     lexists "$item" || continue
-    echo "warning: an interrupted installer left $STATE_ROOT/$(basename "$item"); its old and state.old folders hold the bytes from before that run; remove it once the target is as expected" >&2
+    echo "warning: an interrupted installer left $STATE_ROOT/${item##*/}; its old and state.old folders hold the bytes from before that run; remove it once the target is as expected" >&2
   done
   [ -d "$installed_dir" ] && [ ! -L "$installed_dir" ] || return 0
   for item in "$installed_dir"/*.new "$installed_dir"/.*.new; do
     lexists "$item" || continue
-    echo "warning: an interrupted installer left $STATE_ROOT/installed/$(basename "$item"), which was never published; remove it and run again" >&2
+    echo "warning: an interrupted installer left $STATE_ROOT/installed/${item##*/}, which was never published; remove it and run again" >&2
   done
 }
 

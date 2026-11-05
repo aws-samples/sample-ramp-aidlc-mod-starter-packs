@@ -687,6 +687,45 @@ export function registerInstallerContract(engine) {
 
   // A case-insensitive filesystem merges Dir/ and dir/, so the backup listing
   // could never match the manifest again.
+  // A path under the state root would land among the owner state files and
+  // wedge every later run; a slash in metadata would reach state file names.
+  test('rejects manifest paths under the state root and metadata holding a slash', () => {
+    for (const [from, to] of [
+      ['\tguide.md\n', '\t.ramp/installed/zzz.tsv\n'],
+      ['\tguide.md\n', '\t.RAMP/guide.md\n'],
+      ['\nowner\tdemo--kiro--standalone\n', '\nowner\tdemo/../x\n'],
+      ['\nbundle\tdemo--kiro--v1.0.0\n', '\nbundle\tdemo/v1\n'],
+    ]) {
+      const state = bundle()
+      const target = tempRoot('ramp-install-target-')
+      const manifest = join(state.root, 'install-files.tsv')
+      const text = readFileSync(manifest, 'utf8')
+      expect(text, from).toContain(from)
+      writeFileSync(manifest, text.replace(from, to))
+      const result = run(state, target, '--dry-run')
+      expect(result.status, to).not.toBe(0)
+      expect(result.stderr, to).toContain('invalid install manifest')
+      expect(snapshot(target)).toEqual([])
+    }
+  })
+
+  // basename and $(...) drop a trailing newline, which hid the renamed
+  // state from the parse loop: uninstalling b then deleted a's file.
+  test.skipIf(onWindows)('fails closed on an owner state name ending in a newline', () => {
+    const a = bundle({ owner: 'aaa--kiro--standalone', bundleId: 'aaa--kiro--v1.0.0' })
+    const b = bundle({ owner: 'bbb--kiro--standalone', bundleId: 'bbb--kiro--v1.0.0' })
+    const target = tempRoot('ramp-install-target-')
+    expectSuccess(run(a, target))
+    expectSuccess(run(b, target))
+    renameSync(
+      join(target, '.ramp/installed/aaa--kiro--standalone.tsv'),
+      join(target, '.ramp/installed/aaa--kiro--standalone.tsv\n'),
+    )
+    const before = snapshot(target)
+    expect(run(b, target, '--uninstall').status).not.toBe(0)
+    expect(snapshot(target)).toEqual(before)
+  })
+
   test('rejects one manifest spelling a directory in two cases', () => {
     const state = bundle()
     const target = tempRoot('ramp-install-target-')

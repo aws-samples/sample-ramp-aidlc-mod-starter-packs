@@ -2,6 +2,9 @@ import { comparePortablePaths } from '../dependencies/checksum.js'
 import { assertArtifactPath, RELEASE_LIMITS } from './entries.js'
 import { sha256Hex } from './stable-json.js'
 
+// The installers keep their own state under this folder of the target.
+export const INSTALL_STATE_ROOT = '.ramp'
+
 const MODES = new Map([
   [0o100644, '0644'],
   [0o100755, '0755'],
@@ -107,6 +110,10 @@ function normalizeFile(value, index) {
     path.slice('overlay/'.length),
     `files[${index}].path`,
   )
+  // A file there would sit among the owner state and wedge every later run.
+  if (relativePath.split('/')[0].toLowerCase() === INSTALL_STATE_ROOT) {
+    throw new Error(`files[${index}].path is inside the installer state root`)
+  }
   const bytes = ownData(file, 'bytes', `files[${index}]`)
   if (!Buffer.isBuffer(bytes)) {
     throw new Error(`files[${index}].bytes must be a Buffer`)
