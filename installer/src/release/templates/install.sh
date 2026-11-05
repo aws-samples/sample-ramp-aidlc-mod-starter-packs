@@ -169,6 +169,14 @@ physical_directory() {
   physical="${physical%"$LF"}"
 }
 
+# Creates the folders above relative path $2 inside $1. $(dirname) would
+# drop a trailing newline of $1 for a top-level path and act on a sibling.
+make_parents() {
+  case "$2" in
+    */*) mkdir -p "$1/${2%/*}" ;;
+  esac
+}
+
 if [ -L "$0" ]; then
   echo "error: installer script must not be a symbolic link" >&2
   exit 1
@@ -294,7 +302,7 @@ cleanup() {
 }
 trap cleanup EXIT
 trap 'exit 129' HUP
-trap 'exit 130' INT
+trap 'echo "error: installer interrupted" >&2; exit 130' INT
 trap 'exit 143' TERM
 
 # Proves an ordinary file before reading, so no caller reads through a link.
@@ -884,21 +892,21 @@ build_backup() {
   chmod 644 "$backup_stage/install-files.tsv" \
     "$backup_stage/origins.tsv" "$backup_stage/backup-meta.tsv" || return 1
   while IFS="$TAB" read -r hash mode path; do
-    mkdir -p "$(dirname "$backup_stage/overlay/$path")" || return 1
+    make_parents "$backup_stage/overlay" "$path" || return 1
     cp "$source_root/$path" "$backup_stage/overlay/$path" || return 1
     chmod "${mode#0}" "$backup_stage/overlay/$path" || return 1
     [ "$(hash_file "$backup_stage/overlay/$path")" = "$hash" ] || return 1
   done < "$old_manifest"
   sums="$backup_stage/SHA256SUMS"
   : > "$sums" || return 1
+  # set -e is ignored here too, so the subshell checks each step itself.
   (
-    set -e
-    cd "$backup_stage"
+    cd "$backup_stage" || exit 1
     find . -type f ! -path ./SHA256SUMS -print |
       sed 's#^\./##' |
       sort |
       while IFS= read -r path; do
-        sum="$(hash_file "$path")"
+        sum="$(hash_file "$path")" || exit 1
         printf '%s  %s\n' "$sum" "$path"
       done
   ) > "$sums" || return 1
@@ -1266,7 +1274,7 @@ while IFS="$TAB" read -r action source_kind mode hash path; do
       prior="$(prior_record "$path")"
       if [ -n "$prior" ]; then
         lexists "$target/$path" || { changed_during_run "$path"; exit 1; }
-        mkdir -p "$(dirname "$txn/old/$path")"
+        make_parents "$txn/old" "$path"
         cp "$target/$path" "$txn/old/$path"
         [ "$(hash_file "$txn/old/$path")" = "${prior%%"$TAB"*}" ] &&
           unchanged_since_preflight "$path" || {
@@ -1287,7 +1295,7 @@ while IFS="$TAB" read -r action source_kind mode hash path; do
       backup) source_file="$rollback_dir/overlay/$path" ;;
       *) exit 1 ;;
     esac
-    mkdir -p "$(dirname "$txn/new/$path")"
+    make_parents "$txn/new" "$path"
     cp "$source_file" "$txn/new/$path"
     chmod "${mode#0}" "$txn/new/$path"
     [ "$(hash_file "$txn/new/$path")" = "$hash" ] || exit 1
@@ -1338,7 +1346,7 @@ restore_transaction() {
         restore_failed=1
         continue
       }
-      mkdir -p "$(dirname "$target/$path")" || {
+      make_parents "$target" "$path" || {
         restore_failed=1
         continue
       }
@@ -1462,7 +1470,7 @@ while IFS="$TAB" read -r action source_kind mode hash path; do
     keep) ;;
     write)
       ordinary_ancestry "$target" "$path" || { commit_failed=1; break; }
-      mkdir -p "$(dirname "$target/$path")" || { commit_failed=1; break; }
+      make_parents "$target" "$path" || { commit_failed=1; break; }
       temporary="$target/$path.ramp-install.$$"
       ! lexists "$temporary" || { commit_failed=1; break; }
       active_customer_temp="$path.ramp-install.$$"

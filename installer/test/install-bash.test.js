@@ -153,6 +153,57 @@ describe('generated Bash bundle installer', () => {
     }
   })
 
+  // dirname in $(...) also dropped the newline for a top-level file: it made
+  // an empty sibling, or failed when the sibling name was taken by a file.
+  it('creates nothing beside a target whose name ends in a newline', () => {
+    const parent = tempRoot('ramp-install-parent-')
+    mkdirSync(join(parent, 'empty\n'))
+    mkdirSync(join(parent, 'taken\n'))
+    write(parent, 'taken', 'customer\n')
+    for (const name of ['empty\n', 'taken\n']) {
+      const state = bundle()
+      expectSuccess(run(state, join(parent, name)))
+      expect(readFileSync(join(parent, name, 'guide.md'), 'utf8')).toBe('guide\n')
+      expectSuccess(run(state, join(parent, name), '--uninstall'))
+    }
+    expect(existsSync(join(parent, 'empty'))).toBe(false)
+    expect(readFileSync(join(parent, 'taken'), 'utf8')).toBe('customer\n')
+  })
+
+  // bash ignores set -e inside a function called under ||, so the hashing
+  // subshell must check each step itself.
+  it('refuses an upgrade whose snapshot checksums cannot be computed', () => {
+    const v1 = bundle({ files: { 'a.txt': 'a 1\n', 'guide.md': 'guide 1\n' } })
+    const v2 = bundle({
+      version: '1.1.0',
+      bundleId: 'demo--kiro--v1.1.0',
+      files: { 'a.txt': 'a 2\n', 'guide.md': 'guide 2\n' },
+    })
+    const target = tempRoot('ramp-install-target-')
+    expectSuccess(run(v1, target))
+    const realSum = spawnSync('sh', ['-c', 'command -v sha256sum || command -v shasum'], { encoding: 'utf8' }).stdout.trim().split('\n')[0]
+    const shims = tempRoot('ramp-install-shims-')
+    for (const tool of ['sha256sum', 'shasum']) {
+      write(shims, tool, [
+        '#!/bin/sh',
+        'case "$PWD" in */backup/*) [ -f overlay/a.txt ] && [ ! -e "$RAMP_ONCE" ] && : > "$RAMP_ONCE" && exit 1 ;; esac',
+        `exec ${realSum} "$@"`,
+        '',
+      ].join('\n'), 0o755)
+    }
+    const result = spawnSync('bash', [v2.script, '--target', target], {
+      cwd: tempRoot('ramp-install-cwd-'),
+      encoding: 'utf8',
+      env: { ...process.env, PATH: `${shims}:${process.env.PATH}`, RAMP_ONCE: join(shims, 'once') },
+      shell: false,
+      timeout: 20_000,
+    })
+    expect(existsSync(join(shims, 'once'))).toBe(true)
+    expect(result.status).not.toBe(0)
+    expect(result.stderr).toContain('could not build the rollback snapshot')
+    expect(readFileSync(join(target, 'guide.md'), 'utf8')).toBe('guide 1\n')
+  })
+
   it('installs into relative targets that look like cd options or CDPATH names', () => {
     const state = bundle()
     const parent = tempRoot('ramp-install-parent-')
@@ -313,6 +364,7 @@ describe('generated Bash bundle installer', () => {
       timeout: 20_000,
     })
     expect(result.status).toBe(130)
+    expect(result.stderr).toContain('installer interrupted')
     expect(snapshot(target)).toEqual(before)
   })
 
