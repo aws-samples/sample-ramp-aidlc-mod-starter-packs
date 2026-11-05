@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parse } from 'yaml'
 import { getAdapter } from './adapters/index.js'
+import { readOrdinaryFile } from './release/entries.js'
 
 const OUTCOMES = new Set(['transform', 'reimagine', 'automate', 'foundation'])
 const EXECUTION_MODELS = new Set(['assisted-builder', 'autonomous-pipeline', 'foundation'])
@@ -274,8 +275,23 @@ function validateV2(raw, instructions) {
   }
 }
 
-export function loadManifest(packDir) {
-  const raw = readFileSync(join(packDir, 'pack.yaml'), 'utf8')
+export function loadManifest(packDir, { onInput } = {}) {
+  if (onInput !== undefined && typeof onInput !== 'function') {
+    throw new Error('loadManifest onInput must be a function')
+  }
+  const manifestPath = join(packDir, 'pack.yaml')
+  const bytes = onInput === undefined
+    ? readFileSync(manifestPath)
+    : readOrdinaryFile(manifestPath, {
+        label: 'pack.yaml',
+        trustedRoot: packDir,
+      }).bytes
+  onInput?.({
+    absolutePath: manifestPath,
+    role: 'pack-manifest',
+    bytes: Buffer.from(bytes),
+  })
+  const raw = bytes.toString('utf8')
   const m = parse(raw)
   if (m?.schemaVersion !== undefined && m.schemaVersion !== 1 && m.schemaVersion !== 2) {
     throw new Error(`pack.yaml has unsupported schemaVersion: ${m.schemaVersion}`)

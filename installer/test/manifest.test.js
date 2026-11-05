@@ -1,6 +1,13 @@
 // installer/test/manifest.test.js
 import { describe, it, expect } from 'vitest'
-import { mkdtempSync, writeFileSync, mkdirSync, readFileSync } from 'node:fs'
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { loadManifest } from '../src/manifest.js'
@@ -49,6 +56,54 @@ ${overrides}`
 }
 
 describe('loadManifest', () => {
+  it('preserves legacy symlink-following reads when input tracing is disabled', () => {
+    const dir = packWith(validV2())
+    const manifestPath = join(dir, 'pack.yaml')
+    const targetPath = join(dir, 'actual-pack.yaml')
+    renameSync(manifestPath, targetPath)
+    symlinkSync('actual-pack.yaml', manifestPath)
+
+    expect(loadManifest(dir)).toEqual(
+      loadManifest(packWith(validV2())),
+    )
+  })
+
+  it('rejects a symlinked pack manifest when input tracing is enabled', () => {
+    const dir = packWith(validV2())
+    const manifestPath = join(dir, 'pack.yaml')
+    renameSync(manifestPath, join(dir, 'actual-pack.yaml'))
+    symlinkSync('actual-pack.yaml', manifestPath)
+
+    expect(() => loadManifest(dir, { onInput() {} })).toThrow(
+      /symbolic|symlink|ordinary/i,
+    )
+  })
+
+  it('traces pack.yaml exactly once without changing the manifest shape', () => {
+    const dir = packWith(validV2())
+    const inputs = []
+
+    const traced = loadManifest(dir, {
+      onInput: (input) => inputs.push(input),
+    })
+    const ordinary = loadManifest(dir)
+
+    expect(traced).toEqual(ordinary)
+    expect(inputs).toEqual([{
+      absolutePath: join(dir, 'pack.yaml'),
+      role: 'pack-manifest',
+      bytes: Buffer.from(validV2()),
+    }])
+  })
+
+  it('rejects a non-function input callback', () => {
+    const dir = packWith(validV2())
+
+    expect(() => loadManifest(dir, { onInput: true })).toThrow(
+      /onInput.*function/i,
+    )
+  })
+
   it('parses instructions, command, mcp and defaults skills to "all"', () => {
     const dir = packWith(`
 name: demo

@@ -7,13 +7,23 @@ import { applyInstructionTokens } from '../instructions/tokens.js'
 // can carry a leading blank line (left behind when Kiro frontmatter is stripped);
 // trimming keeps every tool's output starting on real content. Also substitutes
 // workspace tokens (`{{SPEC_DIR}}` and `{{STATE_DIR}}`).
-const body = (manifest, packDir, file, tool, workspace) => {
-  const raw = resolveInstructionBody(manifest, packDir, file)
+const body = (manifest, packDir, file, tool, workspace, options) => {
+  const raw = resolveInstructionBody(manifest, packDir, file, options)
   return applyInstructionTokens(raw, { manifest, tool, workspace })
 }
 const stem = (file) => basename(file, '.md')
 
-export function renderInstructions(manifest, packDir, tool, workspace) {
+export function renderInstructions(
+  manifest,
+  packDir,
+  tool,
+  workspace,
+  { onInput } = {},
+) {
+  if (onInput !== undefined && typeof onInput !== 'function') {
+    throw new Error('renderInstructions onInput must be a function')
+  }
+  const options = { onInput }
   const adapter = getAdapter(tool)
   const instructions = adapter.instructions
   const resolvedWorkspace = workspace ?? {
@@ -28,7 +38,7 @@ export function renderInstructions(manifest, packDir, tool, workspace) {
       path: i.role === 'primary'
         ? instructions.primaryPath(i.file)
         : instructions.companionPath(i.file),
-      content: `---\ninclusion: ${i.load}\n---\n${body(manifest, packDir, i.file, tool, resolvedWorkspace)}`,
+      content: `---\ninclusion: ${i.load}\n---\n${body(manifest, packDir, i.file, tool, resolvedWorkspace, options)}`,
       kind: 'text',
     }))
   }
@@ -41,13 +51,13 @@ export function renderInstructions(manifest, packDir, tool, workspace) {
       : ''
     const writes = [{
       path: instructions.primaryPath(primary.file),
-      content: header + body(manifest, packDir, primary.file, tool, resolvedWorkspace),
+      content: header + body(manifest, packDir, primary.file, tool, resolvedWorkspace, options),
       kind: 'text',
     }]
     for (const c of companions) {
       writes.push({
         path: instructions.companionPath(c.file),
-        content: body(manifest, packDir, c.file, tool, resolvedWorkspace),
+        content: body(manifest, packDir, c.file, tool, resolvedWorkspace, options),
         kind: 'text',
       })
     }
@@ -62,7 +72,7 @@ export function renderInstructions(manifest, packDir, tool, workspace) {
     const writes = [
       {
         path: instructions.primaryPath(primary.file),
-        content: body(manifest, packDir, primary.file, tool, resolvedWorkspace),
+        content: body(manifest, packDir, primary.file, tool, resolvedWorkspace, options),
         kind: 'text',
       },
     ]
@@ -76,7 +86,7 @@ export function renderInstructions(manifest, packDir, tool, workspace) {
           : `---\ndescription: ${c.description ?? stem(c.file)}\n---\n`
       writes.push({
         path: instructions.companionPath(c.file),
-        content: fm + body(manifest, packDir, c.file, tool, resolvedWorkspace),
+        content: fm + body(manifest, packDir, c.file, tool, resolvedWorkspace, options),
         kind: 'text',
       })
     }
@@ -88,7 +98,7 @@ export function renderInstructions(manifest, packDir, tool, workspace) {
       path: i.role === 'primary'
         ? instructions.primaryPath(i.file)
         : instructions.companionPath(i.file),
-      content: `---\nalwaysApply: ${i.role === 'primary'}\n---\n${body(manifest, packDir, i.file, tool, resolvedWorkspace)}`,
+      content: `---\nalwaysApply: ${i.role === 'primary'}\n---\n${body(manifest, packDir, i.file, tool, resolvedWorkspace, options)}`,
       kind: 'text',
     }))
   }

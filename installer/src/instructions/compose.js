@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import { parse } from 'yaml'
+import { readOrdinaryFile } from '../release/entries.js'
 
 const OVERLAY_FIELDS = new Set(['id', 'target', 'purpose', 'replaces'])
 const SLOT_MARKER =
@@ -184,7 +185,26 @@ function parseOverlay(name, raw) {
   return { id, target, purpose: metadata.purpose, replaces, slots }
 }
 
-function loadOverlays(manifest, packDir) {
+function readInputFile(path, role, onInput) {
+  const bytes = onInput === undefined
+    ? readFileSync(path)
+    : readOrdinaryFile(path, {
+        label: `${role} input`,
+      }).bytes
+  return {
+    bytes,
+    text: bytes.toString('utf8'),
+    record() {
+      onInput?.({
+        absolutePath: path,
+        role,
+        bytes: Buffer.from(bytes),
+      })
+    },
+  }
+}
+
+function loadOverlays(manifest, packDir, file, onInput) {
   const names = manifest.workflow?.overlays ?? []
   if (!Array.isArray(names)) throw new Error('manifest workflow.overlays must be an array')
 
@@ -194,7 +214,10 @@ function loadOverlays(manifest, packDir) {
     if (name.includes('/')) throw new Error(`overlay path must be a safe filename: ${name}`)
     const path = join(overlayRoot, name)
     if (!existsSync(path)) throw new Error(`workflow overlay not found: ${name}`)
-    return parseOverlay(name, readFileSync(path, 'utf8'))
+    const input = readInputFile(path, 'workflow-overlay', onInput)
+    const overlay = parseOverlay(name, input.text)
+    if (overlay.target === file) input.record()
+    return overlay
   })
 }
 
@@ -210,13 +233,27 @@ function renderSlots(content, slots, replacements) {
   return rendered + content.slice(cursor)
 }
 
-export function resolveInstructionBody(manifest, packDir, file) {
-  const raw = readFileSync(resolveInstructionPath(packDir, file), 'utf8').trim() + '\n'
+export function resolveInstructionBody(
+  manifest,
+  packDir,
+  file,
+  { onInput } = {},
+) {
+  if (onInput !== undefined && typeof onInput !== 'function') {
+    throw new Error('resolveInstructionBody onInput must be a function')
+  }
+  const instruction = readInputFile(
+    resolveInstructionPath(packDir, file),
+    'instruction',
+    onInput,
+  )
+  instruction.record()
+  const raw = instruction.text.trim() + '\n'
   const baseSlots = parseSlots(raw, `instruction ${file}`)
   const declaredFiles = new Set((manifest.instructions ?? []).map((instruction) => instruction.file))
   const replacements = new Map()
 
-  for (const overlay of loadOverlays(manifest, packDir)) {
+  for (const overlay of loadOverlays(manifest, packDir, file, onInput)) {
     if (!declaredFiles.has(overlay.target)) {
       throw new Error(`overlay ${overlay.id} target is not a declared instruction: ${overlay.target}`)
     }

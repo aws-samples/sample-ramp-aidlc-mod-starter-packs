@@ -1,8 +1,15 @@
 // installer/test/render-instructions.test.js
 import { describe, it, expect, beforeEach } from 'vitest'
-import { mkdtempSync, writeFileSync, mkdirSync } from 'node:fs'
+import {
+  mkdirSync,
+  mkdtempSync,
+  renameSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { resolveInstructionBody } from '../src/instructions/compose.js'
 import { renderInstructions } from '../src/render/instructions.js'
 import { resolveWorkspace } from '../src/workspace.js'
 
@@ -26,6 +33,42 @@ beforeEach(() => {
 const byPath = (writes, p) => writes.find((w) => w.path === p)
 
 describe('renderInstructions', () => {
+  it('preserves legacy symlink-following instruction reads without tracing', () => {
+    const instructionPath = join(
+      packDir,
+      'instructions',
+      'aidlc-workflow.md',
+    )
+    renameSync(
+      instructionPath,
+      join(packDir, 'instructions', 'actual-workflow.md'),
+    )
+    symlinkSync('actual-workflow.md', instructionPath)
+
+    expect(
+      resolveInstructionBody(manifest, packDir, 'aidlc-workflow.md'),
+    ).toBe('WORKFLOW BODY\n')
+  })
+
+  it('rejects a symlinked instruction when input tracing is enabled', () => {
+    const instructionPath = join(
+      packDir,
+      'instructions',
+      'aidlc-workflow.md',
+    )
+    renameSync(
+      instructionPath,
+      join(packDir, 'instructions', 'actual-workflow.md'),
+    )
+    symlinkSync('actual-workflow.md', instructionPath)
+
+    expect(() =>
+      resolveInstructionBody(manifest, packDir, 'aidlc-workflow.md', {
+        onInput() {},
+      }),
+    ).toThrow(/symbolic|symlink|ordinary/i)
+  })
+
   it('kiro: writes steering files with inclusion frontmatter', () => {
     const w = renderInstructions(manifest, packDir, 'kiro')
     expect(byPath(w, '.kiro/steering/aidlc-workflow.md').content).toBe('---\ninclusion: always\n---\nWORKFLOW BODY\n')
@@ -158,6 +201,98 @@ describe('renderInstructions', () => {
 })
 
 describe('renderInstructions: common/ instruction fallback', () => {
+  it('traces the exact common/local source and only overlays targeting that instruction', () => {
+    const root = mkdtempSync(join(tmpdir(), 'repo-'))
+    mkdirSync(join(root, 'common', 'instructions'), { recursive: true })
+    mkdirSync(join(root, 'workflow-overlays'), { recursive: true })
+    writeFileSync(
+      join(root, 'common', 'instructions', 'aidlc-workflow.md'),
+      [
+        '<!-- RAMP:SLOT selected START -->',
+        'base',
+        '<!-- RAMP:SLOT selected END -->',
+      ].join('\n'),
+    )
+    writeFileSync(
+      join(root, 'workflow-overlays', 'selected.md'),
+      [
+        '---',
+        'id: selected',
+        'target: aidlc-workflow.md',
+        'purpose: selected',
+        'replaces: [selected]',
+        '---',
+        '<!-- RAMP:SLOT selected START -->',
+        'replacement',
+        '<!-- RAMP:SLOT selected END -->',
+      ].join('\n'),
+    )
+    writeFileSync(
+      join(root, 'workflow-overlays', 'other.md'),
+      [
+        '---',
+        'id: other',
+        'target: other.md',
+        'purpose: other',
+        'replaces: [other]',
+        '---',
+        '<!-- RAMP:SLOT other START -->',
+        'other',
+        '<!-- RAMP:SLOT other END -->',
+      ].join('\n'),
+    )
+    const pack = join(root, 'packs', 'demo')
+    mkdirSync(join(pack, 'instructions'), { recursive: true })
+    writeFileSync(
+      join(pack, 'instructions', 'other.md'),
+      [
+        '<!-- RAMP:SLOT other START -->',
+        'OTHER',
+        '<!-- RAMP:SLOT other END -->',
+      ].join('\n'),
+    )
+    const traced = []
+    const value = {
+      workflow: { overlays: ['selected.md', 'other.md'] },
+      instructions: [
+        { file: 'aidlc-workflow.md', role: 'primary', load: 'always' },
+        { file: 'other.md', role: 'companion', load: 'auto' },
+      ],
+    }
+
+    renderInstructions(value, pack, 'kiro', undefined, {
+      onInput: (input) => traced.push(input),
+    })
+
+    expect(traced).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        absolutePath: join(root, 'common/instructions/aidlc-workflow.md'),
+        role: 'instruction',
+        bytes: expect.any(Buffer),
+      }),
+      expect.objectContaining({
+        absolutePath: join(pack, 'instructions/other.md'),
+        role: 'instruction',
+        bytes: expect.any(Buffer),
+      }),
+      expect.objectContaining({
+        absolutePath: join(root, 'workflow-overlays/selected.md'),
+        role: 'workflow-overlay',
+        bytes: expect.any(Buffer),
+      }),
+      expect.objectContaining({
+        absolutePath: join(root, 'workflow-overlays/other.md'),
+        role: 'workflow-overlay',
+        bytes: expect.any(Buffer),
+      }),
+    ]))
+    expect(traced.filter((input) =>
+      input.absolutePath.endsWith('selected.md'))).toHaveLength(1)
+    expect(traced.filter((input) =>
+      input.absolutePath.endsWith('other.md') &&
+      input.role === 'workflow-overlay')).toHaveLength(1)
+  })
+
   it('inherits a common default when the pack omits the file, and a local copy overrides it', () => {
     // Build <root>/common/instructions/reverse-engineering.md + <root>/pack/instructions/aidlc-workflow.md
     const root = mkdtempSync(join(tmpdir(), 'repo-'))

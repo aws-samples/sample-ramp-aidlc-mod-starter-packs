@@ -21,6 +21,51 @@ beforeEach(() => {
 })
 
 describe('buildPlan + applyPlan', () => {
+  it('traces manifest, selected sources, and generator files without changing plan entries', () => {
+    const inputs = []
+    const ordinary = buildPlan(packDir, 'kiro', { includeSkills: false })
+    const traced = buildPlan(packDir, 'kiro', {
+      includeSkills: false,
+      onInput: (input) => inputs.push(input),
+    })
+
+    expect(traced).toEqual(ordinary)
+    expect(traced.every((entry) => !Object.hasOwn(entry, 'inputs'))).toBe(true)
+    expect(inputs).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        absolutePath: join(packDir, 'pack.yaml'),
+        role: 'pack-manifest',
+        bytes: expect.any(Buffer),
+      }),
+      expect.objectContaining({
+        absolutePath: join(packDir, 'instructions/main.md'),
+        role: 'instruction',
+        bytes: Buffer.from('MAIN'),
+      }),
+      expect.objectContaining({
+        absolutePath: expect.stringMatching(/installer\/src\/plan\.js$/),
+        role: 'generator',
+        bytes: expect.any(Buffer),
+      }),
+      expect.objectContaining({
+        absolutePath: expect.stringMatching(/installer\/src\/adapters\/kiro\.js$/),
+        role: 'generator',
+        bytes: expect.any(Buffer),
+      }),
+    ]))
+  })
+
+  it('propagates callback failures before a plan can be applied', () => {
+    expect(() =>
+      buildPlan(packDir, 'kiro', {
+        includeSkills: false,
+        onInput() {
+          throw new Error('input trace rejected')
+        },
+      }),
+    ).toThrow(/input trace rejected/)
+  })
+
   it('claude-code plan includes CLAUDE.md, .mcp.json, command, and skill copy', () => {
     const plan = buildPlan(packDir, 'claude-code')
     const paths = plan.map((p) => p.path)
