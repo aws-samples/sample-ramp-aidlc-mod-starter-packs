@@ -254,6 +254,32 @@ for (const { command, available, label } of engines) {
     const engine = powerShellEngine(command)
     const run = engine.run
 
+    // Runs the helper with a line breakpoint on the one line that reads
+    // marker; the action runs in the helper's scope and does not stop it.
+    function runAtLine(state, target, marker, action) {
+      const lines = readFileSync(state.powershell, 'utf8').split('\n')
+      expect(lines.filter((text) => text.trim() === marker), marker).toHaveLength(1)
+      const line = lines.findIndex((text) => text.trim() === marker) + 1
+      return spawnSync(command, [
+        '-NoLogo',
+        '-NoProfile',
+        '-NonInteractive',
+        ...(process.platform === 'win32' ? ['-ExecutionPolicy', 'Bypass'] : []),
+        '-Command',
+        [
+          `[void](Set-PSBreakpoint -Script $env:RAMP_SCRIPT -Line ${line} -Action { ${action} })`,
+          '& $env:RAMP_SCRIPT -Target $env:RAMP_TARGET',
+          'exit $LASTEXITCODE',
+        ].join('\n'),
+      ], {
+        cwd: tempRoot('ramp-install-cwd-'),
+        encoding: 'utf8',
+        env: { ...process.env, RAMP_SCRIPT: state.powershell, RAMP_TARGET: target },
+        shell: false,
+        timeout: 60_000,
+      })
+    }
+
     it('parses without errors', () => {
       const script = bundle().powershell
       const result = spawnSync(command, [
@@ -283,6 +309,55 @@ for (const { command, available, label } of engines) {
       expect(result.status).not.toBe(0)
       expect(result.stderr).toContain('another RAMP installer holds the target lock')
       expect(snapshot(target)).toEqual(before)
+    }, engine.timeout)
+
+    // A line breakpoint whose action edits the target stands in for an editor
+    // or agent writing during the transaction; the action runs without
+    // stopping the script. The edit must survive and the upgrade must not commit.
+    it.each([
+      ['while staging the old bytes', 'Copy-OrdinaryFile $destination $old', 'guide.md', 'guide.md'],
+      ['after an earlier file was committed', '$script:ActiveCustomerTemp = $temporary', 'a.txt', 'guide.md'],
+      ['as a new file the upgrade would add', '$script:ActiveCustomerTemp = $temporary', 'a.txt', 'new.txt'],
+    ])('keeps an edit made %s', (_, marker, when, edited) => {
+      const v1 = bundle({ files: { 'a.txt': 'a 1\n', 'guide.md': 'guide 1\n' } })
+      const v2 = bundle({
+        version: '1.1.0',
+        bundleId: 'demo--kiro--v1.1.0',
+        files: { 'a.txt': 'a 2\n', 'guide.md': 'guide 2\n', 'new.txt': 'new\n' },
+      })
+      const target = tempRoot('ramp-install-target-')
+      expectSuccess(run(v1, target))
+      const result = runAtLine(v2, target, marker,
+        `if ($entry.Path -ceq '${when}') { [System.IO.File]::WriteAllText('${join(target, edited)}', "customer\`n") }`)
+      expect(result.status).not.toBe(0)
+      expect(result.stderr).toContain(`${edited} changed while the installer ran`)
+      expect(readFileSync(join(target, edited), 'utf8')).toBe('customer\n')
+      expect(readFileSync(join(target, 'a.txt'), 'utf8')).toBe('a 1\n')
+      expect(readFileSync(join(target, '.ramp/installed/demo--kiro--standalone.tsv'), 'utf8'))
+        .toContain('1.0.0')
+    }, engine.timeout)
+
+    // The breakpoint edits each snapshot copy before its hash check, as a
+    // failed or torn copy would leave it.
+    it('refuses an upgrade whose rollback snapshot does not match its records', () => {
+      const v1 = bundle({ files: { 'guide.md': 'guide 1\n' } })
+      const v2 = bundle({
+        version: '1.1.0',
+        bundleId: 'demo--kiro--v1.1.0',
+        files: { 'guide.md': 'guide 2\n' },
+      })
+      const target = tempRoot('ramp-install-target-')
+      expectSuccess(run(v1, target))
+      const result = runAtLine(v2, target,
+        "if ((Get-Sha256 $copy) -cne $record.Hash) { throw 'backup copy differs from its record' }",
+        '[System.IO.File]::WriteAllText($copy, "torn`n")')
+      expect(result.status).not.toBe(0)
+      expect(result.stderr).toContain('could not build the rollback snapshot')
+      expect(readFileSync(join(target, 'guide.md'), 'utf8')).toBe('guide 1\n')
+      expect(existsSync(join(target, '.ramp/backups/demo--kiro--standalone/1.0.0'))).toBe(false)
+      expectSuccess(run(v2, target))
+      expectSuccess(run(v2, target, '--rollback'))
+      expect(readFileSync(join(target, 'guide.md'), 'utf8')).toBe('guide 1\n')
     }, engine.timeout)
 
     // C:\ trimmed to C: would name the current directory of drive C.

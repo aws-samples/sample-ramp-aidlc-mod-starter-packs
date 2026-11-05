@@ -463,6 +463,23 @@ export function registerInstallerContract(engine) {
     }
   })
 
+  test('names a damaged rollback snapshot instead of failing silently', () => {
+    const v1 = bundle({ files: { 'guide.md': 'guide 1\n' } })
+    const v2 = bundle({
+      version: '1.1.0',
+      bundleId: 'demo--kiro--v1.1.0',
+      files: { 'guide.md': 'guide 2\n' },
+    })
+    const target = tempRoot('ramp-install-target-')
+    expectSuccess(run(v1, target))
+    expectSuccess(run(v2, target))
+    write(target, '.ramp/backups/demo--kiro--standalone/1.0.0/overlay/guide.md', 'damaged\n')
+    const result = run(v2, target, '--uninstall')
+    expect(result.status).not.toBe(0)
+    expect(result.stderr).toContain('.ramp/backups/demo--kiro--standalone')
+    expect(readFileSync(join(target, 'guide.md'), 'utf8')).toBe('guide 2\n')
+  })
+
   test('requires an existing ordinary target and rejects invalid arguments', () => {
     const state = bundle()
     const missing = join(tempRoot('ramp-install-parent-'), 'missing')

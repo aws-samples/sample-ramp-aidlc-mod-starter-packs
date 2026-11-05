@@ -85,6 +85,7 @@ $script:OwnerBackupOld = $false
 $script:ActiveCustomerTemp = ''
 $script:ActiveStateTemp = ''
 $script:Journal = New-Object 'System.Collections.Generic.List[object]'
+$script:AppliedCount = 0
 $script:CreatedDirs = New-Object 'System.Collections.Generic.List[string]'
 
 function Write-InstallerError {
@@ -910,6 +911,8 @@ function New-Backup {
     [void][System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($copy))
     Copy-OrdinaryFile (Join-Relative $SourceRoot $record.Path) $copy
     Set-ModeText $copy $record.Mode
+    # A file edited since preflight would make the snapshot unusable.
+    if ((Get-Sha256 $copy) -cne $record.Hash) { throw 'backup copy differs from its record' }
   }
   $files = Get-TreeFiles $Stage
   if ($null -eq $files) { throw 'backup stage holds an unexpected entry' }
@@ -1144,6 +1147,39 @@ function Invoke-Preflight {
   return New-InstallPlan
 }
 
+# The locked preflight found every claimed path at its recorded bytes and
+# mode, and wrote or removed only claimed paths or absent ones. Any other
+# state of a planned path is an edit made since then, so it stops the run.
+function Get-PriorClaim {
+  param([string]$Path)
+  foreach ($claim in $script:Claims) {
+    if ($claim.Path -ceq $Path) { return $claim }
+  }
+  return $null
+}
+
+function Test-UnchangedSincePreflight {
+  param([string]$Path)
+  if (-not (Test-OrdinaryAncestry $script:TargetDir $Path)) { return $false }
+  $destination = Join-Relative $script:TargetDir $Path
+  $claim = Get-PriorClaim $Path
+  if ($null -eq $claim) { return (Get-PathKind $destination) -ceq 'absent' }
+  return (Get-PathKind $destination) -ceq 'file' -and
+    (Get-Sha256 $destination) -ceq $claim.Hash -and
+    (Test-ModeMatches $destination $claim.Mode)
+}
+
+function Get-ChangedMessage {
+  param([string]$Path)
+  return 'error: ' + $Path + ' changed while the installer ran; run it again once nothing else writes to the target'
+}
+
+function Stop-SnapshotDamaged {
+  $backup = $script:StateRoot + '/backups/' + $script:Owner
+  Write-InstallerError ('error: the rollback snapshot in ' + $backup + ' does not match its records')
+  Stop-Installer ('recovery: move ' + $backup + ' out of the target to continue without a rollback')
+}
+
 function Add-MissingDirectories {
   param([string]$Path)
   $parent = Get-ParentRelative $Path
@@ -1199,7 +1235,12 @@ function Restore-Transaction {
     catch { $restoreFailed = $true }
     $script:ActiveStateTemp = ''
   }
+  # Only entries the commit loop reached are restored: a later planned path
+  # still holds whatever is there now, possibly an edit that stopped the run.
+  $restoreCount = 0
   foreach ($entry in $script:Journal) {
+    if ($restoreCount -ge $script:AppliedCount) { break }
+    $restoreCount++
     $destination = Join-Relative $script:TargetDir $entry.Path
     try {
       if (-not (Test-OrdinaryAncestry $script:TargetDir $entry.Path)) {
@@ -1524,11 +1565,11 @@ function Invoke-Installer {
   if (Test-Exists $script:OwnerBackup) {
     $script:CurrentCheck = Read-InstallManifest $script:OwnerState $script:Owner
     if ($null -eq $script:CurrentCheck) { Stop-Installer $staging }
-    if (-not (Find-Backup)) { Stop-Installer $staging }
+    if (-not (Find-Backup)) { Stop-SnapshotDamaged }
     $script:PreviousCheck = Read-InstallManifest (Join-Relative $script:RollbackDir 'install-files.tsv') $script:Owner
-    if ($null -eq $script:PreviousCheck) { Stop-Installer $staging }
+    if ($null -eq $script:PreviousCheck) { Stop-SnapshotDamaged }
     if (-not (Test-Backup $script:PreviousCheck $script:CurrentCheck.Bundle $script:CurrentCheck.Version)) {
-      Stop-Installer $staging
+      Stop-SnapshotDamaged
     }
     Copy-Tree $script:RollbackDir (Join-Relative $script:Txn ('backup.old/' + $script:PreviousCheck.Version))
     $script:OwnerBackupOld = $true
@@ -1536,13 +1577,19 @@ function Invoke-Installer {
   foreach ($entry in $script:Plan) {
     if ($entry.Action -ceq 'write' -or $entry.Action -ceq 'remove') {
       $destination = Join-Relative $script:TargetDir $entry.Path
-      if (Test-Exists $destination) {
+      $claim = Get-PriorClaim $entry.Path
+      if ($null -ne $claim) {
+        if (-not (Test-Exists $destination)) { Stop-Installer (Get-ChangedMessage $entry.Path) }
         $old = Join-Relative ($script:Txn + $script:Separator + 'old') $entry.Path
         [void][System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($old))
         Copy-OrdinaryFile $destination $old
+        if ((Get-Sha256 $old) -cne $claim.Hash -or -not (Test-UnchangedSincePreflight $entry.Path)) {
+          Stop-Installer (Get-ChangedMessage $entry.Path)
+        }
         $script:Journal.Add([pscustomobject]@{ Prior = 'present'; Mode = (Get-ModeText $destination); Path = $entry.Path })
       }
       else {
+        if (-not (Test-UnchangedSincePreflight $entry.Path)) { Stop-Installer (Get-ChangedMessage $entry.Path) }
         $script:Journal.Add([pscustomobject]@{ Prior = 'absent'; Mode = '-'; Path = $entry.Path })
       }
     }
@@ -1573,7 +1620,12 @@ function Invoke-Installer {
     if ($old.Version -cne $script:BundleVersion) {
       $upgradeOldVersion = $old.Version
       $upgradeStage = Join-Relative $script:Txn ('backup/' + $old.Version)
-      New-Backup $upgradeStage $old.Records $old.Bundle $old.Version $script:BundleVersion $script:TargetDir
+      try {
+        New-Backup $upgradeStage $old.Records $old.Bundle $old.Version $script:BundleVersion $script:TargetDir
+      }
+      catch {
+        Stop-Installer ('error: could not build the rollback snapshot for ' + $old.Version + '; the target is unchanged')
+      }
     }
   }
   if ($script:Operation -ceq 'rollback') {
@@ -1586,6 +1638,13 @@ function Invoke-Installer {
   try {
     foreach ($entry in $script:Plan) {
       $destination = Join-Relative $script:TargetDir $entry.Path
+      if ($entry.Action -ceq 'write' -or $entry.Action -ceq 'remove') {
+        if (-not (Test-UnchangedSincePreflight $entry.Path)) {
+          Write-InstallerError (Get-ChangedMessage $entry.Path)
+          throw 'planned path changed'
+        }
+        $script:AppliedCount++
+      }
       if ($entry.Action -ceq 'write') {
         if (-not (Test-OrdinaryAncestry $script:TargetDir $entry.Path)) { throw 'unsafe destination' }
         [void][System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($destination))

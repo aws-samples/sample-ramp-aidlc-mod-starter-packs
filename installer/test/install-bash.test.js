@@ -197,21 +197,44 @@ describe('generated Bash bundle installer', () => {
     expect(readFileSync(join(target, 'guide.md'), 'utf8')).toBe('guide 1\n')
   })
 
-  it('names a damaged rollback snapshot instead of failing silently', () => {
-    const v1 = bundle({ files: { 'guide.md': 'guide 1\n' } })
+  // A cp shim edits the target when the helper copies to a matching
+  // destination, standing in for an editor or agent writing during the
+  // transaction. The edit must survive and the upgrade must not commit.
+  it.each([
+    ['while staging the old bytes', '*/.transaction.*/old/guide.md', 'guide.md'],
+    ['after an earlier file was committed', '*/a.txt.ramp-install.*', 'guide.md'],
+    ['as a new file the upgrade would add', '*/a.txt.ramp-install.*', 'new.txt'],
+  ])('keeps an edit made %s', (_, trigger, edited) => {
+    const v1 = bundle({ files: { 'a.txt': 'a 1\n', 'guide.md': 'guide 1\n' } })
     const v2 = bundle({
       version: '1.1.0',
       bundleId: 'demo--kiro--v1.1.0',
-      files: { 'guide.md': 'guide 2\n' },
+      files: { 'a.txt': 'a 2\n', 'guide.md': 'guide 2\n', 'new.txt': 'new\n' },
     })
     const target = tempRoot('ramp-install-target-')
     expectSuccess(run(v1, target))
-    expectSuccess(run(v2, target))
-    write(target, '.ramp/backups/demo--kiro--standalone/1.0.0/overlay/guide.md', 'damaged\n')
-    const result = run(v2, target, '--uninstall')
+    const realCp = spawnSync('sh', ['-c', 'command -v cp'], { encoding: 'utf8' }).stdout.trim()
+    const shims = tempRoot('ramp-install-shims-')
+    write(shims, 'cp', [
+      '#!/bin/sh',
+      'for last; do :; done',
+      `case "$last" in ${trigger}) printf 'customer\\n' > "$RAMP_EDIT" ;; esac`,
+      `exec ${realCp} "$@"`,
+      '',
+    ].join('\n'), 0o755)
+    const result = spawnSync('bash', [v2.script, '--target', target], {
+      cwd: tempRoot('ramp-install-cwd-'),
+      encoding: 'utf8',
+      env: { ...process.env, PATH: `${shims}:${process.env.PATH}`, RAMP_EDIT: join(target, edited) },
+      shell: false,
+      timeout: 20_000,
+    })
     expect(result.status).not.toBe(0)
-    expect(result.stderr).toContain('.ramp/backups/demo--kiro--standalone')
-    expect(readFileSync(join(target, 'guide.md'), 'utf8')).toBe('guide 2\n')
+    expect(result.stderr).toContain(`${edited} changed while the installer ran`)
+    expect(readFileSync(join(target, edited), 'utf8')).toBe('customer\n')
+    expect(readFileSync(join(target, 'a.txt'), 'utf8')).toBe('a 1\n')
+    expect(readFileSync(join(target, '.ramp/installed/demo--kiro--standalone.tsv'), 'utf8'))
+      .toContain('1.0.0')
   })
 
   it('keeps a committed upgrade when removing transaction staging fails', () => {

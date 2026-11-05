@@ -241,6 +241,7 @@ origin_state_mutated=0
 backup_mutated=0
 active_customer_temp=""
 active_state_temp=""
+applied_count=0
 
 cleanup() {
   local status=$?
@@ -1192,16 +1193,49 @@ if lexists "$owner_backup"; then
   cp -pR "$rollback_dir" "$txn/backup.old/$previous_check_version"
   owner_backup_old=1
 fi
+# The locked preflight found every claimed path at its recorded bytes and
+# mode, and wrote or removed only claimed paths or absent ones. Any other
+# state of a planned path is an edit made since then, so it stops the run.
+prior_record() {
+  awk -F '\t' -v p="$1" '$4 == p { print $2 "\t" $3; exit }' "$all_states"
+}
+
+unchanged_since_preflight() {
+  local path prior
+  path="$1"
+  prior="$(prior_record "$path")"
+  ordinary_ancestry "$target" "$path" || return 1
+  if [ -z "$prior" ]; then
+    ! lexists "$target/$path"
+  else
+    [ -f "$target/$path" ] && [ ! -L "$target/$path" ] &&
+      [ "$(hash_file "$target/$path")" = "${prior%%"$TAB"*}" ] &&
+      [ "0$(mode_file "$target/$path")" = "${prior#*"$TAB"}" ]
+  fi
+}
+
+changed_during_run() {
+  echo "error: $1 changed while the installer ran; run it again once nothing else writes to the target" >&2
+}
+
 : > "$txn/journal.tsv"
 : > "$txn/created-dirs.tsv"
 while IFS="$TAB" read -r action source_kind mode hash path; do
   case "$action" in
     write|remove)
-      if lexists "$target/$path"; then
+      prior="$(prior_record "$path")"
+      if [ -n "$prior" ]; then
+        lexists "$target/$path" || { changed_during_run "$path"; exit 1; }
         mkdir -p "$(dirname "$txn/old/$path")"
         cp "$target/$path" "$txn/old/$path"
-        printf 'present\t%s\t%s\n' "0$(mode_file "$target/$path")" "$path" >> "$txn/journal.tsv"
+        [ "$(hash_file "$txn/old/$path")" = "${prior%%"$TAB"*}" ] &&
+          unchanged_since_preflight "$path" || {
+            changed_during_run "$path"
+            exit 1
+          }
+        printf 'present\t%s\t%s\n' "${prior#*"$TAB"}" "$path" >> "$txn/journal.tsv"
       else
+        unchanged_since_preflight "$path" || { changed_during_run "$path"; exit 1; }
         printf 'absent\t-\t%s\n' "$path" >> "$txn/journal.tsv"
       fi
       ;;
@@ -1253,7 +1287,12 @@ restore_transaction() {
       rm -f "$active_state_temp" || restore_failed=1
     active_state_temp=""
   fi
+  # Only entries the commit loop reached are restored: a later planned path
+  # still holds whatever is there now, possibly an edit that stopped the run.
+  restore_count=0
   while IFS="$TAB" read -r prior prior_mode path; do
+    [ "$restore_count" -lt "$applied_count" ] || break
+    restore_count=$((restore_count + 1))
     if [ "$prior" = "present" ]; then
       ordinary_ancestry "$target" "$path" || {
         restore_failed=1
@@ -1369,6 +1408,16 @@ recheck_owner_backup() {
 commit_failed=0
 mutation_started=1
 while IFS="$TAB" read -r action source_kind mode hash path; do
+  case "$action" in
+    write|remove)
+      unchanged_since_preflight "$path" || {
+        changed_during_run "$path"
+        commit_failed=1
+        break
+      }
+      applied_count=$((applied_count + 1))
+      ;;
+  esac
   case "$action" in
     keep) ;;
     write)
