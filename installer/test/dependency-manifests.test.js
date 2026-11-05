@@ -23,6 +23,8 @@ const repoRoot = join(here, '..', '..')
 const commit = 'a'.repeat(40)
 const treeSha256 = 'b'.repeat(64)
 const fileSha256 = 'c'.repeat(64)
+const licenseSha256 = 'd'.repeat(64)
+const noticeSha256 = 'e'.repeat(64)
 
 const sourceRegistry = {
   schemaVersion: 1,
@@ -75,7 +77,7 @@ function skillEntry(overrides = {}) {
     treeSha256,
     files: [
       {
-        path: 'skills/core-skills/aws-iam/SKILL.md',
+        path: 'SKILL.md',
         sha256: fileSha256,
         size: 1234,
         executable: false,
@@ -83,7 +85,19 @@ function skillEntry(overrides = {}) {
     ],
     license: 'Apache-2.0',
     licensePath: 'LICENSE',
+    licenseFile: {
+      path: 'LICENSE',
+      sha256: licenseSha256,
+      size: 11357,
+      executable: false,
+    },
     noticePath: 'NOTICE',
+    noticeFile: {
+      path: 'NOTICE',
+      sha256: noticeSha256,
+      size: 314,
+      executable: false,
+    },
     ...overrides,
   }
 }
@@ -425,6 +439,12 @@ describe('loadSkillLock', () => {
         repository: 'https://github.com/aws/agent-toolkit-for-aws.git',
       })
       expect(lock.skills.get('aws-iam')).not.toHaveProperty('bytes')
+      expect(lock.skills.get('aws-iam').licenseFile).not.toBe(
+        skillEntry().licenseFile,
+      )
+      expect(lock.skills.get('aws-iam').noticeFile).not.toBe(
+        skillEntry().noticeFile,
+      )
     })
   })
 
@@ -488,6 +508,26 @@ describe('loadSkillLock', () => {
         ],
       },
       /duplicate.*file/i,
+    ],
+    [
+      'empty skill file closure',
+      {
+        schemaVersion: 1,
+        skills: [skillEntry({ files: [] })],
+      },
+      /SKILL\.md|file closure/i,
+    ],
+    [
+      'skill file closure without root SKILL.md',
+      {
+        schemaVersion: 1,
+        skills: [
+          skillEntry({
+            files: [{ ...skillEntry().files[0], path: 'README.md' }],
+          }),
+        ],
+      },
+      /SKILL\.md|file closure/i,
     ],
     [
       'unsorted file paths',
@@ -596,6 +636,123 @@ describe('loadSkillLock', () => {
       /noticePath.*source|source.*noticePath/i,
     ],
     [
+      'missing license file record',
+      {
+        schemaVersion: 1,
+        skills: [(() => {
+          const entry = skillEntry()
+          delete entry.licenseFile
+          return entry
+        })()],
+      },
+      /licenseFile.*missing|required/i,
+    ],
+    [
+      'missing notice file record',
+      {
+        schemaVersion: 1,
+        skills: [(() => {
+          const entry = skillEntry()
+          delete entry.noticeFile
+          return entry
+        })()],
+      },
+      /noticeFile.*missing|required/i,
+    ],
+    [
+      'unknown license file field',
+      {
+        schemaVersion: 1,
+        skills: [
+          skillEntry({
+            licenseFile: { ...skillEntry().licenseFile, bytes: 'forbidden' },
+          }),
+        ],
+      },
+      /licenseFile.*unknown.*bytes|unknown.*bytes/i,
+    ],
+    [
+      'wrong notice file type',
+      {
+        schemaVersion: 1,
+        skills: [skillEntry({ noticeFile: 'NOTICE' })],
+      },
+      /noticeFile.*object/i,
+    ],
+    [
+      'unsafe source file path',
+      {
+        schemaVersion: 1,
+        skills: [
+          skillEntry({
+            licensePath: '../LICENSE',
+            licenseFile: { ...skillEntry().licenseFile, path: '../LICENSE' },
+          }),
+        ],
+      },
+      /licensePath|licenseFile.*path/i,
+    ],
+    [
+      'source file hash',
+      {
+        schemaVersion: 1,
+        skills: [
+          skillEntry({
+            noticeFile: { ...skillEntry().noticeFile, sha256: 'E'.repeat(64) },
+          }),
+        ],
+      },
+      /noticeFile.*sha256|sha256/i,
+    ],
+    [
+      'source file size',
+      {
+        schemaVersion: 1,
+        skills: [
+          skillEntry({
+            noticeFile: { ...skillEntry().noticeFile, size: -1 },
+          }),
+        ],
+      },
+      /noticeFile.*size|size/i,
+    ],
+    [
+      'source file executable type',
+      {
+        schemaVersion: 1,
+        skills: [
+          skillEntry({
+            noticeFile: { ...skillEntry().noticeFile, executable: 0 },
+          }),
+        ],
+      },
+      /noticeFile.*executable|executable/i,
+    ],
+    [
+      'license file path disagreement',
+      {
+        schemaVersion: 1,
+        skills: [
+          skillEntry({
+            licenseFile: { ...skillEntry().licenseFile, path: 'COPYING' },
+          }),
+        ],
+      },
+      /licenseFile.*licensePath|licensePath.*licenseFile/i,
+    ],
+    [
+      'notice file path disagreement',
+      {
+        schemaVersion: 1,
+        skills: [
+          skillEntry({
+            noticeFile: { ...skillEntry().noticeFile, path: 'OTHER-NOTICE' },
+          }),
+        ],
+      },
+      /noticeFile.*noticePath|noticePath.*noticeFile/i,
+    ],
+    [
       'unknown skill field',
       {
         schemaVersion: 1,
@@ -622,16 +779,93 @@ describe('loadSkillLock', () => {
       expect(() => loadSkillLock(root, { required: true })).toThrow(message)
     })
   })
+
+  it('rejects conflicting source-file records within one source commit', () => {
+    withTempRoot((root) => {
+      writeSources(root)
+      writeLock(root, [
+        skillEntry({ name: 'a-skill', path: 'skills/a-skill' }),
+        skillEntry({
+          name: 'z-skill',
+          path: 'skills/z-skill',
+          noticeFile: { ...skillEntry().noticeFile, sha256: 'f'.repeat(64) },
+        }),
+      ])
+
+      expect(() => loadSkillLock(root, { required: true })).toThrow(
+        /source.*commit.*notice|notice.*source.*commit|disagree/i,
+      )
+    })
+  })
+
+  it('rejects duplicate source commit path claims', () => {
+    withTempRoot((root) => {
+      writeSources(root)
+      writeLock(root, [
+        skillEntry({ name: 'a-skill' }),
+        skillEntry({ name: 'z-skill' }),
+      ])
+
+      expect(() => loadSkillLock(root, { required: true })).toThrow(
+        /duplicate.*source.*commit.*path|claim/i,
+      )
+    })
+  })
+
+  it('rejects conflicting overlapping source coordinates', () => {
+    withTempRoot((root) => {
+      writeSources(root)
+      writeLock(root, [
+        skillEntry({
+          name: 'a-skill',
+          path: 'skills/a-skill',
+          files: [{
+            path: 'NOTICE',
+            sha256: fileSha256,
+            size: 1234,
+            executable: false,
+          }, {
+            path: 'SKILL.md',
+            sha256: fileSha256,
+            size: 1234,
+            executable: false,
+          }],
+        }),
+        skillEntry({
+          name: 'z-skill',
+          path: 'skills',
+          files: [{
+            path: 'SKILL.md',
+            sha256: fileSha256,
+            size: 1234,
+            executable: false,
+          }, {
+            path: 'a-skill/NOTICE',
+            sha256: 'f'.repeat(64),
+            size: 1234,
+            executable: false,
+          }],
+        }),
+      ])
+
+      expect(() => loadSkillLock(root, { required: true })).toThrow(
+        /coordinate.*conflict|conflicting.*coordinate/i,
+      )
+    })
+  })
 })
 
 describe('writeSkillLock', () => {
   function normalizedEntry(name, path, filePaths) {
-    const hashDigit = { a: '1', b: '2', z: '3' }
+    const hashDigit = { 'SKILL.md': '0', a: '1', b: '2', z: '3' }
+    const completePaths = filePaths.includes('SKILL.md')
+      ? filePaths
+      : ['SKILL.md', ...filePaths]
     return {
       ...skillEntry({
         name,
         path,
-        files: filePaths.map((filePath) => ({
+        files: completePaths.map((filePath) => ({
           path: filePath,
           sha256: hashDigit[filePath].repeat(64),
           size: filePath.charCodeAt(0),
@@ -642,21 +876,25 @@ describe('writeSkillLock', () => {
     }
   }
 
-  it('serializes maps deterministically across insertion order and time zone', () => {
+  it('serializes maps deterministically across insertion order, locale, and time zone', () => {
     const oldTimezone = process.env.TZ
+    const oldLanguage = process.env.LANG
+    const oldLocale = process.env.LC_ALL
     try {
       const bytes = []
-      for (const [timezone, entries] of [
-        ['Pacific/Honolulu', [
+      for (const [timezone, language, locale, entries] of [
+        ['Pacific/Honolulu', 'en_US.UTF-8', 'C', [
           ['z-skill', normalizedEntry('z-skill', 'skills/z', ['z', 'a'])],
           ['a-skill', normalizedEntry('a-skill', 'skills/a', ['b', 'a'])],
         ]],
-        ['Asia/Singapore', [
+        ['Asia/Singapore', 'de_DE.UTF-8', 'C.UTF-8', [
           ['a-skill', normalizedEntry('a-skill', 'skills/a', ['a', 'b'])],
           ['z-skill', normalizedEntry('z-skill', 'skills/z', ['a', 'z'])],
         ]],
       ]) {
         process.env.TZ = timezone
+        process.env.LANG = language
+        process.env.LC_ALL = locale
         withTempRoot((root) => {
           writeSources(root)
           const path = writeSkillLock(root, {
@@ -673,15 +911,29 @@ describe('writeSkillLock', () => {
       expect(bytes[0].endsWith('\n')).toBe(true)
       expect(bytes[0].endsWith('\n\n')).toBe(false)
       expect(bytes[0]).not.toContain('repository:')
+      expect(bytes[0]).toContain('licenseFile:')
+      expect(bytes[0]).toContain('noticeFile:')
       expect(bytes[0]).not.toMatch(/[&*][A-Za-z0-9_-]+/)
       expect(bytes[0].indexOf('name: a-skill'))
         .toBeLessThan(bytes[0].indexOf('name: z-skill'))
       const parsed = parse(bytes[0])
-      expect(parsed.skills[0].files.map(({ path }) => path)).toEqual(['a', 'b'])
-      expect(parsed.skills[1].files.map(({ path }) => path)).toEqual(['a', 'z'])
+      expect(parsed.skills[0].files.map(({ path }) => path)).toEqual([
+        'SKILL.md',
+        'a',
+        'b',
+      ])
+      expect(parsed.skills[1].files.map(({ path }) => path)).toEqual([
+        'SKILL.md',
+        'a',
+        'z',
+      ])
     } finally {
       if (oldTimezone === undefined) delete process.env.TZ
       else process.env.TZ = oldTimezone
+      if (oldLanguage === undefined) delete process.env.LANG
+      else process.env.LANG = oldLanguage
+      if (oldLocale === undefined) delete process.env.LC_ALL
+      else process.env.LC_ALL = oldLocale
     }
   })
 
@@ -728,6 +980,59 @@ describe('writeSkillLock', () => {
           skills: new Map([['a-skill', spoofed]]),
         }),
       ).toThrow(/repository/i)
+    })
+  })
+
+  it.each([
+    ['an empty file closure', []],
+    ['a file closure without root SKILL.md', [{
+      path: 'README.md',
+      sha256: 'f'.repeat(64),
+      size: 9,
+      executable: false,
+    }]],
+  ])('rejects %s without modifying the destination', (_description, files) => {
+    withTempRoot((root) => {
+      writeSources(root)
+      const destination = writeSkillLock(root, {
+        schemaVersion: 1,
+        skills: new Map([
+          ['a-skill', normalizedEntry('a-skill', 'skills/a', ['a'])],
+        ]),
+      })
+      const before = readFileSync(destination)
+      const invalid = normalizedEntry('a-skill', 'skills/a', ['a'])
+      invalid.files = files
+
+      expect(() =>
+        writeSkillLock(root, {
+          schemaVersion: 1,
+          skills: new Map([['a-skill', invalid]]),
+        }),
+      ).toThrow(/file closure.*SKILL\.md|SKILL\.md.*file closure/i)
+      expect(readFileSync(destination)).toEqual(before)
+    })
+  })
+
+  it('enforces source agreement and coordinate claims before writing', () => {
+    withTempRoot((root) => {
+      writeSources(root)
+      const first = normalizedEntry('a-skill', 'skills/shared', ['a'])
+      const second = normalizedEntry('z-skill', 'skills/shared', ['z'])
+      second.noticeFile = {
+        ...second.noticeFile,
+        sha256: 'f'.repeat(64),
+      }
+
+      expect(() =>
+        writeSkillLock(root, {
+          schemaVersion: 1,
+          skills: new Map([
+            ['a-skill', first],
+            ['z-skill', second],
+          ]),
+        }),
+      ).toThrow(/source.*commit.*notice|notice.*source.*commit|disagree|claim/i)
     })
   })
 })
@@ -871,9 +1176,16 @@ describe('published dependency contracts', () => {
     expect(sources.properties.sources.items.additionalProperties).toBe(false)
     expect(lock.required).toEqual(['schemaVersion', 'skills'])
     expect(lock.properties.skills.items.required).toContain('files')
+    expect(lock.properties.skills.items.required).toContain('licenseFile')
+    expect(lock.properties.skills.items.required).toContain('noticeFile')
     expect(lock.properties.skills.items.additionalProperties).toBe(false)
+    expect(lock.properties.skills.items.properties.files.minItems).toBe(1)
     expect(
-      lock.properties.skills.items.properties.files.items.additionalProperties,
+      lock.properties.skills.items.properties.files.contains.properties.path
+        .const,
+    ).toBe('SKILL.md')
+    expect(
+      lock.$defs.fileRecord.additionalProperties,
     ).toBe(false)
     expect(lock.$defs.commit.pattern).toBe('^[0-9a-f]{40}$')
     expect(lock.$defs.sha256.pattern).toBe('^[0-9a-f]{64}$')

@@ -24,7 +24,9 @@
           "files",
           "license",
           "licensePath",
-          "noticePath"
+          "licenseFile",
+          "noticePath",
+          "noticeFile"
         ],
         "properties": {
           "name": {
@@ -44,31 +46,20 @@
           },
           "files": {
             "type": "array",
-            "items": {
+            "minItems": 1,
+            "contains": {
               "type": "object",
-              "required": [
-                "path",
-                "sha256",
-                "size",
-                "executable"
-              ],
               "properties": {
                 "path": {
-                  "$ref": "#/$defs/portablePath"
-                },
-                "sha256": {
-                  "$ref": "#/$defs/sha256"
-                },
-                "size": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 9007199254740991
-                },
-                "executable": {
-                  "type": "boolean"
+                  "const": "SKILL.md"
                 }
               },
-              "additionalProperties": false
+              "required": [
+                "path"
+              ]
+            },
+            "items": {
+              "$ref": "#/$defs/fileRecord"
             }
           },
           "license": {
@@ -77,8 +68,14 @@
           "licensePath": {
             "$ref": "#/$defs/portablePath"
           },
+          "licenseFile": {
+            "$ref": "#/$defs/fileRecord"
+          },
           "noticePath": {
             "$ref": "#/$defs/portablePath"
+          },
+          "noticeFile": {
+            "$ref": "#/$defs/fileRecord"
           }
         },
         "additionalProperties": false
@@ -98,6 +95,32 @@
     "sha256": {
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
+    },
+    "fileRecord": {
+      "type": "object",
+      "required": [
+        "path",
+        "sha256",
+        "size",
+        "executable"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/portablePath"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "executable": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
     },
     "license": {
       "type": "string",

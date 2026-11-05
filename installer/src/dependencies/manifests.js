@@ -41,7 +41,9 @@ const LOCK_SKILL_FIELDS = new Set([
   'files',
   'license',
   'licensePath',
+  'licenseFile',
   'noticePath',
+  'noticeFile',
 ])
 const NORMALIZED_LOCK_SKILL_FIELDS = new Set([
   ...LOCK_SKILL_FIELDS,
@@ -193,8 +195,7 @@ export function loadSkillSources(repoRoot) {
   }
 }
 
-function normalizeLockFile(file, index, skillName) {
-  const label = `skills.lock.yaml skill ${skillName} file ${index}`
+function normalizeFileRecord(file, label) {
   requireObject(file, label)
   assertOnlyKeys(file, LOCK_FILE_FIELDS, label)
   assertRequiredKeys(file, LOCK_FILE_FIELDS, label)
@@ -208,6 +209,78 @@ function normalizeLockFile(file, index, skillName) {
         : (() => {
             throw new Error(`${label} executable must be boolean`)
           })(),
+  }
+}
+
+function normalizeLockFile(file, index, skillName) {
+  return normalizeFileRecord(
+    file,
+    `skills.lock.yaml skill ${skillName} file ${index}`,
+  )
+}
+
+function sameFileRecord(left, right) {
+  return LOCK_FILE_FIELDS.size === Object.keys(left).length &&
+    [...LOCK_FILE_FIELDS].every((field) => left[field] === right[field])
+}
+
+function validateCompleteLock(skills) {
+  const sourceFilesByGroup = new Map()
+  const claimedTrees = new Map()
+  const coordinatesByGroup = new Map()
+
+  for (const skill of skills) {
+    const group = `${skill.source}\0${skill.commit}`
+    const priorSourceFiles = sourceFilesByGroup.get(group)
+    if (priorSourceFiles) {
+      for (const field of ['licenseFile', 'noticeFile']) {
+        if (!sameFileRecord(priorSourceFiles[field], skill[field])) {
+          throw new Error(
+            `skills.lock.yaml source ${skill.source} commit ${skill.commit} ${field} records disagree`,
+          )
+        }
+      }
+    } else {
+      sourceFilesByGroup.set(group, {
+        licenseFile: { ...skill.licenseFile },
+        noticeFile: { ...skill.noticeFile },
+      })
+    }
+
+    const treeCoordinate = `${group}\0${skill.path}`
+    const priorClaim = claimedTrees.get(treeCoordinate)
+    if (priorClaim) {
+      throw new Error(
+        `skills.lock.yaml duplicate source/commit/path claim: ${skill.source} ${skill.commit} ${skill.path} (${priorClaim}, ${skill.name})`,
+      )
+    }
+    claimedTrees.set(treeCoordinate, skill.name)
+
+    let coordinates = coordinatesByGroup.get(group)
+    if (!coordinates) {
+      coordinates = new Map()
+      coordinatesByGroup.set(group, coordinates)
+    }
+    const records = [
+      skill.licenseFile,
+      skill.noticeFile,
+      ...skill.files.map((file) => ({
+        ...file,
+        path: assertPortableRelativePath(
+          `${skill.path}/${file.path}`,
+          `skills.lock.yaml skill ${skill.name} source coordinate`,
+        ),
+      })),
+    ]
+    for (const record of records) {
+      const prior = coordinates.get(record.path)
+      if (prior && !sameFileRecord(prior, record)) {
+        throw new Error(
+          `skills.lock.yaml conflicting source coordinate ${record.path} for ${skill.source} ${skill.commit}`,
+        )
+      }
+      if (!prior) coordinates.set(record.path, { ...record })
+    }
   }
 }
 
@@ -268,15 +341,26 @@ function normalizeLockSkill(
   if (!requireSortedFiles) {
     files.sort((left, right) => comparePortablePaths(left.path, right.path))
   }
+  if (!files.some((file) => file.path === 'SKILL.md')) {
+    throw new Error(`${label} file closure must include root SKILL.md`)
+  }
 
   const license = requirePattern(skill.license, SPDX_STYLE, `${label} license`)
   const licensePath = assertPortableRelativePath(
     skill.licensePath,
     `${label} licensePath`,
   )
+  const licenseFile = normalizeFileRecord(
+    skill.licenseFile,
+    `${label} licenseFile`,
+  )
   const noticePath = assertPortableRelativePath(
     skill.noticePath,
     `${label} noticePath`,
+  )
+  const noticeFile = normalizeFileRecord(
+    skill.noticeFile,
+    `${label} noticeFile`,
   )
   if (license !== source.license) {
     throw new Error(`${label} license does not match source ${sourceId}`)
@@ -286,6 +370,12 @@ function normalizeLockSkill(
   }
   if (noticePath !== source.noticePath) {
     throw new Error(`${label} noticePath does not match source ${sourceId}`)
+  }
+  if (licenseFile.path !== licensePath) {
+    throw new Error(`${label} licenseFile path does not match licensePath`)
+  }
+  if (noticeFile.path !== noticePath) {
+    throw new Error(`${label} noticeFile path does not match noticePath`)
   }
 
   return {
@@ -302,7 +392,9 @@ function normalizeLockSkill(
     files,
     license,
     licensePath,
+    licenseFile,
     noticePath,
+    noticeFile,
   }
 }
 
@@ -351,6 +443,7 @@ export function loadSkillLock(repoRoot, { required = false } = {}) {
     }
     map.set(skill.name, skill)
   }
+  validateCompleteLock(skills)
 
   return {
     schemaVersion: 1,
@@ -387,6 +480,7 @@ export function writeSkillLock(repoRoot, normalizedLock) {
     index += 1
   }
   skills.sort((left, right) => comparePortablePaths(left.name, right.name))
+  validateCompleteLock(skills)
 
   const serializable = {
     schemaVersion: 1,
@@ -404,7 +498,19 @@ export function writeSkillLock(repoRoot, normalizedLock) {
       })),
       license: skill.license,
       licensePath: skill.licensePath,
+      licenseFile: {
+        path: skill.licenseFile.path,
+        sha256: skill.licenseFile.sha256,
+        size: skill.licenseFile.size,
+        executable: skill.licenseFile.executable,
+      },
       noticePath: skill.noticePath,
+      noticeFile: {
+        path: skill.noticeFile.path,
+        sha256: skill.noticeFile.sha256,
+        size: skill.noticeFile.size,
+        executable: skill.noticeFile.executable,
+      },
     })),
   }
   const content = stringify(serializable, {

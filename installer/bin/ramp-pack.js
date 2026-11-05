@@ -10,6 +10,11 @@ import { listAdapterIds } from '../src/adapters/index.js'
 import { loadManifest } from '../src/manifest.js'
 import { resolveWorkspace } from '../src/workspace.js'
 import { createSkillResolver } from '../src/dependencies/resolver.js'
+import {
+  syncLockedSkills,
+  updateSkillLocks,
+  verifyLockedSkills,
+} from '../src/dependencies/sync.js'
 
 const TOOLS = listAdapterIds()
 const here = dirname(fileURLToPath(import.meta.url))
@@ -33,6 +38,51 @@ function selectedTools(opts) {
     throw new Error('--tools must not contain an empty tool')
   }
   return tools
+}
+
+function collect(value, previous) {
+  return [...previous, value]
+}
+
+function parseMappings(values, label) {
+  const result = new Map()
+  for (const value of values) {
+    const separator = value.indexOf('=')
+    if (separator <= 0 || separator === value.length - 1) {
+      throw new Error(`${label} must use <source-id>=<value>`)
+    }
+    const key = value.slice(0, separator)
+    const mapped = value.slice(separator + 1)
+    if (result.has(key)) throw new Error(`duplicate ${label} source: ${key}`)
+    result.set(key, mapped)
+  }
+  return result
+}
+
+function parseSelections(values) {
+  return values.map((value) => {
+    const equals = value.indexOf('=')
+    const colon = equals === -1 ? -1 : value.indexOf(':', equals + 1)
+    if (
+      equals <= 0 ||
+      colon <= equals + 1 ||
+      colon === value.length - 1
+    ) {
+      throw new Error(
+        '--select must use <name>=<source-id>:<portable-path>',
+      )
+    }
+    return {
+      name: value.slice(0, equals),
+      source: value.slice(equals + 1, colon),
+      path: value.slice(colon + 1),
+    }
+  })
+}
+
+function failCli(error) {
+  console.error(error.message)
+  process.exit(1)
 }
 
 program
@@ -115,6 +165,102 @@ program
     } catch (err) {
       console.error(err.message)
       process.exit(1)
+    }
+  })
+
+const skills = program.command('skills')
+skills.description('verify, synchronize, and update immutable upstream skills')
+
+skills
+  .command('verify')
+  .option('--cache <dir>', 'skill cache root; overrides RAMP_SKILLS_CACHE')
+  .action((opts) => {
+    try {
+      const result = verifyLockedSkills({
+        repoRoot,
+        ...(opts.cache !== undefined ? { cacheDir: opts.cache } : {}),
+      })
+      console.log(`Verified ${result.skills.length} locked skill(s) in ${result.cacheDir}`)
+    } catch (error) {
+      failCli(error)
+    }
+  })
+
+skills
+  .command('sync')
+  .option('--locked', 'synchronize only the committed immutable lock', false)
+  .option('--cache <dir>', 'skill cache root; overrides RAMP_SKILLS_CACHE')
+  .option(
+    '--source-root <source-id=dir>',
+    'local Git object database for one source',
+    collect,
+    [],
+  )
+  .option('--offline', 'disable network acquisition', false)
+  .action((opts) => {
+    try {
+      if (!opts.locked) throw new Error('skills sync requires --locked')
+      const result = syncLockedSkills({
+        repoRoot,
+        ...(opts.cache !== undefined ? { cacheDir: opts.cache } : {}),
+        sourceRoots: parseMappings(opts.sourceRoot, '--source-root'),
+        allowNetwork: !opts.offline,
+      })
+      for (const source of result.sources) {
+        console.log(`${source.source}@${source.commit} ${source.status}`)
+      }
+      for (const skill of result.skills) {
+        console.log(`${skill.name} ${skill.status}`)
+      }
+      console.log(`Cache: ${result.cacheDir}`)
+    } catch (error) {
+      failCli(error)
+    }
+  })
+
+skills
+  .command('update-lock')
+  .option('--skill <name>', 'skill name to discover or refresh', collect, [])
+  .option(
+    '--select <name=source:path>',
+    'exact skill source and source-relative path',
+    collect,
+    [],
+  )
+  .option('--ref <source-id=ref>', 'per-source Git ref', collect, [])
+  .option('--cache <dir>', 'skill cache root; overrides RAMP_SKILLS_CACHE')
+  .option(
+    '--source-root <source-id=dir>',
+    'local Git object database for one source',
+    collect,
+    [],
+  )
+  .option('--offline', 'disable network acquisition', false)
+  .action((opts) => {
+    try {
+      if (opts.skill.length + opts.select.length === 0) {
+        throw new Error('skills update-lock requires --skill or --select')
+      }
+      const result = updateSkillLocks({
+        repoRoot,
+        names: opts.skill,
+        selections: parseSelections(opts.select),
+        ...(opts.cache !== undefined ? { cacheDir: opts.cache } : {}),
+        sourceRoots: parseMappings(opts.sourceRoot, '--source-root'),
+        sourceRefs: parseMappings(opts.ref, '--ref'),
+        allowNetwork: !opts.offline,
+      })
+      for (const captured of result.commits) {
+        console.log(`${captured.source}: ${captured.ref} -> ${captured.commit}`)
+      }
+      console.log(`Updated: ${result.updated.join(', ')}`)
+      if (result.preserved.length > 0) {
+        console.log(`Preserved: ${result.preserved.join(', ')}`)
+      }
+      console.log(`Lock: ${result.lockPath}`)
+      console.log(`Cache: ${result.cacheDir}`)
+    } catch (error) {
+      failCli(error)
     }
   })
 

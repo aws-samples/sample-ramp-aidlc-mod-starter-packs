@@ -198,7 +198,19 @@ describe('planSkills', () => {
       files: hashed.files,
       license: 'Apache-2.0',
       licensePath: 'LICENSE',
+      licenseFile: {
+        path: 'LICENSE',
+        sha256: 'b'.repeat(64),
+        size: 11357,
+        executable: false,
+      },
       noticePath: 'NOTICE',
+      noticeFile: {
+        path: 'NOTICE',
+        sha256: 'c'.repeat(64),
+        size: 314,
+        executable: false,
+      },
     }
     writeSkillLock(repoRoot, {
       schemaVersion: 1,

@@ -1,0 +1,912 @@
+schemaVersion: 1
+skills:
+  - name: amazon-aurora-mysql
+    source: agent-toolkit-for-aws
+    commit: b6d5b7894cc8ae875307f232830acdad683164dc
+    path: skills/specialized-skills/database-skills/amazon-aurora-mysql
+    treeSha256: eb031df25a0e2996f5b36ab8d7f90f77ed2f90c80cb0d21b1eb510b6327f8ad7
+    files:
+      - path: SKILL.md
+        sha256: 3a789618fc10b0091f42dba995abffb55ff0e36c0007f9c5678ec6fe931ffa80
+        size: 17388
+        executable: false
+      - path: references/commitment-pricing-basics.md
+        sha256: 9616a90a133fe0262eb1ef7be06bcbffad412453ce3aad8e5af4e9a5d3cff858
+        size: 5564
+        executable: false
+      - path: references/commitment-pricing-instructions.md
+        sha256: c09d2da568d4ad986c374d3fe2de018c194691703d62def966eda2ef16aba95a
+        size: 7329
+        executable: false
+      - path: references/commitment-pricing-mechanics.md
+        sha256: 38ecf78ddca00c50c66fcf2e4aa5d50bbd29a9b9e02e97360d758473ffec7a83
+        size: 6122
+        executable: false
+      - path: references/commitment-pricing-scenarios.md
+        sha256: 48057f1cecfe834acfe1c2a6e3722986eb5a18d5219c0cd33cf1e161a0febc1a
+        size: 4515
+        executable: false
+      - path: references/commitment-pricing-skipped-cluster.md
+        sha256: ad2fbae493caaf05fceef1be9e7aa6343d6ef6e58d24149afabe021610fce6f3
+        size: 3544
+        executable: false
+      - path: references/commitment-pricing-worked-examples.md
+        sha256: da0a6ce246d122f2b888e5789deda33509a97d985fdd3aa1644001e86bd6778c
+        size: 5928
+        executable: false
+      - path: references/create-instructions.md
+        sha256: 056632cf0742c307c4beb639c12c739801cedd82a5759605abde611d26b2fd25
+        size: 4944
+        executable: false
+      - path: references/io-optimized-data-collection.md
+        sha256: 45a42243b8f7d03c80053103442bdd600e6d0fd33c3421172c5c5260cbc74aaf
+        size: 4294
+        executable: false
+      - path: references/io-optimized-instructions.md
+        sha256: bb7e2d1ffa61074eaa62fc2eb15b7f0645ddb54f679a2aef7b491ab7cf2392ac
+        size: 7093
+        executable: false
+      - path: references/io-optimized-pricing-tables.md
+        sha256: eee7a4bf2ae7744e81eb4d8b9018a5ec2c16cccc976971154c069407b133e685
+        size: 6036
+        executable: false
+      - path: references/io-optimized-pricing.md
+        sha256: eba49412ec0cccfde0f9545bf24c95aba8eccf7ad7452e2485a3baec2f1dcb21
+        size: 3117
+        executable: false
+      - path: references/io-optimized-worked-examples.md
+        sha256: 1371d079255baf8508614783b4a5837b92e304d3d4df6c28cf04a55fea166f2b
+        size: 4358
+        executable: false
+      - path: references/serverless-advisory-concepts.md
+        sha256: 3722fd645c2dd90e70a1891ed0f2d81bf4530b495a93422a9a16ba487bb66ad3
+        size: 3291
+        executable: false
+      - path: references/serverless-advisory-formulas-and-examples.md
+        sha256: 5fdef686d0edfd6f5d0f06e716f6af3e0cbe9e166df8b8e9c39488342e100f3f
+        size: 4557
+        executable: false
+      - path: references/serverless-advisory-instructions.md
+        sha256: e71d97fb5e52be04a40217cc8353cad2f55c9783836f38fc271d981a9085a8f9
+        size: 7177
+        executable: false
+      - path: references/serverless-advisory-migration.md
+        sha256: 7be3c644dfe4ac96fa2ef4d22f736b45a32a5e01492673a63f0180a666863778
+        size: 6873
+        executable: false
+      - path: references/serverless-advisory-worked-examples.md
+        sha256: 7c3198112434935eaa75e762bf67ae1806c3c89847dd349660c75bfc5013a014
+        size: 7342
+        executable: false
+      - path: references/shared-foundation-security-considerations.md
+        sha256: ff5c55284fd635a0bfe0e994cf8e72bd11f47d3f736adf0be93a6a5dd1e563d2
+        size: 5594
+        executable: false
+      - path: references/upgrade-planning-documentation-links.md
+        sha256: 684477ea31799e24c334fb25490370124c325ebd79555842ddd1431ad7a62c7d
+        size: 2099
+        executable: false
+      - path: references/upgrade-planning-instructions.md
+        sha256: 2bc102b631b40c284197931823e4cdb4c1e1aa71e7ef3483b4ff2f30ec3eabf4
+        size: 5833
+        executable: false
+      - path: references/upgrade-planning-lts-recommendation.md
+        sha256: b714b58d9de17ac842661ba27e6dbec7f1c206b8571eb45370617c2d64c9f896
+        size: 4935
+        executable: false
+      - path: references/upgrade-planning-mode-b-discovery.md
+        sha256: fb3ed7353096bdb0b731bd6da377184991f58bb098237d305efc92cc67cf8247
+        size: 4440
+        executable: false
+      - path: references/upgrade-planning-mode-b-prechecks-checklists.md
+        sha256: 4720971a72e691285e43886957acccd0327b27193bb1eed98c9fe0be1d5719f3
+        size: 4130
+        executable: false
+      - path: references/upgrade-planning-post-checklist.md
+        sha256: 108daba066b9cc4630f4f974e947fd7745f0456c26bea058e5899c38ea70d1c5
+        size: 3056
+        executable: false
+      - path: references/upgrade-planning-post-upgrade-detail.md
+        sha256: a229b40815417946c79016f307306aa3f97715596a8932298b9126ee7453206c
+        size: 6146
+        executable: false
+      - path: references/upgrade-planning-post-upgrade-validation.md
+        sha256: c4add701ebebd4b9aa7c43611ac7067b3e80c9b73cd5c3f1b83aedafe22dc8ce
+        size: 4281
+        executable: false
+      - path: references/upgrade-planning-pre-checklist.md
+        sha256: 4fefc71cec7236e48dd8373108189e9832a0575896f9446c87831994ea80bd70
+        size: 3242
+        executable: false
+      - path: references/upgrade-planning-prechecks-mysql.md
+        sha256: 852ee955122ff22859646a8eae874a0c2afc61c842f2c7166c7c7b117a309f55
+        size: 8861
+        executable: false
+      - path: references/upgrade-planning-query-load-mysql.md
+        sha256: d247e6f924f7269d3da5c8e6d4f527a7494bf086ee249a7abe982aeac82aa957
+        size: 4885
+        executable: false
+      - path: scripts/acu_calculator.py
+        sha256: a2d9935a292ef58fb21ad2d854ff29964897b2f699b5abbbf26b7ad9347220ef
+        size: 36609
+        executable: false
+      - path: scripts/commitment_pricing_analyzer.py
+        sha256: 68b06e15916436f1d5d4e59b05c7b0a3efda89b382a407472a365e1a843d1fd9
+        size: 33360
+        executable: false
+      - path: scripts/io_optimized_analyzer.py
+        sha256: fc120167e4198b7a538005fac93b1f2ec3387f6b405820a7dafd4f5af64bda22
+        size: 26256
+        executable: false
+    license: Apache-2.0
+    licensePath: LICENSE
+    licenseFile:
+      path: LICENSE
+      sha256: 09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b
+      size: 10142
+      executable: false
+    noticePath: NOTICE
+    noticeFile:
+      path: NOTICE
+      sha256: d4290ed64c2edd0fce1d84e3f9dfb2881240fe534def76b8cd29ed6af683e287
+      size: 67
+      executable: false
+  - name: amazon-aurora-postgresql
+    source: agent-toolkit-for-aws
+    commit: b6d5b7894cc8ae875307f232830acdad683164dc
+    path: skills/specialized-skills/database-skills/amazon-aurora-postgresql
+    treeSha256: e66ba175e83de5eb68d1ac8484ef9d3a775110c3b79e453e214390633362407d
+    files:
+      - path: SKILL.md
+        sha256: 756b1e84a83bd6359d36141e165d59fe81bb45b0bf5f27de11039e59056edc2e
+        size: 19471
+        executable: false
+      - path: references/commitment-pricing-basics.md
+        sha256: 9616a90a133fe0262eb1ef7be06bcbffad412453ce3aad8e5af4e9a5d3cff858
+        size: 5564
+        executable: false
+      - path: references/commitment-pricing-instructions.md
+        sha256: 073ce6bb367372201f737724c198a32584550159b06f7466fc14867be5d0dc09
+        size: 7447
+        executable: false
+      - path: references/commitment-pricing-mechanics.md
+        sha256: a0ab52f79aa2ff87ff4edfaf459cafdee6ba611fb2ff581afa64f986deafeb89
+        size: 6139
+        executable: false
+      - path: references/commitment-pricing-scenarios.md
+        sha256: 48057f1cecfe834acfe1c2a6e3722986eb5a18d5219c0cd33cf1e161a0febc1a
+        size: 4515
+        executable: false
+      - path: references/commitment-pricing-skipped-cluster.md
+        sha256: 8bbf41242f91f511e43810f9605cd469d56c2c3dcab18464f27b7fd623505ec5
+        size: 4165
+        executable: false
+      - path: references/commitment-pricing-worked-examples.md
+        sha256: da0a6ce246d122f2b888e5789deda33509a97d985fdd3aa1644001e86bd6778c
+        size: 5928
+        executable: false
+      - path: references/create-instructions.md
+        sha256: 9051c3101b52a75accab6a6b1462a1a9587ae775d92edf154a3bcf2304a66a00
+        size: 7441
+        executable: false
+      - path: references/express-create-comparison.md
+        sha256: e05ab50e77e582df97e6100a58f08bd4fe238a7a7ba18e07698057ddd7bf2285
+        size: 7785
+        executable: false
+      - path: references/express-create-connect-iam.md
+        sha256: fca038da7bffa5900b7204379456e9396017b92eeb8d23a1f837dd1f63887cea
+        size: 2912
+        executable: false
+      - path: references/express-create-constraints.md
+        sha256: 5aae2a4a4bd1776f5b1fcd5259c6fd8e56dfe354cc8bd26fab7b9a59a1d72c8f
+        size: 9647
+        executable: false
+      - path: references/express-create-documentation-links.md
+        sha256: bdae3491dd6c20f2be1f33b58928a1ded129796df21a2cac3c5731f2378e16b0
+        size: 3895
+        executable: false
+      - path: references/express-create-feature-overview.md
+        sha256: a6a9232aae5b12c8207cff7ff0e6ed71dccc0c8310ec48e3918d1c66f2d8d90c
+        size: 7549
+        executable: false
+      - path: references/express-create-instructions.md
+        sha256: 521a061ce49458cf22a134400239b31b0d2bc7301f296749cc34a54eb412c294
+        size: 7936
+        executable: false
+      - path: references/express-create-migration-pgdump.md
+        sha256: 1a453e85171c33dd7b2dceae171ecdecf3894e603540e48eb93f9fc1ae82601d
+        size: 2065
+        executable: false
+      - path: references/express-create-migration.md
+        sha256: 05af60c5c58e9849f628f951e96ed2482dbfd5106936bf622b03a29d530ea566
+        size: 7642
+        executable: false
+      - path: references/express-create-use-cases.md
+        sha256: 59afae80eaab7cb41386cd33c25c48e95ac1dd11aab82f22040c3afbe696e79a
+        size: 7910
+        executable: false
+      - path: references/io-optimized-data-collection.md
+        sha256: 45a42243b8f7d03c80053103442bdd600e6d0fd33c3421172c5c5260cbc74aaf
+        size: 4294
+        executable: false
+      - path: references/io-optimized-instructions.md
+        sha256: af0e368bf3e715f3c1d978e92a67182e52e299d790edbf45513508bb73b4e55d
+        size: 7085
+        executable: false
+      - path: references/io-optimized-pricing-tables.md
+        sha256: b747174acf2e842ca556d445eba46cc0e06e7872cddb829d24d8fa176c7cf0bd
+        size: 6481
+        executable: false
+      - path: references/io-optimized-pricing.md
+        sha256: eba49412ec0cccfde0f9545bf24c95aba8eccf7ad7452e2485a3baec2f1dcb21
+        size: 3117
+        executable: false
+      - path: references/io-optimized-worked-examples.md
+        sha256: c288ffb556a46f9dc5e98983bb43d3651fb3a07b0dfc8866e1d4fd800123d5b5
+        size: 4660
+        executable: false
+      - path: references/serverless-advisory-concepts.md
+        sha256: 7579321f4246225366c580bd3490d24abb62a383f29834fd0a08a3210fe02859
+        size: 3317
+        executable: false
+      - path: references/serverless-advisory-formulas-and-examples.md
+        sha256: 2eb6479f0f9ce4965325924077b2e0b76a704c73ba26e273adf6a03b42d4949d
+        size: 4560
+        executable: false
+      - path: references/serverless-advisory-instructions.md
+        sha256: c99e5c5949606597363f614f5a1b9780e5521b006e9821139fd1c015d6f5b043
+        size: 7212
+        executable: false
+      - path: references/serverless-advisory-migration.md
+        sha256: 401f4081e9502c456965f0064ff7033c5978532eae88a56caa101098d1e852d3
+        size: 7115
+        executable: false
+      - path: references/serverless-advisory-worked-examples.md
+        sha256: 0e6502740cd47bd7b91790afc87114d6c6f3ca9ac8b88048495cc9bb4ee1a505
+        size: 7347
+        executable: false
+      - path: references/shared-foundation-security-considerations.md
+        sha256: 2edcf5e52c925504888831ef5e1c13bd35cb91be9551a96186139140d7acfeda
+        size: 5537
+        executable: false
+      - path: references/upgrade-planning-documentation-links.md
+        sha256: 287baad4a0ef2e70c2d8b696d9f7d502d3ab5379354c4570fbc1fc75b11b245b
+        size: 2169
+        executable: false
+      - path: references/upgrade-planning-instructions.md
+        sha256: 6134f66c34e36b0e253c282bbc7ee3917dbb494c314dd8dcd2373c034017fd4b
+        size: 5755
+        executable: false
+      - path: references/upgrade-planning-lts-recommendation.md
+        sha256: 3f71ba3316937c4823d4e664f8e2f2c8d81b30066fc88a89e9711762f513d697
+        size: 4970
+        executable: false
+      - path: references/upgrade-planning-mode-b-discovery.md
+        sha256: ae6f8e7be55d0e9db312ed22f51c9e3c1f413f2acae70a5595645ada17cbea4d
+        size: 4982
+        executable: false
+      - path: references/upgrade-planning-mode-b-prechecks-checklists.md
+        sha256: cfbed15cb26715c626fdaf5e3e9311bdb90addd7b0c1cb9ad69ecadf23d130c9
+        size: 4856
+        executable: false
+      - path: references/upgrade-planning-post-checklist.md
+        sha256: d1bcbdce8cb68b85cfaa879e114754c80089dbcba9e349f024a3e710a98869e4
+        size: 2978
+        executable: false
+      - path: references/upgrade-planning-post-upgrade-detail.md
+        sha256: 3553bb56a8dfe3399e27e4eb51c8247d978ef731a3c816b69c0b60e8decc9f60
+        size: 6535
+        executable: false
+      - path: references/upgrade-planning-post-upgrade-validation.md
+        sha256: e55d0d61321a09e3ec5bb1c6af032b86f5b6d58947a17548cc9684756439d469
+        size: 4314
+        executable: false
+      - path: references/upgrade-planning-pre-checklist.md
+        sha256: f46e8f32c1f2da6a798145c3bae82d9dba0b404090d969342af1a0262e8f2315
+        size: 2280
+        executable: false
+      - path: references/upgrade-planning-prechecks-postgresql.md
+        sha256: 7055c30276a318a673e2a4b5a736ee550c405742355eb7e6f5e80b02580ea0a8
+        size: 7218
+        executable: false
+      - path: references/upgrade-planning-query-load-postgresql.md
+        sha256: 5515a64d0baad2d3b08b4626481ecb54ad1cb669f94b3d0c9df99de02a4e878b
+        size: 6754
+        executable: false
+      - path: scripts/acu_calculator.py
+        sha256: 4f9160a98c196028d48a7302a35ce379aee4dd220211a42dd72aa5a3ede07a23
+        size: 36644
+        executable: false
+      - path: scripts/commitment_pricing_analyzer.py
+        sha256: 62a5b392513d310f1cbbb846a6dadf5e2d0f1d8ffff9cdb07a9457cf326e471e
+        size: 33313
+        executable: false
+      - path: scripts/io_optimized_analyzer.py
+        sha256: e3b9bd2349a12db344c7017ce611297be8717b4b0861933a696a0928f8f44cc1
+        size: 26419
+        executable: false
+    license: Apache-2.0
+    licensePath: LICENSE
+    licenseFile:
+      path: LICENSE
+      sha256: 09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b
+      size: 10142
+      executable: false
+    noticePath: NOTICE
+    noticeFile:
+      path: NOTICE
+      sha256: d4290ed64c2edd0fce1d84e3f9dfb2881240fe534def76b8cd29ed6af683e287
+      size: 67
+      executable: false
+  - name: api-gateway
+    source: agent-plugins
+    commit: 097fe8ad56d8a1d5e2c81d7880adf145553cf244
+    path: plugins/aws-serverless/skills/api-gateway
+    treeSha256: 046c729e98e657eb1b7ff9bbbc43fcf8e9a26a5498dd493794a673f8e5e68b24
+    files:
+      - path: SKILL.md
+        sha256: c0971ab0e5e6fee0eb921d84123b98f0f04c47b00802220dfbe0e64cc4d056dc
+        size: 19775
+        executable: false
+      - path: references/architecture-patterns.md
+        sha256: 18c95c1836bbe364e707f8801421eaadc7d9040c498c89cbd30bffe158035849
+        size: 19433
+        executable: false
+      - path: references/authentication.md
+        sha256: c03b36abd30c713387bf9d721310e8903f9d0559fb8b58c33230d931c5d2d548
+        size: 9639
+        executable: false
+      - path: references/custom-domains-routing.md
+        sha256: 4510ab5648c3f888ee605109f0df3c2e82c6700babbe339662f3dd573ed0dd74
+        size: 8703
+        executable: false
+      - path: references/deployment.md
+        sha256: 326c9f1f90f17fb924d4aad2f415716130e83e35fa7c9696d1d572fa4d9cf726
+        size: 15296
+        executable: false
+      - path: references/governance.md
+        sha256: 3187e7b7f7bfb36e2ed78a9668985fc05f6b0e49f9d37f5d0b11820efdce4ff2
+        size: 10084
+        executable: false
+      - path: references/observability-analytics.md
+        sha256: 00905c0cc2813099271f10c5dbbaea1708bf6b3ab23baae94494f80d64d00aa2
+        size: 4318
+        executable: false
+      - path: references/observability-logging.md
+        sha256: 99e1fe902d3282a4fab71542208f30486f7913b61debd479a58d437e73cf7003
+        size: 11481
+        executable: false
+      - path: references/observability-metrics-alarms.md
+        sha256: a5a118637fd1fa8b9fd5888b97e557ab99984031b805f6979859e5e93d4905c5
+        size: 5667
+        executable: false
+      - path: references/performance-scaling.md
+        sha256: 61be91c3d2b5ca2ee01d201e15561327df8748c8d2fba0175506e1545a0eefbb
+        size: 9194
+        executable: false
+      - path: references/pitfalls.md
+        sha256: 66a8af447b5899b27e0e78f1c56deece76c55e1813fae8b6412c6f94baeb74de
+        size: 2086
+        executable: false
+      - path: references/requirements-gathering.md
+        sha256: 67cec5ecc6a353de76ea1dc749648642cbb672f69f6018de9cc98f15af886742
+        size: 15142
+        executable: false
+      - path: references/sam-cloudformation.md
+        sha256: 26be4bfe8887baebf838f90cc422b3958fd4ee037de87d21a63e6c15d683e779
+        size: 8004
+        executable: false
+      - path: references/sam-service-integrations.md
+        sha256: cd94224b91d4180ab07057b4c8296b1f6a994e7a6a5434de05ac85cb0f7586c6
+        size: 23090
+        executable: false
+      - path: references/security.md
+        sha256: 6f81b3cf3fbcc39aa39b367e79b29b22b714bf840efeb49afec439e493484b77
+        size: 18672
+        executable: false
+      - path: references/service-integrations.md
+        sha256: 39a2b57881c7f542ac321a26335ba417a6ddf76271e9b39985fc7fdab95a8cde
+        size: 25006
+        executable: false
+      - path: references/service-limits.md
+        sha256: 0ed3794550978033ef5475dd9852d9d0a382bde8cdb66b6c8ea2a3df5823894f
+        size: 11761
+        executable: false
+      - path: references/troubleshooting.md
+        sha256: 12bf18e9b2bc5ff0f86657bcf39fc76cfc8908cb480d0315d7a43d53498a1096
+        size: 14852
+        executable: false
+      - path: references/websocket.md
+        sha256: 15940187fd1a0e43a5d9226e47022c86340e0f12ceaf2d0418997bb4a2584d40
+        size: 7620
+        executable: false
+    license: Apache-2.0
+    licensePath: LICENSE
+    licenseFile:
+      path: LICENSE
+      sha256: 09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b
+      size: 10142
+      executable: false
+    noticePath: NOTICE
+    noticeFile:
+      path: NOTICE
+      sha256: 0295e4b248c03b34b07e1768b791612a367504f73926aa5aad336ac3c789f7c4
+      size: 89
+      executable: false
+  - name: aurora-dsql
+    source: agent-toolkit-for-aws
+    commit: b6d5b7894cc8ae875307f232830acdad683164dc
+    path: skills/specialized-skills/database-skills/aurora-dsql
+    treeSha256: e2027bc006d7ecbb558bb4a2a16ae75c67439e2339951be922d10b363090b094
+    files:
+      - path: SKILL.md
+        sha256: c2bee64f8b26f2a96b42802e86b7dd6cd043464eba2139dd34ed04f6c3c8b9da
+        size: 38387
+        executable: false
+      - path: references/access-control.md
+        sha256: 0ad31a159fe31686b5c17c04ef90aef270ef997a090895cafeb384ec16de9654
+        size: 6387
+        executable: false
+      - path: references/auth/authentication-guide.md
+        sha256: a898a7c6c221aa69eb02413ee434664926c1f904184ed6f20893cff9b6852cef
+        size: 11455
+        executable: false
+      - path: references/auth/connectivity-tools.md
+        sha256: 4fcc8985a4a9f4089e69c912c73c766e8289ac65bf382fc4a35fa0f0e7e0b29a
+        size: 1425
+        executable: false
+      - path: references/auth/scaling-guide.md
+        sha256: a170a2361d912a9a3b6a9c7bc8aefb60af8b36833ff4c4eb00f0babdc7ce10ab
+        size: 5348
+        executable: false
+      - path: references/database-tools.md
+        sha256: e92e005c811bd99793d6fdd3ca7a05e23b5a1f4d29776c3fa4238aa91d5de9f9
+        size: 5498
+        executable: false
+      - path: references/ddl-migrations/batched-migration.md
+        sha256: b3bf07902c5bb1d935be2c9f770b115e780510ba1ac238950218c38fd355333a
+        size: 2322
+        executable: false
+      - path: references/ddl-migrations/column-operations.md
+        sha256: afc72f43a75afb72d02794377dc564b7cfb7c2186a615f7bc106254504a8625b
+        size: 5026
+        executable: false
+      - path: references/ddl-migrations/constraint-operations.md
+        sha256: e0976d03b183733eed27953e6675b3ffcf20022a3e17739d7eb83752a5cc6da1
+        size: 4240
+        executable: false
+      - path: references/ddl-migrations/overview.md
+        sha256: f26419c13dc853502f94e5596c1d1f0054b46fd7805c3915f9207dbd1d314f79
+        size: 10157
+        executable: false
+      - path: references/development-guide.md
+        sha256: 773f5db2543548fd9a4b2bbf169f26ed45d64e9330101f57330e8a7fee879b31
+        size: 7008
+        executable: false
+      - path: references/documentation-tools.md
+        sha256: 1057ebc9f8cf0187319ddf35ec548ce3fc84bbfa1e4a67cbafb0831a80868834
+        size: 3622
+        executable: false
+      - path: references/dsql-examples.md
+        sha256: bcebd4524d2991a2946d2c40e00c715891d785f9066b3558a55fa5a0c49ee4e6
+        size: 1637
+        executable: false
+      - path: references/examples/connection.md
+        sha256: 4e37a1586c7c593a0574a3ca9a3b882812ae54c13e811cd0152d6887f69e3699
+        size: 1810
+        executable: false
+      - path: references/examples/data-operations.md
+        sha256: 87c7056034cb8940a0056dc903a044e94cb25f27e7d1eaaeda9f2938ebc98609
+        size: 3254
+        executable: false
+      - path: references/examples/migrations.md
+        sha256: 13c8485f9e3f06788d61d41138f200588e3fa9a2b4b14c55e8fa5b239a59eaf7
+        size: 1661
+        executable: false
+      - path: references/examples/patterns.md
+        sha256: eea214b2d8ac5df3676fa66e52414ad3937cdf7e5cc1331dadbc275e9ab6e336
+        size: 5583
+        executable: false
+      - path: references/examples/schema.md
+        sha256: 05e0498c9ffd2cf9b058fa4ee7d3e5a6865b227e19be9bceb38acf51216b44b5
+        size: 1756
+        executable: false
+      - path: references/input-validation.md
+        sha256: 05d689dc1a25666552fb97964e88cd819eaf75eaeb9dec92882a7549ce1a8c61
+        size: 5853
+        executable: false
+      - path: references/language.md
+        sha256: ba68f124233831a456127e9e7903b1eaac63be1aef62cf33e79839e890bc0e9c
+        size: 8299
+        executable: false
+      - path: references/mcp-setup.md
+        sha256: 6f546752b14c96707f5d5c1b8ef7f22d3377c0bc8d87ce96078a353d41383197
+        size: 2970
+        executable: false
+      - path: references/mcp-tools.md
+        sha256: 6e5186149206c97d666a3724308fc0706f057aa4235cbac96654c3c9a2f88240
+        size: 3825
+        executable: false
+      - path: references/mysql-migrations/ddl-auto-increment.md
+        sha256: 26ccf49f9b0c86950e7c277ce4a6fe438868ad74ccb8ef415dd141379ff369ea
+        size: 4768
+        executable: false
+      - path: references/mysql-migrations/ddl-batching.md
+        sha256: 2b8bb851e5478326a0e8839eb6bcc8c0d5b170245aeb11038d4bb73de38fe6dd
+        size: 1028
+        executable: false
+      - path: references/mysql-migrations/ddl-column-changes.md
+        sha256: 3415766b082fb3d1842637d6ada2b7ccb3876393d1bfbb59998e6caf8f7b432d
+        size: 1165
+        executable: false
+      - path: references/mysql-migrations/ddl-constraints.md
+        sha256: 41337c21edded768ca305dc0a25b532d8405dd15293692b96bdc2885962eb366
+        size: 2433
+        executable: false
+      - path: references/mysql-migrations/ddl-operations.md
+        sha256: 6b3f66917a703b02ed0545f6c67487534eed4e78dd8b1bcbc1e0ea99154af9e0
+        size: 3035
+        executable: false
+      - path: references/mysql-migrations/ddl-structural.md
+        sha256: 126bf5d120b377457beedbbe05cfe9f78781e09e7b16a8a97642b81072c81a0d
+        size: 3503
+        executable: false
+      - path: references/mysql-migrations/ddl-type-alternatives.md
+        sha256: 44f505eb403ddce51ec78651ce6442a5e970b786486545dc891acc612e2ccfda
+        size: 2998
+        executable: false
+      - path: references/mysql-migrations/full-example.md
+        sha256: 391a93021f6229420d329505df72d0c6dae61a8c0535debe39856b0043166f66
+        size: 6935
+        executable: false
+      - path: references/mysql-migrations/type-mapping.md
+        sha256: 0949d33728d6d83b2285e44d5510f2c2a5c8972e1bcde38df8bff1f47b8fdc30
+        size: 13749
+        executable: false
+      - path: references/onboarding.md
+        sha256: ecefd12afa762bc4002b4b1e7f4292ed404a85ebc1603c086aa953bc17bd856a
+        size: 15148
+        executable: false
+      - path: references/platforms/claude-code.md
+        sha256: c1dd3cf7c0cc15bb24d36e393833ff4934ed2e26ce4c8a1a6286e5b2d1f0877d
+        size: 1723
+        executable: false
+      - path: references/platforms/codex.md
+        sha256: 49b73a6bb5491fdbe1c60f3211569219a02e6194f97d828c8eba5d5e8e27a892
+        size: 686
+        executable: false
+      - path: references/platforms/gemini.md
+        sha256: 6050815039ed674a0b0bc81b0a840699f23588014245506cb027ca2730dbe2c6
+        size: 1151
+        executable: false
+      - path: references/platforms/kiro.md
+        sha256: 2b293d1f792c00fdd2b939417ccea106ba9b6a335a69bd076bfc704a1764bad0
+        size: 1863
+        executable: false
+      - path: references/query-plan/catalog-queries.md
+        sha256: 863f00cf56d47c6e6b2a7d357a3f394172ec87af8cc85409e00016ceb31d32bb
+        size: 4447
+        executable: false
+      - path: references/query-plan/guc-experiments.md
+        sha256: d294fe639e19ccf73e3abb5b51c4a9fee05241129099a9678d920635ddd89c56
+        size: 7950
+        executable: false
+      - path: references/query-plan/plan-interpretation.md
+        sha256: ea6b88f8b46aa8b388c057ffb38ea9c7ba96f76d847b05783c53a0fd2b7a1d44
+        size: 7970
+        executable: false
+      - path: references/query-plan/report-format.md
+        sha256: a4dd65e1a582882aa4410335b043ffba91bacd78d6793c8eec5c638417d1be20
+        size: 11118
+        executable: false
+      - path: references/scripts-guide.md
+        sha256: 8823941325ab22e97038a8a38eb62221563e8ed3d71904059bde5d35dc47939a
+        size: 6211
+        executable: false
+      - path: references/troubleshooting.md
+        sha256: 7b1ef17f1bd88f159c88d243dacdd677afebb3762269c60bb0055056ee22138b
+        size: 7079
+        executable: false
+      - path: references/workflow-patterns.md
+        sha256: 1e7e68b79fa30e4d09a17da2fadb17005a918aaf848be961662a9a9a39e449e4
+        size: 3251
+        executable: false
+      - path: scripts/cluster-info.sh
+        sha256: bff6be18e56adc6795e498082246f728fcbe2978f9215db3f2108f335ec23e40
+        size: 2143
+        executable: true
+      - path: scripts/create-cluster.sh
+        sha256: 0ac5228b7634891ec0a6fc8cb8fdd3f0e7ddcb1fd9fd70d5f567c00462fce1e2
+        size: 4663
+        executable: true
+      - path: scripts/delete-cluster.sh
+        sha256: 0bf932f4447996be95b724150084851a4bb50ddbe203808f138dbf8a772907e7
+        size: 2501
+        executable: true
+      - path: scripts/list-clusters.sh
+        sha256: 2fde2a8467a40d719845c898ff7f8a66f001882ac87763f8b32cdea4d785eda4
+        size: 1631
+        executable: true
+      - path: scripts/psql-connect.sh
+        sha256: 9a25a8a8a1692773e3b40936555c97e84a8e7cdc7cf46dd0283b168c2a6f4bef
+        size: 12425
+        executable: true
+      - path: scripts/safe_query.py
+        sha256: cc51bbcd72d4e67e95c775140c365dd7527e68fe36898155450723b7424d5658
+        size: 10687
+        executable: false
+      - path: scripts/tenant_query.py
+        sha256: 0ed36e5fad63bbe9dda043897c6c69ddcddcc192a1b96aec4885e464cc25ffcf
+        size: 1948
+        executable: false
+    license: Apache-2.0
+    licensePath: LICENSE
+    licenseFile:
+      path: LICENSE
+      sha256: 09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b
+      size: 10142
+      executable: false
+    noticePath: NOTICE
+    noticeFile:
+      path: NOTICE
+      sha256: d4290ed64c2edd0fce1d84e3f9dfb2881240fe534def76b8cd29ed6af683e287
+      size: 67
+      executable: false
+  - name: aws-iam
+    source: agent-toolkit-for-aws
+    commit: b6d5b7894cc8ae875307f232830acdad683164dc
+    path: skills/core-skills/aws-iam
+    treeSha256: fb88257c992260b8be2b4089fdd075d62ab97f33f5c31ef2f3bb6ad0bda964bf
+    files:
+      - path: SKILL.md
+        sha256: dc4965ef0c5b51dbecddc9c44195643bf45c3b733d1428caf815006598bc8e3d
+        size: 6901
+        executable: false
+      - path: references/aws-iam-policy-generation.md
+        sha256: 0a379bc7b07145ca27354a9c027aa502fc5957353350d899b101320729244b06
+        size: 39212
+        executable: false
+      - path: references/aws-iam-role-management.md
+        sha256: 77be16ee747569264ed42bf9f8ce56641cc1eb9fa7aed7f438466939836d9518
+        size: 6807
+        executable: false
+      - path: references/common-pitfalls.md
+        sha256: 6ba0ac7b68d8902a6d52344bd3733b083fa4a185a8e90174947f092e1a6f69e2
+        size: 3424
+        executable: false
+      - path: references/service-authorization.md
+        sha256: 0368bfcd3a30a438e47b81042a89746d5990298f599ac00400d4f7a90d6c24e8
+        size: 2765
+        executable: false
+    license: Apache-2.0
+    licensePath: LICENSE
+    licenseFile:
+      path: LICENSE
+      sha256: 09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b
+      size: 10142
+      executable: false
+    noticePath: NOTICE
+    noticeFile:
+      path: NOTICE
+      sha256: d4290ed64c2edd0fce1d84e3f9dfb2881240fe534def76b8cd29ed6af683e287
+      size: 67
+      executable: false
+  - name: aws-lambda
+    source: agent-plugins
+    commit: 097fe8ad56d8a1d5e2c81d7880adf145553cf244
+    path: plugins/aws-serverless/skills/aws-lambda
+    treeSha256: 8c86708f5854a1ebcc84a24947f30d86da733815011a4d016a074c8b3477c716
+    files:
+      - path: SKILL.md
+        sha256: 26257c68ac930ccee6f48f2e7c5584fa81234b4f3fd4c5d460f0f4f82690b1a6
+        size: 12421
+        executable: false
+      - path: references/event-driven-architecture.md
+        sha256: 931af61ed4ea345c4a68a09f8fd6c393ff3508165d08ed4bbe3ce6dd871a8d77
+        size: 15940
+        executable: false
+      - path: references/event-sources.md
+        sha256: 1c2744b8bde70f70933945f7586ae693d81627bfa0c41de3c4b3af1e21947095
+        size: 16739
+        executable: false
+      - path: references/getting-started.md
+        sha256: 719a81fbc9a11da702d73524081a9e1a27794090f7a31f1d68f3c847ab4d36c7
+        size: 6097
+        executable: false
+      - path: references/observability.md
+        sha256: 2458db56d6902c1b48c21b5e28b8e3b87c6d5320b010b142a47d5088b0e6bdff
+        size: 23246
+        executable: false
+      - path: references/optimization.md
+        sha256: c3ed10a2885dc7f0d0109281315505e521bd39f628e1d90f76e9b9e57f0fce19
+        size: 14893
+        executable: false
+      - path: references/orchestration-and-workflows.md
+        sha256: 5c4ac3e0a04afc2fe111ab7839292c16299269cf7df672e369e0b7362ec071ef
+        size: 6376
+        executable: false
+      - path: references/powertools.md
+        sha256: 4c6fcb210aec048f696911404c71aeb5199183f2eadee8fb4d9d5602b546de9e
+        size: 10398
+        executable: false
+      - path: references/troubleshooting.md
+        sha256: f484c2104f604281c3010891bf7e2d0edd83831d9bc85db9f8e5739405307d86
+        size: 11621
+        executable: false
+      - path: references/web-app-deployment.md
+        sha256: acbcbd2dbddf2cb38615744b9813166ecd5eea2c5b3073d5a1e5336c563d7946
+        size: 10852
+        executable: false
+    license: Apache-2.0
+    licensePath: LICENSE
+    licenseFile:
+      path: LICENSE
+      sha256: 09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b
+      size: 10142
+      executable: false
+    noticePath: NOTICE
+    noticeFile:
+      path: NOTICE
+      sha256: 0295e4b248c03b34b07e1768b791612a367504f73926aa5aad336ac3c789f7c4
+      size: 89
+      executable: false
+  - name: aws-step-functions
+    source: agent-toolkit-for-aws
+    commit: b6d5b7894cc8ae875307f232830acdad683164dc
+    path: skills/specialized-skills/serverless-skills/aws-step-functions
+    treeSha256: 41e5e1a4d5bae3cacfbc0f0d728f549d41fabbb28c82e3015f52d8d5572a497b
+    files:
+      - path: SKILL.md
+        sha256: c0d904aaff1031e2822e2456eb5ff2765b2018296e57ab49f8d41287336230e6
+        size: 13522
+        executable: false
+      - path: assets/compensation-saga-pattern.asl.json
+        sha256: 09bc2f5965c5c07a05acf8a6c4b67a93a00b9643816175a2d94445fbc4047691
+        size: 3708
+        executable: false
+      - path: assets/express-standard-handoff.asl.json
+        sha256: 7a67b7f2d8ca48b5b28b97cf07a2df9f12fbeb06392a841671f7ab52ccc030d2
+        size: 2272
+        executable: false
+      - path: assets/human-in-the-loop-with-timeout-escalation.asl.json
+        sha256: 61c1b39082692e8cabd926a568b7ab1b5d8a663b4c83d90659f882b24683a7b0
+        size: 3484
+        executable: false
+      - path: assets/nested-map-parallel-structures.asl.json
+        sha256: c44c54c467aebe809404fb0ea10b9a8069bb83afd25e4e7221b1dc0c9e482018
+        size: 2095
+        executable: false
+      - path: assets/polling-loop-wait-check-choice.asl.json
+        sha256: fad7b09de0d2cac5c1d2a9f2936371c7d04e92ab29802434b9a47a78f00ee91a
+        size: 2025
+        executable: false
+      - path: assets/scatter-gather-with-partial-results.asl.json
+        sha256: ddfb17c0f3e18c41193600d4d7a4cb74e7f59593ff9594c4f45c3a961e2bfaf0
+        size: 2256
+        executable: false
+      - path: assets/semaphore-concurrency-lock.asl.json
+        sha256: fad6d754850474cec1c8c867bc4e657179461473da4000cfc8c0c3f780881c6f
+        size: 3452
+        executable: false
+      - path: references/architecture-patterns.md
+        sha256: d5e92b86d5c18fb834516cf637bf38dcfb34f7105c130937632d5f99e3e15d9e
+        size: 5260
+        executable: false
+      - path: references/asl-state-types.md
+        sha256: bf4041c7ddb04d55fe5eaa433c76adeaac99078dc6d83acd9ef0f81b40fdb34c
+        size: 12077
+        executable: false
+      - path: references/error-handling.md
+        sha256: f0ba5cfd2ee09e235d5ea4629c9f05bc5bdb74320f35359d039b550fbd86acfe
+        size: 6142
+        executable: false
+      - path: references/migrating-from-jsonpath-to-jsonata.md
+        sha256: 30fd35dc54798802fd565f5c48aec97ce3527124cfc5ade2fc18c098ab858843
+        size: 11615
+        executable: false
+      - path: references/processing-state-inputs-and-outputs.md
+        sha256: 2c505bff6a951163be4acab55de69cef8a5ac71c5eea1ca29d6a7135025df4ce
+        size: 7521
+        executable: false
+      - path: references/service-integrations.md
+        sha256: 883ea266add5482d2e0651c2c10febbf09abc83cc9a0ebb11a3cac42d7542b40
+        size: 7143
+        executable: false
+      - path: references/transforming-data.md
+        sha256: 9cbe2825e824bc7a6b226875d2d16f265e96ad316fb8bb2e74b9215e5880f3aa
+        size: 6052
+        executable: false
+      - path: references/validation-and-testing.md
+        sha256: 3b90ea31a4c6b8a88b3f36b10a84f5149e3cd105beacc5c0d671486759d2eaf4
+        size: 11708
+        executable: false
+    license: Apache-2.0
+    licensePath: LICENSE
+    licenseFile:
+      path: LICENSE
+      sha256: 09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b
+      size: 10142
+      executable: false
+    noticePath: NOTICE
+    noticeFile:
+      path: NOTICE
+      sha256: d4290ed64c2edd0fce1d84e3f9dfb2881240fe534def76b8cd29ed6af683e287
+      size: 67
+      executable: false
+  - name: connecting-lambda-to-api-gateway
+    source: agent-toolkit-for-aws
+    commit: b6d5b7894cc8ae875307f232830acdad683164dc
+    path: skills/specialized-skills/serverless-skills/connecting-lambda-to-api-gateway
+    treeSha256: 680441fbc55b1a4339d0bddc3512d3659ef160d97194b8d0799daa91d9dd7560
+    files:
+      - path: SKILL.md
+        sha256: 0193bac37c72207da1ad6de37505fb9bbe185c99e48a2e9a1e14a9bd35d440a8
+        size: 1689
+        executable: false
+      - path: references/lambda-gateway-api.md
+        sha256: 8a50059aa5cad400ef37e0f29b5bce174dae1ec03c00d0d5701dd10fbfabe933
+        size: 10905
+        executable: false
+    license: Apache-2.0
+    licensePath: LICENSE
+    licenseFile:
+      path: LICENSE
+      sha256: 09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b
+      size: 10142
+      executable: false
+    noticePath: NOTICE
+    noticeFile:
+      path: NOTICE
+      sha256: d4290ed64c2edd0fce1d84e3f9dfb2881240fe534def76b8cd29ed6af683e287
+      size: 67
+      executable: false
+  - name: creating-amazon-aurora-db-cluster-with-instances
+    source: agent-toolkit-for-aws
+    commit: b6d5b7894cc8ae875307f232830acdad683164dc
+    path: skills/specialized-skills/database-skills/creating-amazon-aurora-db-cluster-with-instances
+    treeSha256: 7d8c04afc4fda023492cefeacf14624775c8f5ada4426a1c2a44b07dea794415
+    files:
+      - path: SKILL.md
+        sha256: ebbb775b5c85044a0ff8b439c4496ab63d38e429a1d0637165562e09d6fd9699
+        size: 1610
+        executable: false
+      - path: references/create-amazon-aurora-db-cluster-with-instances.md
+        sha256: f82638ac4df831575dc1937523552778ddd77bd6d79849a458ef1745cd90be7c
+        size: 8207
+        executable: false
+    license: Apache-2.0
+    licensePath: LICENSE
+    licenseFile:
+      path: LICENSE
+      sha256: 09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b
+      size: 10142
+      executable: false
+    noticePath: NOTICE
+    noticeFile:
+      path: NOTICE
+      sha256: d4290ed64c2edd0fce1d84e3f9dfb2881240fe534def76b8cd29ed6af683e287
+      size: 67
+      executable: false
+  - name: signing-in-to-aws
+    source: agent-toolkit-for-aws
+    commit: b6d5b7894cc8ae875307f232830acdad683164dc
+    path: skills/core-skills/signing-in-to-aws
+    treeSha256: e360ec7d174946a9bc21494e356173d13b3985cd22084c2486b47d86550f3d4d
+    files:
+      - path: SKILL.md
+        sha256: 9d7bd588b1328d96c3999b84f00b851ef59531a9627aa6cd2279bb90a75a9db5
+        size: 6854
+        executable: false
+    license: Apache-2.0
+    licensePath: LICENSE
+    licenseFile:
+      path: LICENSE
+      sha256: 09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b
+      size: 10142
+      executable: false
+    noticePath: NOTICE
+    noticeFile:
+      path: NOTICE
+      sha256: d4290ed64c2edd0fce1d84e3f9dfb2881240fe534def76b8cd29ed6af683e287
+      size: 67
+      executable: false

@@ -281,7 +281,9 @@ function upstreamProvenance(lockedSkill) {
     files: copyFiles(lockedSkill.files),
     license: lockedSkill.license,
     licensePath: lockedSkill.licensePath,
+    licenseFile: { ...lockedSkill.licenseFile },
     noticePath: lockedSkill.noticePath,
+    noticeFile: { ...lockedSkill.noticeFile },
   }
 }
 

@@ -22,6 +22,18 @@ import {
 
 const repository = 'https://github.com/aws/agent-toolkit-for-aws.git'
 const commit = 'a'.repeat(40)
+const licenseFile = {
+  path: 'LICENSE',
+  sha256: 'b'.repeat(64),
+  size: 11357,
+  executable: false,
+}
+const noticeFile = {
+  path: 'NOTICE',
+  sha256: 'c'.repeat(64),
+  size: 314,
+  executable: false,
+}
 const roots = []
 
 afterEach(() => {
@@ -125,7 +137,9 @@ function lockedEntry(
     files: files ?? hashed.files,
     license: 'Apache-2.0',
     licensePath: 'LICENSE',
+    licenseFile: { ...licenseFile },
     noticePath: 'NOTICE',
+    noticeFile: { ...noticeFile },
   }
 }
 
@@ -452,8 +466,9 @@ describe('createSkillResolver precedence and provenance', () => {
     writeLock(state.repoRoot, [['aws-iam', entry]])
     const cached = writeTree(cacheSkill(state.cacheDir, entry))
     writeTree(join(state.libraryDir, 'aws-iam'))
+    const resolver = resolverFor(state)
 
-    const resolved = resolveAwsIam(resolverFor(state), state)
+    const resolved = resolveAwsIam(resolver, state)
     expect(resolved.directory).toBe(cached)
     expect(resolved.provenance).toEqual({
       kind: 'upstream',
@@ -467,8 +482,23 @@ describe('createSkillResolver precedence and provenance', () => {
       files: entry.files,
       license: 'Apache-2.0',
       licensePath: 'LICENSE',
+      licenseFile,
       noticePath: 'NOTICE',
+      noticeFile,
     })
+    expect(resolved.provenance.licenseFile).not.toBe(entry.licenseFile)
+    expect(resolved.provenance.noticeFile).not.toBe(entry.noticeFile)
+    resolved.provenance.licenseFile.sha256 = '0'.repeat(64)
+    resolved.provenance.noticeFile.size = 0
+    const again = resolveAwsIam(resolver, state)
+    expect(again.provenance.licenseFile.sha256).toBe(licenseFile.sha256)
+    expect(again.provenance.noticeFile.size).toBe(noticeFile.size)
+    expect(again.provenance.licenseFile).not.toBe(
+      resolved.provenance.licenseFile,
+    )
+    expect(again.provenance.noticeFile).not.toBe(
+      resolved.provenance.noticeFile,
+    )
   })
 
   it('falls back from an absent cache to an exact locked mirror with identical provenance', () => {
