@@ -239,6 +239,8 @@ function Test-PortablePath {
   return $true
 }
 
+# -ceq is culture-aware: it equates names that differ by an ignorable
+# character such as U+00AD, so names read from a directory compare ordinally.
 function Test-OrdinalBefore {
   param([string]$Left, [string]$Right)
   return [string]::CompareOrdinal($Left, $Right) -lt 0
@@ -608,7 +610,7 @@ function Import-InstalledState {
       $name = [System.IO.Path]::GetFileName($entry)
       $kind = Get-PathKind $entry
       # Every commit replaces state files, which Windows refuses when read-only.
-      if ($name -ceq '.origins.tsv') {
+      if ([string]::Equals($name, '.origins.tsv', [System.StringComparison]::Ordinal)) {
         if ($kind -cne 'file' -or (Test-ReadOnly $entry)) { return $false }
         continue
       }
@@ -889,7 +891,9 @@ function Test-SameList {
   param($Left, $Right)
   if ($Left.Count -ne $Right.Count) { return $false }
   for ($index = 0; $index -lt $Left.Count; $index++) {
-    if ($Left[$index] -cne $Right[$index]) { return $false }
+    if (-not [string]::Equals($Left[$index], $Right[$index], [System.StringComparison]::Ordinal)) {
+      return $false
+    }
   }
   return $true
 }
@@ -952,7 +956,13 @@ function Test-Backup {
     $listed.Add($path)
   }
   if (-not (Test-SameList $listed $expected)) { return $false }
-  if ([System.IO.Path]::GetFileName($root) -cne $Previous.Version) { return $false }
+  if (-not [string]::Equals(
+      [System.IO.Path]::GetFileName($root),
+      $Previous.Version,
+      [System.StringComparison]::Ordinal
+    )) {
+    return $false
+  }
   foreach ($record in $Previous.Records) {
     if (-not (Test-ModeMatches (Join-Relative $root ('overlay/' + $record.Path)) $record.Mode)) {
       return $false

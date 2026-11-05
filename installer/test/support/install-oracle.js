@@ -511,6 +511,19 @@ export function registerInstallerContract(engine) {
     expect(snapshot(target)).toEqual(before)
   })
 
+  test('rejects a stray state file whose name differs only by an ignorable character', () => {
+    const state = bundle()
+    const target = tempRoot('ramp-install-target-')
+    expectSuccess(run(state, target))
+    // A soft hyphen compares equal to nothing under culture-aware equality.
+    write(target, '.ramp/installed/.origins.tsv\u00ad', 'RAMP-INSTALL-ORIGINS\t1\n')
+    const before = snapshot(target)
+    const result = run(state, target, '--uninstall')
+    expect(result.status).not.toBe(0)
+    expect(result.stderr).toContain('installer preflight failed')
+    expect(snapshot(target)).toEqual(before)
+  })
+
   test('rejects non-adjacent folded prefix collisions across installed owners', () => {
     const owners = ['owner-root', 'owner-sibling', 'owner-child']
     const paths = ['A', 'a-b', 'a/x']
