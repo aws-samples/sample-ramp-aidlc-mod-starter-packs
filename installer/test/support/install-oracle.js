@@ -228,6 +228,26 @@ export function registerInstallerContract(engine) {
     expect(run(v2, target, '--rollback').status).not.toBe(0)
   })
 
+  test('backs up and rolls back a bundle file named SHA256SUMS below the root', () => {
+    const v1 = bundle({ files: { 'docs/SHA256SUMS': 'listed\n', 'guide.md': 'old\n' } })
+    const v2 = bundle({
+      version: '1.1.0',
+      bundleId: 'demo--kiro--v1.1.0',
+      files: { 'docs/SHA256SUMS': 'listed\n', 'guide.md': 'new\n' },
+    })
+    const target = tempRoot('ramp-install-target-')
+    expectSuccess(run(v1, target))
+    expectSuccess(run(v2, target))
+    expect(readFileSync(
+      join(target, '.ramp/backups/demo--kiro--standalone/1.0.0/SHA256SUMS'),
+      'utf8',
+    )).toMatch(/  overlay\/docs\/SHA256SUMS\n/)
+    expectSuccess(run(v2, target))
+    expectSuccess(run(v2, target, '--rollback'))
+    expect(readFileSync(join(target, 'guide.md'), 'utf8')).toBe('old\n')
+    expect(readFileSync(join(target, 'docs/SHA256SUMS'), 'utf8')).toBe('listed\n')
+  })
+
   test('blocks upgrade, uninstall, and rollback after customer modification', () => {
     const v1 = bundle()
     const v2 = bundle({

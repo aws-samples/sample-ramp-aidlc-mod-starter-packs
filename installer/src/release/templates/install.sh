@@ -790,7 +790,7 @@ build_backup() {
   : > "$sums"
   (
     cd "$backup_stage"
-    find . -type f ! -name SHA256SUMS -print |
+    find . -type f ! -path ./SHA256SUMS -print |
       sed 's#^\./##' |
       sort |
       while IFS= read -r path; do
@@ -865,7 +865,7 @@ EOF
   expected_files="$work/backup-expected.tsv"
   (
     cd "$rollback_dir"
-    find . -type f ! -name SHA256SUMS -print | sed 's#^\./##' | sort
+    find . -type f ! -path ./SHA256SUMS -print | sed 's#^\./##' | sort
   ) > "$actual_files"
   {
     printf 'backup-meta.tsv\ninstall-files.tsv\norigins.tsv\n'
