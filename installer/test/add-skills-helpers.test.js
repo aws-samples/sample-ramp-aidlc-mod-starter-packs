@@ -482,7 +482,8 @@ function registerRuntimeContract({
 
         expect(result.status).not.toBe(0)
         expect(result.stderr).toMatch(/ramp-only/)
-        expect(result.stderr).toMatch(/repo-root/i)
+        // Each helper names its own spelling of the repository-root option.
+        expect(result.stderr).toMatch(scriptKey === 'bash' ? /--repo-root </ : /-RepoRoot </)
         expect(existsSync(join(target, '.kiro'))).toBe(false)
       },
     )
