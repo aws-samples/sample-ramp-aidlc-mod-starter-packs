@@ -72,10 +72,10 @@ portable_segment() {
   printf '%s' "$segment" | grep -q '[[:cntrl:]]' && return 1
   printf '%s' "$segment" | grep -q '[^ -~]' && return 1
   printf '%s' "$segment" | grep -q '[<>:"\\|?*]' && return 1
-  case "$segment" in *[.\ ]) return 1 ;; esac
+  case "$segment" in \ *|*[.\ ]) return 1 ;; esac
   base="${segment%%.*}"
   lower="$(printf '%s' "$base" | tr 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' 'abcdefghijklmnopqrstuvwxyz')"
-  case "$lower" in con|prn|aux|nul|clock\$|com[1-9]|lpt[1-9]) return 1 ;; esac
+  case "$lower" in con|prn|aux|nul|clock\$|conin\$|conout\$|com[1-9]|lpt[1-9]) return 1 ;; esac
   return 0
 }
 

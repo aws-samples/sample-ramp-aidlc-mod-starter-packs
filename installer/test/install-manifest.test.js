@@ -61,6 +61,8 @@ describe('install ownership manifest', () => {
     ['traversal', [entry('overlay/../a', 'x')]],
     ['backslash', [entry('overlay/a\\b', 'x')]],
     ['reserved name', [entry('overlay/con', 'x')]],
+    ['console input device name', [entry('overlay/CONIN$.md', 'x')]],
+    ['console output device name', [entry('overlay/conout$', 'x')]],
     ['unsupported mode', [entry('overlay/a', 'x', 0o100600)]],
     ['non-buffer bytes', [{ path: 'overlay/a', bytes: 'x', mode: 0o100644 }]],
     ['hash disagreement', [entry('overlay/a', 'x', 0o100644, { sha256: '0'.repeat(64) })]],

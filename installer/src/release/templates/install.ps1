@@ -53,7 +53,7 @@ $Separator = [string][System.IO.Path]::DirectorySeparatorChar
 $RunningOnWindows = (
   [Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
 )
-$ReservedNames = @('con', 'prn', 'aux', 'nul', 'clock$')
+$ReservedNames = @('con', 'prn', 'aux', 'nul', 'clock$', 'conin$', 'conout$')
 $SemanticVersionPattern = '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$'
 
 $script:ExitCode = 0

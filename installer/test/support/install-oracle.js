@@ -412,6 +412,22 @@ export function registerInstallerContract(engine) {
     expect(snapshot(target)).toEqual([])
   })
 
+  test('rejects manifest segments that entries.js refuses to render', () => {
+    for (const unsafe of [' lead.md', 'docs/ lead.md', 'CONIN$.md', 'docs/conout$']) {
+      const state = bundle()
+      const target = tempRoot('ramp-install-target-')
+      const manifest = join(state.root, 'install-files.tsv')
+      writeFileSync(
+        manifest,
+        readFileSync(manifest, 'utf8').replace('\tguide.md\n', `\t${unsafe}\n`),
+      )
+      const result = run(state, target)
+      expect(result.status, unsafe).not.toBe(0)
+      expect(result.stderr, unsafe).toContain('invalid install manifest')
+      expect(snapshot(target)).toEqual([])
+    }
+  })
+
   // A case-insensitive filesystem merges Dir/ and dir/, so the backup listing
   // could never match the manifest again.
   test('rejects one manifest spelling a directory in two cases', () => {

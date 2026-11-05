@@ -23,7 +23,7 @@ const MAX_PATH_BYTES = 1024
 const MAX_SEGMENT_BYTES = 255
 const MAX_DEPTH = 64
 const WINDOWS_RESERVED =
-  /^(?:con|prn|aux|nul|clock\$|com[1-9]|lpt[1-9])(?:\..*)?$/i
+  /^(?:con|prn|aux|nul|clock\$|conin\$|conout\$|com[1-9]|lpt[1-9])(?:\..*)?$/i
 const PROHIBITED_COPY_SEGMENTS = new Set(['.git', 'node_modules', '.ds_store'])
 
 export const RELEASE_LIMITS = Object.freeze({
