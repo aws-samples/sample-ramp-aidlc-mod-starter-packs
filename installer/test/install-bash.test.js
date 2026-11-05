@@ -449,7 +449,8 @@ describe('generated Bash bundle installer', () => {
     expect(snapshot(target)).toEqual(before)
   })
 
-  it('removes transaction staging after a recoverable state-publish failure', () => {
+  // Root ignores the read-only directory mode, so the forced failure cannot occur.
+  it.skipIf(process.getuid?.() === 0)('removes transaction staging after a recoverable state-publish failure', () => {
     const first = bundle({ owner: 'owner-first' })
     const second = bundle({
       owner: 'owner-second',
@@ -459,9 +460,15 @@ describe('generated Bash bundle installer', () => {
     expectSuccess(run(first, target))
     const installed = join(target, '.ramp/installed')
     const before = snapshot(target)
+    // The directory mode follows the host umask; restore exactly what it was.
+    const installedMode = lstatSync(installed).mode & 0o777
     chmodSync(installed, 0o555)
-    const result = run(second, target)
-    chmodSync(installed, 0o755)
+    let result
+    try {
+      result = run(second, target)
+    } finally {
+      chmodSync(installed, installedMode)
+    }
 
     expect(result.status).not.toBe(0)
     expect(snapshot(target)).toEqual(before)
