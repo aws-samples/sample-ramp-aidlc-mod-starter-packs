@@ -956,6 +956,10 @@ prepare_rollback_plan() {
       else
         printf 'write\tbackup\t%s\t%s\t%s\n' "$mode" "$hash" "$path" >> "$plan"
       fi
+    elif portable_collision_with_states "$path"; then
+      add_conflict "$path" "portable path collides with another owner"
+    elif ! ordinary_ancestry "$target" "$path"; then
+      add_conflict "$path" "unsafe destination"
     elif lexists "$target/$path"; then
       actual_hash="$(hash_file "$target/$path")"
       actual_mode="0$(mode_file "$target/$path")"

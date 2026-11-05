@@ -1,4 +1,4 @@
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import {
   chmodSync,
   existsSync,
@@ -101,11 +101,36 @@ function snapshot(root) {
       else if (status.isSymbolicLink()) {
         records.push([path, Buffer.from(`symlink:${readlinkSync(absolute)}`), status.mode & 0o777])
       }
+      else if (!status.isFile()) records.push([path, Buffer.from('special'), status.mode & 0o777])
       else records.push([path, readFileSync(absolute), status.mode & 0o777])
     }
   }
   visit(root)
   return records
+}
+
+// Runs the helper in its own process group so a blocked child (for example a
+// hash of a FIFO) is killed with it instead of hanging the test runner.
+function runBounded(state, target, args, ms = 10_000) {
+  return new Promise((resolve) => {
+    const child = spawn('bash', [state.script, '--target', target, ...args], {
+      cwd: tempRoot('ramp-install-cwd-'),
+      detached: true,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    let stderr = ''
+    let timedOut = false
+    child.stdout.resume()
+    child.stderr.on('data', (chunk) => { stderr += chunk })
+    const timer = setTimeout(() => {
+      timedOut = true
+      process.kill(-child.pid, 'SIGKILL')
+    }, ms)
+    child.on('close', (status) => {
+      clearTimeout(timer)
+      resolve({ status, stderr, timedOut })
+    })
+  })
 }
 
 function expectSuccess(result) {
@@ -386,6 +411,56 @@ describe('generated Bash bundle installer', () => {
     expect(result.status).not.toBe(0)
     expect(result.stderr).toContain('invalid install manifest')
     expect(snapshot(target)).toEqual([])
+  })
+
+  describe('rollback-only destinations get the same safety checks', () => {
+    const v1 = () => bundle({ files: { 'keep.txt': 'keep\n', 'nested/removed.txt': 'remove\n' } })
+    const v2 = () => bundle({
+      version: '1.1.0',
+      bundleId: 'demo--kiro--v1.1.0',
+      files: { 'keep.txt': 'keep\n' },
+    })
+    const upgraded = () => {
+      const states = { v1: v1(), v2: v2() }
+      const target = tempRoot('ramp-install-target-')
+      expectSuccess(run(states.v1, target))
+      expectSuccess(run(states.v2, target))
+      expect(existsSync(join(target, 'nested'))).toBe(false)
+      return { target, v2: states.v2 }
+    }
+    const expectBlockedRollback = ({ target, v2: state }) => {
+      const before = snapshot(target)
+      const result = run(state, target, '--rollback')
+      expect(result.error).toBeUndefined()
+      expect(result.status).not.toBe(0)
+      expect(snapshot(target)).toEqual(before)
+    }
+
+    it('rejects a symlinked parent even when the outside file is identical', () => {
+      const upgrade = upgraded()
+      const outside = tempRoot('ramp-install-outside-')
+      write(outside, 'removed.txt', 'remove\n')
+      symlinkSync(outside, join(upgrade.target, 'nested'))
+      expectBlockedRollback(upgrade)
+    })
+
+    it('rejects a FIFO without opening it', async () => {
+      const upgrade = upgraded()
+      mkdirSync(join(upgrade.target, 'nested'))
+      expect(spawnSync('mkfifo', [join(upgrade.target, 'nested/removed.txt')]).status).toBe(0)
+      const before = snapshot(upgrade.target)
+      const result = await runBounded(upgrade.v2, upgrade.target, ['--rollback'])
+      expect(result.timedOut).toBe(false)
+      expect(result.status).not.toBe(0)
+      expect(snapshot(upgrade.target)).toEqual(before)
+    }, 30_000)
+
+    it('rejects a case-folded collision with a later owner claim', () => {
+      const upgrade = upgraded()
+      const other = bundle({ owner: 'owner-other', files: { 'Nested/removed.txt': 'other\n' } })
+      expectSuccess(run(other, upgrade.target))
+      expectBlockedRollback(upgrade)
+    })
   })
 
   it('rejects hidden and dangling rollback generations', () => {
