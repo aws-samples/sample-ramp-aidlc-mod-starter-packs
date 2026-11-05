@@ -830,15 +830,29 @@ function New-UninstallPlan {
   return $true
 }
 
+function Write-ConflictLines {
+  param($Lines)
+  foreach ($line in $Lines) { Write-InstallerError ('conflict: ' + $line) }
+}
+
+# Conflicts reach stderr whenever no report can be written beside the helper,
+# and a helper inside the target writes no report there at all.
 function Write-ConflictReport {
   if ($script:Conflicts.Count -eq 0) { return }
-  $kind = Get-PathKind $script:ConflictPath
-  if ($kind -cne 'absent' -and $kind -cne 'file') {
-    Stop-Installer 'error: conflict report path is unsafe'
-  }
   $lines = New-Object 'System.Collections.Generic.List[string]'
   foreach ($line in $script:Conflicts) { $lines.Add($line) }
   $lines.Sort([System.StringComparer]::Ordinal)
+  $comparison = [System.StringComparison]::Ordinal
+  if ($script:RunningOnWindows) { $comparison = [System.StringComparison]::OrdinalIgnoreCase }
+  if (($script:ScriptDir + $script:Separator).StartsWith((Join-Child $script:TargetDir ''), $comparison)) {
+    Write-ConflictLines $lines
+    Stop-Installer 'error: installation conflicts; the bundle is inside the target, so no report was written'
+  }
+  $kind = Get-PathKind $script:ConflictPath
+  if ($kind -cne 'absent' -and $kind -cne 'file') {
+    Write-ConflictLines $lines
+    Stop-Installer 'error: conflict report path is unsafe'
+  }
   $text = ($lines -join $script:Lf) + $script:Lf
   $report = $script:ScriptDir + $script:Separator + '.ramp-conflicts.' + $PID
   try {
@@ -859,7 +873,7 @@ function Write-ConflictReport {
   }
   catch {
     if ((Get-PathKind $report) -ceq 'file') { [System.IO.File]::Delete($report) }
-    foreach ($line in $lines) { Write-InstallerError ('conflict: ' + $line) }
+    Write-ConflictLines $lines
     Stop-Installer 'error: installation conflicts; the report could not be written'
   }
   Stop-Installer "error: installation conflicts; see $script:ConflictName"

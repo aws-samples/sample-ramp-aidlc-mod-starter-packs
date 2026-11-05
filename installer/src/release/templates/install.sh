@@ -766,19 +766,41 @@ prepare_uninstall_plan() {
   done < "$current"
 }
 
+print_conflicts() {
+  sort "$conflicts" | while IFS= read -r line; do
+    printf 'conflict: %s\n' "$line" >&2
+  done
+}
+
+# Conflicts reach stderr whenever no report can be written beside the helper,
+# and a helper inside the target writes no report there at all.
 write_conflicts() {
   local report
   [ -s "$conflicts" ] || return 0
+  case "$script_dir/" in
+    "${target%/}/"*)
+      print_conflicts
+      echo "error: installation conflicts; the bundle is inside the target, so no report was written" >&2
+      return 1
+      ;;
+  esac
   if lexists "$conflict_path"; then
     [ -f "$conflict_path" ] && [ ! -L "$conflict_path" ] || {
+      print_conflicts
       echo "error: conflict report path is unsafe" >&2
       return 1
     }
   fi
-  report="$(mktemp "$script_dir/.ramp-conflicts.XXXXXX")" || return 1
-  sort "$conflicts" > "$report"
-  mv "$report" "$conflict_path"
-  echo "error: installation conflicts; see $CONFLICT_NAME" >&2
+  report=""
+  if report="$(mktemp "$script_dir/.ramp-conflicts.XXXXXX" 2>/dev/null)" &&
+    sort "$conflicts" > "$report" &&
+    mv "$report" "$conflict_path"; then
+    echo "error: installation conflicts; see $CONFLICT_NAME" >&2
+    return 1
+  fi
+  [ -z "$report" ] || rm -f "$report"
+  print_conflicts
+  echo "error: installation conflicts; the report could not be written" >&2
   return 1
 }
 

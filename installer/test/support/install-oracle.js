@@ -183,6 +183,36 @@ export function registerInstallerContract(engine) {
     expectSuccess(run(state, target, '--uninstall'))
   })
 
+  test.skipIf(asRoot)('prints conflicts to stderr when the bundle directory is not writable', () => {
+    const state = bundle({ files: { 'z/conflict.txt': 'new\n' } })
+    const target = tempRoot('ramp-install-target-')
+    write(target, 'z/conflict.txt', 'customer\n')
+    const before = snapshot(target)
+    const undo = denyNewEntries(state.root)
+    let result
+    try {
+      result = run(state, target)
+    } finally {
+      undo()
+    }
+    expect(result.status).not.toBe(0)
+    expect(result.stderr).toContain('z/conflict.txt\tcustomer file differs')
+    expect(result.stderr).toContain('the report could not be written')
+    expect(snapshot(target)).toEqual(before)
+  })
+
+  test('never writes the conflict report inside the target', () => {
+    const state = bundle()
+    write(state.root, 'guide.md', 'customer\n')
+    for (const args of [['--dry-run'], []]) {
+      const before = snapshot(state.root)
+      const result = run(state, state.root, ...args)
+      expect(result.status).not.toBe(0)
+      expect(result.stderr).toContain('guide.md\tcustomer file differs')
+      expect(snapshot(state.root)).toEqual(before)
+    }
+  })
+
   test('rejects a tampered source before target writes', () => {
     const state = bundle()
     const target = tempRoot('ramp-install-target-')
