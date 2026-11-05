@@ -10,7 +10,7 @@ The next agent should read these files in order:
 1. `AGENT_HANDOFF.md` — current state and exact continuation steps.
 2. `docs/RAMP_STARTER_PACKS_MASTER_PLAN_V2.md` — authoritative product direction.
 3. `.superpowers/sdd/RAMP_STARTER_PACKS_MASTER_PLAN_V2/progress.md` — completed checkpoints and rulings.
-4. `.superpowers/sdd/RAMP_STARTER_PACKS_MASTER_PLAN_V2/wave-3-release-plan.md` — current release wave; resume at Task 5.
+4. `.superpowers/sdd/RAMP_STARTER_PACKS_MASTER_PLAN_V2/wave-3-release-plan.md` — current release wave; resume at Task 6.
 5. `.superpowers/sdd/RAMP_STARTER_PACKS_MASTER_PLAN_V2/wave3-execution-addendum.md` — mandatory safety amendments.
 6. `.superpowers/sdd/RAMP_STARTER_PACKS_MASTER_PLAN_V2/wave3-checkpoint5-brief.md` — exact current checkpoint contract.
 7. `.superpowers/sdd/RAMP_STARTER_PACKS_MASTER_PLAN_V2/wave3-checkpoint5-implementation-report.md` — RED/GREEN history.
@@ -18,15 +18,16 @@ The next agent should read these files in order:
 9. `.superpowers/sdd/RAMP_STARTER_PACKS_MASTER_PLAN_V2/wave3-checkpoint5-powershell-audit.md` — required PowerShell parity.
 10. `.superpowers/sdd/RAMP_STARTER_PACKS_MASTER_PLAN_V2/wave3-checkpoint5-live-js-review.md` — JavaScript review findings.
 
-Do not assume the WIP commit is a completed feature. It is a deliberate transfer
-checkpoint.
+`3dd0035` is a deliberate WIP transfer checkpoint, not a completed feature.
+Task 5 was finished on top of it and closed by
+`feat: add safe standalone bundle installers`.
 
 ## Completed revamp checkpoints
 
-Seventeen reviewed checkpoints are complete through:
+Eighteen reviewed checkpoints are complete through:
 
 ```text
-c1c543c feat: compose self-contained release bundles
+feat: add safe standalone bundle installers
 ```
 
 The earlier commits cover:
@@ -37,146 +38,62 @@ The earlier commits cover:
 - canonical RAMP workflows and bounded pack overlays;
 - workspace-neutral workflow paths and scaffold parity;
 - locked upstream/RAMP skill provenance and offline resolution;
-- self-contained deterministic unpacked bundle models with legal and input closure.
+- self-contained deterministic unpacked bundle models with legal and input closure;
+- safe standalone `install.sh` and `install.ps1` bundle installers (Task 5).
 
 See `progress.md` for every commit, verification count, and design ruling.
 
-## Current checkpoint: safe standalone bundle installers
+## Last checkpoint: safe standalone bundle installers (Task 5, complete)
 
-Task 5 is partially implemented but not integrated into release bundles.
+Every bundle now ships `install-files.tsv`, `install.sh` and `install.ps1`.
 
-Implemented:
+- `installer/src/release/install-manifest.js`: deterministic canonical install
+  TSV with strict validation, SemVer and hidden-owner rejection, folded
+  collision rejection, and a reserved installer state root (`.ramp`).
+- `installer/src/release/installers.js`: captured-template rendering with
+  strict layout-token validation.
+- `installer/src/release/templates/install.sh`: Bash 3.2-compatible installer
+  with install, dry run, co-ownership, upgrade, uninstall and one-step
+  rollback; a target-wide lock with a locked re-preflight; a per-file recheck
+  before every change; a journal that restores only the paths it changed.
+- `installer/src/release/templates/install.ps1`: the same state machine in
+  PowerShell (`67b67c8`), sharing every state literal, conflict reason and
+  error message with `install.sh`.
+- Bundle integration (`cdb2af7`): helpers in the authenticated generator
+  closure, `SHA256SUMS` and README-FIRST guidance.
+- `installer/test/support/install-oracle.js`: one shared behavioural oracle run
+  against both engines, plus engine-specific suites.
 
-- `installer/src/release/install-manifest.js`
-  - deterministic canonical install TSV;
-  - strict plain-data validation;
-  - aggregate limits;
-  - SemVer and hidden-owner rejection;
-  - exact, case-fold, and folded ancestor collision rejection.
-- `installer/src/release/installers.js`
-  - captured-template rendering and strict layout-token validation.
-- `installer/src/release/templates/install.sh`
-  - Bash 3.2-compatible no-Node installer;
-  - clean install, dry run, conflict isolation, co-ownership, upgrade,
-    uninstall, and one-step rollback;
-  - target-wide origin ledger distinguishing RAMP-managed from adopted
-    customer files;
-  - strict source/state/backup parsing;
-  - target-wide lock and locked re-preflight;
-  - transaction restoration and customer-directory cleanup;
-  - symlink/special-file and backup-closure defenses.
-- Manifest and Bash test suites.
+Hardening after review: trailing-newline directory names, rollback snapshots
+that cannot be built or no longer match, edits made during a transaction,
+300-file bundle speed, interrupt exit codes, linked-target spellings,
+positional PowerShell targets and state-root paths are all covered by tests.
 
-Latest root-owned verification:
-
-```text
-bash -n installer/src/release/templates/install.sh
-npm test --prefix installer -- \
-  test/install-manifest.test.js \
-  test/install-bash.test.js
-
-Test Files: 2 passed
-Tests:      37 passed
-```
-
-The final three parser findings from the last independent Bash review were
-fixed test-first:
-
-- forged `A`, `a-b`, `a/x` folded ancestor collision;
-- non-SemVer `version=release`;
-- hidden `owner=.hidden`.
-
-An independent re-review after those final fixes has **not** yet been run.
-
-## Known incomplete work
-
-### 1. Re-review the final Bash/parser state
-
-Run an independent review against the latest files, not the older BLOCK verdict.
-The older review is valuable history; its last three findings now have passing
-regressions.
-
-Required checks:
-
-```bash
-bash -n installer/src/release/templates/install.sh
-npm test --prefix installer -- \
-  test/install-manifest.test.js \
-  test/install-bash.test.js
-```
-
-Audit every previously reported parser, ownership, rollback, transaction,
-symlink, hidden-state, origin, and folded-path issue.
-
-### 2. Implement real PowerShell parity
-
-`installer/src/release/templates/install.ps1` is currently only a 41-line
-placeholder and must not ship as complete.
-
-Create `installer/test/install-powershell.test.js`. Static tests must always run.
-Runtime cases may be skipped locally because this macOS host has no `pwsh`,
-`powershell`, or `powershell.exe`, but Task 9 must execute the same runtime
-suite on `windows-latest`.
-
-Follow `wave3-checkpoint5-powershell-audit.md` exactly. PowerShell must translate
-the approved Bash state machine; it must not implement a reduced installer.
-
-### 3. Integrate helpers into the bundle model
-
-Modify:
-
-- `installer/src/release/bundle.js`
-- `installer/src/release/readme-first.js`
-- `installer/test/release-bundle.test.js`
-
-Bundle entries must add:
+Verification at the closing commit (pwsh 7 on Linux):
 
 ```text
-install-files.tsv  100644
-install.sh         100755
-install.ps1        100644
-```
-
-Also:
-
-- add all new renderer/template sources to the authenticated generator input
-  closure;
-- pass the exact captured template bytes to `renderInstallers()`;
-- keep `bundle-manifest.json.files` overlay-only;
-- include the three helper entries in `SHA256SUMS`;
-- replace the README statement that the bundle has no installer with truthful
-  safe-helper and manual-copy guidance;
-- preserve deterministic bytes and defensive copies.
-
-### 4. Verify and close Task 5
-
-Run:
-
-```bash
-npm test --prefix installer -- \
-  test/install-manifest.test.js \
-  test/install-bash.test.js \
-  test/install-powershell.test.js \
+npm test --prefix installer -- test/install-manifest.test.js \
+  test/install-bash.test.js test/install-powershell.test.js \
   test/release-bundle.test.js
+Test Files: 4 passed
+Tests:      306 passed, 118 skipped
+
 npm test --prefix installer
-git diff --check
-git status --short
+Test Files: 30 passed, 1 skipped
+Tests:      1329 passed, 180 skipped
 ```
 
-Require independent Bash/PowerShell-static, bundle-closure, security, and scope
-approval before declaring Task 5 complete.
+Reviews: independent PowerShell and bundle-closure reviews approved; the
+security, Bash and scope reviews requested changes, all HIGH and MEDIUM
+findings were fixed test-first, and a fresh re-review approved at `56eb721`.
+Remaining LOW findings are tracked as follow-on work.
 
-The intended completed-feature commit message remains:
+Still open for Task 9: run the PowerShell runtime suite on `windows-latest`
+with `powershell.exe` 5.1; it has only run on pwsh 7 so far.
 
-```text
-feat: add safe standalone bundle installers
-```
+## Next: Task 6
 
-The current transfer commit should remain identifiable as WIP.
-
-### 5. Continue with Task 6
-
-After Task 5 is complete, resume
+Resume
 `.superpowers/sdd/RAMP_STARTER_PACKS_MASTER_PLAN_V2/wave-3-release-plan.md`
 at Task 6:
 
