@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { renderInstallers } from '../src/release/installers.js'
@@ -141,6 +141,14 @@ describe('generated PowerShell bundle installer: static contract', () => {
     for (const message of messages) expect(template, message).toContain(message)
   })
 
+  it('copies files only through the helper that clears the Windows ReadOnly attribute', () => {
+    const code = codeOnly(template)
+    expect(code.match(/\[System\.IO\.File\]::Copy\(/g)).toHaveLength(1)
+    const helper = code.slice(code.indexOf('function Copy-OrdinaryFile'))
+    expect(helper.indexOf('[System.IO.File]::Copy(')).toBeLessThan(helper.indexOf('\n}\n'))
+    expect(helper.slice(0, helper.indexOf('\n}\n'))).toContain('SetAttributes')
+  })
+
   it('marks a commit final before removing transaction staging', () => {
     const tail = template.slice(template.lastIndexOf('# The commit is final'))
     const finished = tail.indexOf('$script:MutationStarted = $false')
@@ -275,6 +283,51 @@ for (const { command, available, label } of engines) {
       expect(result.stderr).toContain('another RAMP installer holds the target lock')
       expect(snapshot(target)).toEqual(before)
     }, engine.timeout)
+
+    // Node's chmod sets the Windows ReadOnly attribute when the write bit is
+    // cleared; Perforce and TFVC workspaces leave files that way.
+    describe.skipIf(process.platform !== 'win32')('treats the ReadOnly attribute as a mode change', () => {
+      const versions = () => ({
+        v1: bundle(),
+        v2: bundle({ version: '1.1.0', bundleId: 'demo--kiro--v1.1.0', files: { 'guide.md': 'new\n' } }),
+      })
+
+      it('refuses to replace or remove a read-only destination', () => {
+        const { v1, v2 } = versions()
+        const target = tempRoot('ramp-install-target-')
+        expectSuccess(run(v1, target))
+        chmodSync(join(target, 'guide.md'), 0o444)
+        const before = snapshot(target)
+        expect(run(v2, target).status).not.toBe(0)
+        expect(run(v1, target, '--uninstall').status).not.toBe(0)
+        expect(snapshot(target)).toEqual(before)
+      }, engine.timeout)
+
+      it('refuses read-only installed state before any write', () => {
+        const { v1, v2 } = versions()
+        const target = tempRoot('ramp-install-target-')
+        expectSuccess(run(v1, target))
+        chmodSync(join(target, '.ramp/installed/.origins.tsv'), 0o444)
+        const before = snapshot(target)
+        const result = run(v2, target)
+        expect(result.status).not.toBe(0)
+        expect(result.stderr).toContain('installer preflight failed')
+        expect(snapshot(target)).toEqual(before)
+      }, engine.timeout)
+
+      it('installs from a read-only manifest without leaving read-only copies', () => {
+        const { v1, v2 } = versions()
+        for (const state of [v1, v2]) chmodSync(join(state.root, 'install-files.tsv'), 0o444)
+        const target = tempRoot('ramp-install-target-')
+        expectSuccess(run(v1, target))
+        expectSuccess(run(v2, target))
+        for (const [path, , mode] of snapshot(target)) {
+          expect(mode & 0o200, path).not.toBe(0)
+        }
+        expectSuccess(run(v2, target, '--rollback'))
+        expectSuccess(run(v1, target, '--uninstall'))
+      }, engine.timeout)
+    })
 
     describe.skipIf(!bashAvailable)('interoperates with install.sh', () => {
       const versions = () => ({

@@ -10,7 +10,8 @@ before the first target write, again under a target-wide lock, and once more
 immediately before each change. A failed commit restores the prior bytes.
 
 Runs on Windows PowerShell 5.1 and on PowerShell 7.3 or later. On Windows the
-canonical 0644/0755 modes are kept in state but not applied to files.
+canonical 0644/0755 modes are kept in state but not applied to files, and a
+read-only file counts as a changed mode.
 -Target is mandatory; with -NonInteractive a missing value fails instead of
 prompting.
 
@@ -255,12 +256,29 @@ function Get-ModeText {
   return '0' + [Convert]::ToString($mode, 8)
 }
 
-# NTFS has no executable bit: the canonical mode stays in state but is never
-# compared with, or applied to, a Windows file.
+function Test-ReadOnly {
+  param([string]$Path)
+  if (-not $script:RunningOnWindows) { return $false }
+  return [bool]([System.IO.File]::GetAttributes($Path) -band [System.IO.FileAttributes]::ReadOnly)
+}
+
+# NTFS has no executable bit: the canonical mode stays in state and is never
+# applied to a Windows file. Both canonical modes are owner-writable, so there
+# a file matches unless its ReadOnly attribute is set, as Node maps chmod.
 function Test-ModeMatches {
   param([string]$Path, [string]$Mode)
-  if ($script:RunningOnWindows) { return $true }
+  if ($script:RunningOnWindows) { return -not (Test-ReadOnly $Path) }
   return (Get-ModeText $Path) -ceq $Mode
+}
+
+# File.Copy keeps the Windows ReadOnly attribute, which would make every later
+# replace or delete of the copy fail.
+function Copy-OrdinaryFile {
+  param([string]$Source, [string]$Destination)
+  [System.IO.File]::Copy($Source, $Destination, $false)
+  if ($script:RunningOnWindows) {
+    [System.IO.File]::SetAttributes($Destination, [System.IO.FileAttributes]::Normal)
+  }
 }
 
 function Set-ModeText {
@@ -328,7 +346,7 @@ function Copy-Tree {
     $kind = Get-PathKind $entry
     $copy = $Destination + $script:Separator + $name
     if ($kind -ceq 'directory') { Copy-Tree $entry $copy }
-    elseif ($kind -ceq 'file') { [System.IO.File]::Copy($entry, $copy, $false) }
+    elseif ($kind -ceq 'file') { Copy-OrdinaryFile $entry $copy }
     else { throw 'backup tree changed during copy' }
   }
 }
@@ -589,13 +607,14 @@ function Import-InstalledState {
     foreach ($entry in [System.IO.Directory]::GetFileSystemEntries($script:InstalledDir)) {
       $name = [System.IO.Path]::GetFileName($entry)
       $kind = Get-PathKind $entry
+      # Every commit replaces state files, which Windows refuses when read-only.
       if ($name -ceq '.origins.tsv') {
-        if ($kind -cne 'file') { return $false }
+        if ($kind -cne 'file' -or (Test-ReadOnly $entry)) { return $false }
         continue
       }
       if ($name.StartsWith('.', [System.StringComparison]::Ordinal)) { return $false }
       if (-not $name.EndsWith('.tsv', [System.StringComparison]::Ordinal)) { return $false }
-      if ($kind -cne 'file') { return $false }
+      if ($kind -cne 'file' -or (Test-ReadOnly $entry)) { return $false }
       $names.Add($name)
     }
     $names.Sort([System.StringComparer]::Ordinal)
@@ -818,8 +837,8 @@ function New-Backup {
     [string]$SourceRoot
   )
   [void][System.IO.Directory]::CreateDirectory($Stage + $script:Separator + 'overlay')
-  [System.IO.File]::Copy($script:OwnerState, (Join-Relative $Stage 'install-files.tsv'), $false)
-  [System.IO.File]::Copy($script:OriginState, (Join-Relative $Stage 'origins.tsv'), $false)
+  Copy-OrdinaryFile $script:OwnerState (Join-Relative $Stage 'install-files.tsv')
+  Copy-OrdinaryFile $script:OriginState (Join-Relative $Stage 'origins.tsv')
   Write-TextFile (Join-Relative $Stage 'backup-meta.tsv') (
     'RAMP-INSTALL-BACKUP' + $script:Tab + '1' + $script:Lf +
     'owner' + $script:Tab + $script:Owner + $script:Lf +
@@ -834,7 +853,7 @@ function New-Backup {
   foreach ($record in $OldRecords) {
     $copy = Join-Relative $Stage ('overlay/' + $record.Path)
     [void][System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($copy))
-    [System.IO.File]::Copy((Join-Relative $SourceRoot $record.Path), $copy, $false)
+    Copy-OrdinaryFile (Join-Relative $SourceRoot $record.Path) $copy
     Set-ModeText $copy $record.Mode
   }
   $files = Get-TreeFiles $Stage
@@ -1102,7 +1121,7 @@ function Restore-Transaction {
           continue
         }
         try {
-          [System.IO.File]::Copy((Join-Relative ($script:Txn + $script:Separator + 'old') $entry.Path), $temporary, $false)
+          Copy-OrdinaryFile (Join-Relative ($script:Txn + $script:Separator + 'old') $entry.Path) $temporary
           Set-ModeText $temporary $entry.Mode
           if (-not (Test-OrdinaryAncestry $script:TargetDir $entry.Path)) { throw 'unsafe restore destination' }
           Move-OrdinaryFile $temporary $destination
@@ -1148,7 +1167,7 @@ function Restore-Transaction {
         if ($script:OwnerStateOld) {
           $temporary = $script:InstalledDir + $script:Separator + $script:Owner + '.tsv.restore.' + $PID
           if (Test-Exists $temporary) { throw 'restore temporary exists' }
-          [System.IO.File]::Copy((Join-Relative $script:Txn 'state.old/owner.tsv'), $temporary, $false)
+          Copy-OrdinaryFile (Join-Relative $script:Txn 'state.old/owner.tsv') $temporary
           Move-OrdinaryFile $temporary $script:OwnerState
         }
         else {
@@ -1170,7 +1189,7 @@ function Restore-Transaction {
         if ($script:OriginStateOld) {
           $temporary = $script:InstalledDir + $script:Separator + '.origins.tsv.restore.' + $PID
           if (Test-Exists $temporary) { throw 'restore temporary exists' }
-          [System.IO.File]::Copy((Join-Relative $script:Txn 'state.old/origins.tsv'), $temporary, $false)
+          Copy-OrdinaryFile (Join-Relative $script:Txn 'state.old/origins.tsv') $temporary
           Move-OrdinaryFile $temporary $script:OriginState
         }
         else {
@@ -1393,13 +1412,13 @@ function Invoke-Installer {
   $ownerStateKind = Get-PathKind $script:OwnerState
   if ($ownerStateKind -cne 'absent') {
     if ($ownerStateKind -cne 'file') { Stop-Installer $staging }
-    [System.IO.File]::Copy($script:OwnerState, (Join-Relative $script:Txn 'state.old/owner.tsv'), $false)
+    Copy-OrdinaryFile $script:OwnerState (Join-Relative $script:Txn 'state.old/owner.tsv')
     $script:OwnerStateOld = $true
   }
   $originStateKind = Get-PathKind $script:OriginState
   if ($originStateKind -cne 'absent') {
     if ($originStateKind -cne 'file') { Stop-Installer $staging }
-    [System.IO.File]::Copy($script:OriginState, (Join-Relative $script:Txn 'state.old/origins.tsv'), $false)
+    Copy-OrdinaryFile $script:OriginState (Join-Relative $script:Txn 'state.old/origins.tsv')
     $script:OriginStateOld = $true
   }
   if (Test-Exists $script:OwnerBackup) {
@@ -1420,7 +1439,7 @@ function Invoke-Installer {
       if (Test-Exists $destination) {
         $old = Join-Relative ($script:Txn + $script:Separator + 'old') $entry.Path
         [void][System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($old))
-        [System.IO.File]::Copy($destination, $old, $false)
+        Copy-OrdinaryFile $destination $old
         $script:Journal.Add([pscustomobject]@{ Prior = 'present'; Mode = (Get-ModeText $destination); Path = $entry.Path })
       }
       else {
@@ -1440,7 +1459,7 @@ function Invoke-Installer {
       }
       $new = Join-Relative ($script:Txn + $script:Separator + 'new') $entry.Path
       [void][System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($new))
-      [System.IO.File]::Copy($source, $new, $false)
+      Copy-OrdinaryFile $source $new
       Set-ModeText $new $entry.Mode
       if ((Get-Sha256 $new) -cne $entry.Hash) { Stop-Installer $staging }
     }
@@ -1458,11 +1477,7 @@ function Invoke-Installer {
     }
   }
   if ($script:Operation -ceq 'rollback') {
-    [System.IO.File]::Copy(
-      (Join-Relative $script:RollbackDir 'install-files.tsv'),
-      (Join-Relative $script:Txn 'rollback-install-files.tsv'),
-      $false
-    )
+    Copy-OrdinaryFile (Join-Relative $script:RollbackDir 'install-files.tsv') (Join-Relative $script:Txn 'rollback-install-files.tsv')
   }
 
   $installedRelative = $script:StateRoot + '/installed'
@@ -1477,11 +1492,7 @@ function Invoke-Installer {
         $temporary = $entry.Path + '.ramp-install.' + $PID
         if (Test-Exists (Join-Relative $script:TargetDir $temporary)) { throw 'temporary exists' }
         $script:ActiveCustomerTemp = $temporary
-        [System.IO.File]::Copy(
-          (Join-Relative ($script:Txn + $script:Separator + 'new') $entry.Path),
-          (Join-Relative $script:TargetDir $temporary),
-          $false
-        )
+        Copy-OrdinaryFile (Join-Relative ($script:Txn + $script:Separator + 'new') $entry.Path) (Join-Relative $script:TargetDir $temporary)
         Set-ModeText (Join-Relative $script:TargetDir $temporary) $entry.Mode
         if (-not (Test-OrdinaryAncestry $script:TargetDir $entry.Path)) { throw 'unsafe destination' }
         Move-OrdinaryFile (Join-Relative $script:TargetDir $temporary) $destination
@@ -1541,7 +1552,7 @@ function Invoke-Installer {
         }
         $script:OwnerStateMutated = $true
         $script:ActiveStateTemp = $temporary
-        [System.IO.File]::Copy($source, $temporary, $false)
+        Copy-OrdinaryFile $source $temporary
         if (-not (Test-OrdinaryDirectoryAncestry $script:TargetDir $installedRelative)) {
           throw 'unsafe owner state'
         }
@@ -1582,7 +1593,7 @@ function Invoke-Installer {
         $script:OriginStateMutated = $true
         $script:ActiveStateTemp = $temporary
         Write-TextFile (Join-Relative $script:Txn 'origins.tsv') $originsText
-        [System.IO.File]::Copy((Join-Relative $script:Txn 'origins.tsv'), $temporary, $false)
+        Copy-OrdinaryFile (Join-Relative $script:Txn 'origins.tsv') $temporary
         if (-not (Test-OrdinaryDirectoryAncestry $script:TargetDir $installedRelative)) {
           throw 'unsafe origin state'
         }
