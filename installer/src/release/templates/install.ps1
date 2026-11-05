@@ -363,21 +363,30 @@ function Copy-Tree {
   }
 }
 
-# Lines of a canonical TSV file: an ordinary file of tab, LF, and printable
-# ASCII bytes ending in exactly one LF per line. Type is proven before reading.
-function Read-CanonicalLines {
-  param([string]$Path)
-  if ((Get-PathKind $Path) -cne 'file') { return $null }
-  $bytes = [System.IO.File]::ReadAllBytes($Path)
-  if ($bytes.Length -eq 0 -or $bytes[$bytes.Length - 1] -ne 10) { return $null }
-  $text = [System.Text.Encoding]::GetEncoding(28591).GetString($bytes)
+# Lines of canonical TSV bytes: tab, LF, and printable ASCII ending in exactly
+# one LF per line.
+function ConvertFrom-CanonicalBytes {
+  param([byte[]]$Bytes)
+  if ($Bytes.Length -eq 0 -or $Bytes[$Bytes.Length - 1] -ne 10) { return $null }
+  $text = [System.Text.Encoding]::GetEncoding(28591).GetString($Bytes)
   if ($text -cmatch '[^\t\n\x20-\x7e]') { return $null }
   return , $text.Substring(0, $text.Length - 1).Split([char]10)
 }
 
+# Type is proven before reading.
+function Read-CanonicalLines {
+  param([string]$Path)
+  if ((Get-PathKind $Path) -cne 'file') { return $null }
+  $lines = ConvertFrom-CanonicalBytes ([System.IO.File]::ReadAllBytes($Path))
+  if ($null -eq $lines) { return $null }
+  return , $lines
+}
+
+# Reads Path, or parses Bytes when given.
 function Read-InstallManifest {
-  param([string]$Path, [string]$ExpectedOwner)
-  $lines = Read-CanonicalLines $Path
+  param([string]$Path, [string]$ExpectedOwner, [byte[]]$Bytes = $null)
+  if ($null -ne $Bytes) { $lines = ConvertFrom-CanonicalBytes $Bytes }
+  else { $lines = Read-CanonicalLines $Path }
   if ($null -eq $lines -or $lines.Length -lt 5) { return $null }
   $records = New-Object 'System.Collections.Generic.List[object]'
   $folded = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::Ordinal)
@@ -702,8 +711,13 @@ function New-InstallPlan {
   if (Test-Exists $script:OwnerState) {
     $current = Read-InstallManifest $script:OwnerState $script:Owner
     if ($null -eq $current) { return $false }
+    $latin = [System.Text.Encoding]::GetEncoding(28591)
     if ($current.Version -ceq $script:BundleVersion -and
-        (Get-Sha256 $script:OwnerState) -cne (Get-Sha256 $script:ManifestPath)) {
+        -not [string]::Equals(
+          $latin.GetString([System.IO.File]::ReadAllBytes($script:OwnerState)),
+          $latin.GetString($script:ManifestBytes),
+          [System.StringComparison]::Ordinal
+        )) {
       Add-Conflict $script:Owner 'same version has different manifest'
     }
   }
@@ -1372,7 +1386,11 @@ function Invoke-Installer {
     Stop-Installer 'error: install manifest must be an ordinary file'
   }
 
-  $manifest = Read-InstallManifest $script:ManifestPath ''
+  # Every later use reads these bytes, so the published owner state is exactly
+  # what was parsed and planned.
+  $script:ManifestBytes = [System.IO.File]::ReadAllBytes($script:ManifestPath)
+  $script:ManifestMode = Get-ModeText $script:ManifestPath
+  $manifest = Read-InstallManifest '' '' $script:ManifestBytes
   if ($null -eq $manifest) { Stop-Installer 'error: invalid install manifest' }
   $script:BundleRecords = $manifest.Records
   $script:BundleId = $manifest.Bundle
@@ -1571,10 +1589,6 @@ function Invoke-Installer {
         [System.IO.File]::Delete($script:OwnerState)
       }
       else {
-        $source = $script:ManifestPath
-        if ($script:Operation -ceq 'rollback') {
-          $source = Join-Relative $script:Txn 'rollback-install-files.tsv'
-        }
         $temporary = $script:OwnerState + '.new'
         $kind = Get-PathKind $script:OwnerState
         if (-not (Test-OrdinaryDirectoryAncestry $script:TargetDir $installedRelative) -or
@@ -1584,7 +1598,13 @@ function Invoke-Installer {
         }
         $script:OwnerStateMutated = $true
         $script:ActiveStateTemp = $temporary
-        Copy-OrdinaryFile $source $temporary
+        if ($script:Operation -ceq 'rollback') {
+          Copy-OrdinaryFile (Join-Relative $script:Txn 'rollback-install-files.tsv') $temporary
+        }
+        else {
+          [System.IO.File]::WriteAllBytes($temporary, $script:ManifestBytes)
+          Set-ModeText $temporary $script:ManifestMode
+        }
         if (-not (Test-OrdinaryDirectoryAncestry $script:TargetDir $installedRelative)) {
           throw 'unsafe owner state'
         }

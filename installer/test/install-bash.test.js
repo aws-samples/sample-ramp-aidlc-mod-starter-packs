@@ -47,30 +47,35 @@ function runBounded(state, target, args, ms = 10_000) {
 describe('generated Bash bundle installer', () => {
   registerInstallerContract({ run, runBounded })
 
-  // A file-size limit fails publishing the larger v3 owner state while every
-  // smaller restore copy still fits, so the moved backup is put back.
+  // A cp shim fails only the owner-state publish, after the backup moved, so
+  // the restore copies run under the strict umask.
   it('restores a backup with its modes after a failed upgrade under umask 077', () => {
-    const files = (version, count) => Object.fromEntries(
-      Array.from({ length: count }, (_, index) => [`f${index}.txt`, `${version}\n`]),
-    )
-    const v1 = bundle({ files: files('1.0.0', 1) })
-    const v2 = bundle({ version: '1.1.0', bundleId: 'demo--kiro--v1.1.0', files: files('1.1.0', 1) })
-    const v3 = bundle({
-      version: '1.2.0',
-      bundleId: `demo--kiro--v1.2.0--${'x'.repeat(200)}`,
-      files: files('1.2.0', 4),
-    })
-    expect(readFileSync(join(v3.root, 'install-files.tsv')).length).toBeGreaterThan(512)
+    const versions = ['1.0.0', '1.1.0', '1.2.0'].map((version) => bundle({
+      version,
+      bundleId: `demo--kiro--v${version}`,
+      files: { 'guide.md': `guide ${version}\n` },
+    }))
     const target = tempRoot('ramp-install-target-')
-    expectSuccess(run(v1, target))
-    expectSuccess(run(v2, target))
-    const result = spawnSync('sh', [
-      '-c', 'trap "" XFSZ && ulimit -f 1 && umask 077 && exec "$@"', 'sh',
-      'bash', v3.script, '--target', target,
-    ], { cwd: tempRoot('ramp-install-cwd-'), encoding: 'utf8', timeout: 20_000 })
+    expectSuccess(run(versions[0], target))
+    expectSuccess(run(versions[1], target))
+    const realCp = spawnSync('sh', ['-c', 'command -v cp'], { encoding: 'utf8' }).stdout.trim()
+    const shims = tempRoot('ramp-install-shims-')
+    write(shims, 'cp', [
+      '#!/bin/sh',
+      'for last; do :; done',
+      'case "$last" in */.ramp/installed/*.tsv.new) exit 1 ;; esac',
+      `exec ${realCp} "$@"`,
+      '',
+    ].join('\n'), 0o755)
+    const result = spawnSync('sh', ['-c', 'umask 077 && exec "$@"', 'sh', 'bash', versions[2].script, '--target', target], {
+      cwd: tempRoot('ramp-install-cwd-'),
+      encoding: 'utf8',
+      env: { ...process.env, PATH: `${shims}:${process.env.PATH}` },
+      timeout: 20_000,
+    })
     expect(result.stderr).toContain('install transaction failed and was restored')
-    expectSuccess(run(v2, target, '--rollback'))
-    expect(readFileSync(join(target, 'f0.txt'), 'utf8')).toBe('1.0.0\n')
+    expectSuccess(run(versions[1], target, '--rollback'))
+    expect(readFileSync(join(target, 'guide.md'), 'utf8')).toBe('guide 1.0.0\n')
   })
 
   it('installs into relative targets that look like cd options or CDPATH names', () => {

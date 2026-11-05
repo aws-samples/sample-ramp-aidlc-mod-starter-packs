@@ -449,7 +449,11 @@ render_origins() {
   } > "$output"
 }
 
-parse_manifest "$manifest_path" "$bundle_records" || {
+# Every later use reads this one copy, so the published owner state is the
+# exact bytes that were parsed and planned.
+parsed_manifest="$work/manifest.tsv"
+cp "$manifest_path" "$parsed_manifest" &&
+  parse_manifest "$parsed_manifest" "$bundle_records" || {
   echo "error: invalid install manifest" >&2
   exit 1
 }
@@ -653,7 +657,7 @@ prepare_install_plan() {
     current_version="$parsed_version"
     current_exists=1
     if [ "$current_version" = "$bundle_version" ] &&
-      ! cmp -s "$owner_state" "$manifest_path"; then
+      ! cmp -s "$owner_state" "$parsed_manifest"; then
       add_conflict "$owner" "same version has different manifest"
     fi
   fi
@@ -1352,7 +1356,7 @@ if [ "$commit_failed" -eq 0 ]; then
       else
         owner_state_mutated=1
         active_state_temp="$installed_dir/$owner.tsv.new"
-        cp "$manifest_path" "$installed_dir/$owner.tsv.new" &&
+        cp "$parsed_manifest" "$installed_dir/$owner.tsv.new" &&
           ordinary_directory_ancestry "$target" "$STATE_ROOT/installed" &&
           mv "$installed_dir/$owner.tsv.new" "$owner_state" || commit_failed=1
         if [ "$commit_failed" -eq 0 ]; then active_state_temp=""; fi
