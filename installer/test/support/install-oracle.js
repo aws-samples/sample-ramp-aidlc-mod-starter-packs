@@ -256,6 +256,25 @@ export function registerInstallerContract(engine) {
     expect(snapshot(target)).toEqual(before)
   })
 
+  test('installs, upgrades, rolls back, and uninstalls awkward but portable names', () => {
+    const names = [
+      '-dash.md', 'with space.md', "it's.md", '[glob].md', '$HOME.md', '`tick`.md',
+      ';semi&amp.md', '!bang #hash %25.md', 'docs/-x/[a] b.md',
+    ]
+    const files = (text) => Object.fromEntries(names.map((name) => [name, text]))
+    const v1 = bundle({ files: files('one\n') })
+    const v2 = bundle({ version: '1.1.0', bundleId: 'demo--kiro--v1.1.0', files: files('two\n') })
+    const target = join(tempRoot('ramp-install-parent-'), "-t 'q' [g] $x")
+    mkdirSync(target)
+    expectSuccess(run(v1, target))
+    expectSuccess(run(v2, target))
+    for (const name of names) expect(readFileSync(join(target, ...name.split('/')), 'utf8'), name).toBe('two\n')
+    expectSuccess(run(v2, target, '--rollback'))
+    for (const name of names) expect(readFileSync(join(target, ...name.split('/')), 'utf8'), name).toBe('one\n')
+    expectSuccess(run(v1, target, '--uninstall'))
+    expect(snapshot(target).map(([path]) => path).filter((path) => !path.startsWith('.ramp'))).toEqual([])
+  })
+
   test('rejects a tampered source before target writes', () => {
     const state = bundle()
     const target = tempRoot('ramp-install-target-')

@@ -1498,11 +1498,11 @@ transaction_active=0
 # swapped in after the commit is never followed.
 while IFS="$TAB" read -r action source_kind mode hash path; do
   [ "$action" = "remove" ] || continue
-  directory="$(dirname "$path")"
+  directory="$(dirname -- "$path")"
   while [ "$directory" != "." ]; do
     ordinary_directory_ancestry "$target" "$directory" &&
       rmdir "$target/$directory" 2>/dev/null || break
-    directory="$(dirname "$directory")"
+    directory="$(dirname -- "$directory")"
   done
 done < "$plan"
 echo "RAMP $operation complete"
