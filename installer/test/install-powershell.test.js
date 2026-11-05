@@ -300,6 +300,35 @@ for (const { command, available, label } of engines) {
       expect(result.stderr).toContain('operation flags are mutually exclusive')
     }, engine.timeout)
 
+    it('rejects a positional target', () => {
+      const state = bundle()
+      const target = tempRoot('ramp-install-target-')
+      const result = spawnSync(command, [
+        '-NoLogo',
+        '-NoProfile',
+        '-NonInteractive',
+        ...(process.platform === 'win32' ? ['-ExecutionPolicy', 'Bypass'] : []),
+        '-File',
+        state.powershell,
+        target,
+        '-DryRun',
+      ], { cwd: tempRoot('ramp-install-cwd-'), encoding: 'utf8', shell: false, timeout: 60_000 })
+      expect(result.status).not.toBe(0)
+      expect(result.stdout).not.toContain('RAMP dry run')
+    }, engine.timeout)
+
+    it('catches a change made between the first preflight and the lock', () => {
+      const state = bundle({ files: { 'early.txt': 'early\n', 'late.txt': 'bundle\n' } })
+      const target = tempRoot('ramp-install-target-')
+      const late = join(target, 'late.txt')
+      const result = runAtLine(state, target, '$script:LockCreated = $true',
+        `[System.IO.File]::WriteAllText('${late}', "customer\`n")`)
+      expect(result.status).not.toBe(0)
+      expect(readFileSync(join(state.root, 'install-conflicts.txt'), 'utf8'))
+        .toBe('late.txt\tcustomer file differs\n')
+      expect(snapshot(target)).toEqual([['late.txt', Buffer.from('customer\n'), expect.any(Number)]])
+    }, engine.timeout)
+
     it('fails without touching an existing target lock', () => {
       const state = bundle()
       const target = tempRoot('ramp-install-target-')

@@ -184,6 +184,15 @@ manifest_path="$script_dir/$MANIFEST_NAME"
 overlay_dir="$script_dir/$OVERLAY_ROOT"
 conflict_path="$script_dir/$CONFLICT_NAME"
 
+# [ -L "link/" ] and [ -L "link/." ] test the directory the link points to,
+# so a trailing "/" or "/." is dropped before the symlink check.
+while :; do
+  case "$target_input" in
+    ?*/) target_input="${target_input%/}" ;;
+    ?*/.) target_input="${target_input%/.}" ;;
+    *) break ;;
+  esac
+done
 ordinary_directory_path "$target_input" || {
   echo "error: target must be an existing ordinary directory" >&2
   exit 1

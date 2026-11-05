@@ -488,6 +488,41 @@ export function registerInstallerContract(engine) {
     expect(unknown.status).not.toBe(0)
   })
 
+  test('rejects duplicate flags, extra arguments, and a linked target spelled any way', () => {
+    const state = bundle()
+    const target = tempRoot('ramp-install-target-')
+    const other = tempRoot('ramp-install-target-')
+    for (const args of [['--target', other], ['--dry-run', '--dry-run'], ['extra'], ['--dry-run', 'extra']]) {
+      expect(run(state, target, ...args).status, args.join(' ')).not.toBe(0)
+    }
+    const link = join(tempRoot('ramp-install-parent-'), 'link')
+    linkDirectory(target, link)
+    for (const spelling of [link, `${link}/`, `${link}/.`]) {
+      expect(run(state, spelling).status, spelling).not.toBe(0)
+    }
+    expect(snapshot(target)).toEqual([])
+    expect(snapshot(other)).toEqual([])
+  })
+
+  test('rejects a deleted overlay source before target writes', () => {
+    const state = bundle({ files: { 'a.txt': 'a\n', 'guide.md': 'guide\n' } })
+    const target = tempRoot('ramp-install-target-')
+    rmSync(join(state.root, 'overlay/guide.md'))
+    expect(run(state, target).status).not.toBe(0)
+    expect(snapshot(target)).toEqual([])
+  })
+
+  test('refuses to uninstall or roll back an owner that is not installed', () => {
+    const state = bundle()
+    const target = tempRoot('ramp-install-target-')
+    write(target, 'notes.md', 'customer\n')
+    const before = snapshot(target)
+    for (const operation of ['--uninstall', '--rollback']) {
+      expect(run(state, target, operation).status, operation).not.toBe(0)
+      expect(snapshot(target)).toEqual(before)
+    }
+  })
+
   test('rejects empty TSV fields and cross-owner portable path collisions', () => {
     const forged = bundle()
     const target = tempRoot('ramp-install-target-')

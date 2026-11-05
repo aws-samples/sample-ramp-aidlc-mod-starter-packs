@@ -31,7 +31,7 @@ Removes this bundle's files that no other owner claims; same as: --uninstall
 powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Target C:\work\project -Rollback
 Restores the previous version from its verified backup; same as: --rollback
 #>
-[CmdletBinding()]
+[CmdletBinding(PositionalBinding = $false)]
 param(
   [Parameter(Mandatory = $true)]
   [string]$Target,

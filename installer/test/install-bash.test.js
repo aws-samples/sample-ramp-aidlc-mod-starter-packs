@@ -79,6 +79,18 @@ describe('generated Bash bundle installer', () => {
   })
 
   // PowerShell reads a backslash as a separator on every platform.
+  it('rejects two operation flags and a missing target value as usage errors', () => {
+    const state = bundle()
+    const target = tempRoot('ramp-install-target-')
+    const modes = run(state, target, '--dry-run', '--uninstall')
+    expect(modes.status).toBe(2)
+    expect(modes.stderr).toContain('operation flags are mutually exclusive')
+    const missing = spawnSync('bash', [state.script, '--target'], { encoding: 'utf8', timeout: 20_000 })
+    expect(missing.status).toBe(2)
+    expect(missing.stderr).toContain('--target requires one value')
+    expect(snapshot(target)).toEqual([])
+  })
+
   it('installs into a target whose path holds a backslash', () => {
     const state = bundle()
     const target = join(tempRoot('ramp-install-parent-'), 'back\\slash')
