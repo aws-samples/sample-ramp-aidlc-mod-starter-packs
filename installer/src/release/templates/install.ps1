@@ -1809,10 +1809,15 @@ function Invoke-Installer {
   [Console]::Out.WriteLine("RAMP $($script:Operation) complete")
 }
 
+# Ctrl+C stops the pipeline: finally runs, but neither catch nor the exit
+# below does, so pwsh would report success. install.sh exits 130 there too.
+$script:Interrupted = $true
 try {
   Invoke-Installer
+  $script:Interrupted = $false
 }
 catch {
+  $script:Interrupted = $false
   if (-not $script:Stopping) {
     Write-InstallerError ('error: ' + $_.Exception.Message)
     $script:ExitCode = 1
@@ -1820,5 +1825,9 @@ catch {
 }
 finally {
   Invoke-Cleanup
+  if ($script:Interrupted) {
+    Write-InstallerError 'error: installer interrupted'
+    [Environment]::Exit(130)
+  }
 }
 exit $script:ExitCode

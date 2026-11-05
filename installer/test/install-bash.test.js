@@ -286,6 +286,36 @@ describe('generated Bash bundle installer', () => {
     expect(readFileSync(join(target, 'dir9/file299.md'), 'utf8')).toBe('file 299\n')
   }, 300_000)
 
+  it('exits 130 and restores the target on SIGINT mid-commit', () => {
+    const v1 = bundle({ files: { 'a.txt': 'a 1\n', 'guide.md': 'guide 1\n' } })
+    const v2 = bundle({
+      version: '1.1.0',
+      bundleId: 'demo--kiro--v1.1.0',
+      files: { 'a.txt': 'a 2\n', 'guide.md': 'guide 2\n' },
+    })
+    const target = tempRoot('ramp-install-target-')
+    expectSuccess(run(v1, target))
+    const before = snapshot(target)
+    const realCp = spawnSync('sh', ['-c', 'command -v cp'], { encoding: 'utf8' }).stdout.trim()
+    const shims = tempRoot('ramp-install-shims-')
+    write(shims, 'cp', [
+      '#!/bin/sh',
+      'for last; do :; done',
+      'case "$last" in */guide.md.ramp-install.*) kill -INT "$PPID" ;; esac',
+      `exec ${realCp} "$@"`,
+      '',
+    ].join('\n'), 0o755)
+    const result = spawnSync('bash', [v2.script, '--target', target], {
+      cwd: tempRoot('ramp-install-cwd-'),
+      encoding: 'utf8',
+      env: { ...process.env, PATH: `${shims}:${process.env.PATH}` },
+      shell: false,
+      timeout: 20_000,
+    })
+    expect(result.status).toBe(130)
+    expect(snapshot(target)).toEqual(before)
+  })
+
   it('keeps a committed upgrade when removing transaction staging fails', () => {
     const v1 = bundle({
       version: '1.0.0',

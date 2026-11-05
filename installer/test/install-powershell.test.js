@@ -329,6 +329,25 @@ for (const { command, available, label } of engines) {
       expect(snapshot(target)).toEqual([['late.txt', Buffer.from('customer\n'), expect.any(Number)]])
     }, engine.timeout)
 
+    // Ctrl+C stops the pipeline: finally runs but catch and the final exit do
+    // not, so the helper used to restore the target and still exit 0.
+    it.skipIf(process.platform === 'win32')('exits 130 and restores the target on SIGINT mid-commit', () => {
+      const v1 = bundle({ files: { 'a.txt': 'a 1\n', 'guide.md': 'guide 1\n' } })
+      const v2 = bundle({
+        version: '1.1.0',
+        bundleId: 'demo--kiro--v1.1.0',
+        files: { 'a.txt': 'a 2\n', 'guide.md': 'guide 2\n' },
+      })
+      const target = tempRoot('ramp-install-target-')
+      expectSuccess(run(v1, target))
+      const before = snapshot(target)
+      const result = runAtLine(v2, target, '$script:ActiveCustomerTemp = $temporary',
+        "if ($entry.Path -ceq 'guide.md') { [System.Diagnostics.Process]::Start('kill', ('-INT ' + $PID)).WaitForExit(); Start-Sleep -Seconds 5 }")
+      expect(result.status).toBe(130)
+      expect(result.stderr).toContain('installer interrupted')
+      expect(snapshot(target)).toEqual(before)
+    }, engine.timeout)
+
     it('fails without touching an existing target lock', () => {
       const state = bundle()
       const target = tempRoot('ramp-install-target-')
