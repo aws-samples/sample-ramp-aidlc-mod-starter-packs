@@ -267,10 +267,11 @@ trap 'exit 129' HUP
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
+# Proves an ordinary file before reading, so no caller reads through a link.
 canonical_text_file() {
   local input last
   input="$1"
-  [ -s "$input" ] || return 1
+  [ -f "$input" ] && [ ! -L "$input" ] && [ -s "$input" ] || return 1
   if od -An -tx1 "$input" | grep -Eq '(^|[[:space:]])00([[:space:]]|$)'; then
     return 1
   fi

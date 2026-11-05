@@ -506,6 +506,28 @@ export function registerInstallerContract(engine) {
     })
   })
 
+  test.skipIf(onWindows)('rejects FIFO backup files without opening them', async () => {
+    for (const name of ['install-files.tsv', 'SHA256SUMS']) {
+      const v1 = bundle()
+      const v2 = bundle({
+        version: '1.1.0',
+        bundleId: 'demo--kiro--v1.1.0',
+        files: { 'guide.md': 'new\n' },
+      })
+      const target = tempRoot('ramp-install-target-')
+      expectSuccess(run(v1, target))
+      expectSuccess(run(v2, target))
+      const file = join(target, '.ramp/backups/demo--kiro--standalone/1.0.0', name)
+      rmSync(file)
+      expect(spawnSync('mkfifo', [file]).status).toBe(0)
+      const before = snapshot(target)
+      const result = await engine.runBounded(v2, target, ['--rollback'])
+      expect(result.timedOut, name).toBe(false)
+      expect(result.status, name).not.toBe(0)
+      expect(snapshot(target)).toEqual(before)
+    }
+  }, Math.max(60_000, (engine.timeout ?? 0) * 2))
+
   test('rejects hidden and dangling rollback generations', () => {
     const v1 = bundle()
     const v2 = bundle({
