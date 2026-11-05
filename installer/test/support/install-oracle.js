@@ -213,6 +213,23 @@ export function registerInstallerContract(engine) {
     }
   })
 
+  test('never reads or creates state through a linked state root', () => {
+    const state = bundle()
+    const outside = tempRoot('ramp-install-outside-')
+    mkdirSync(join(outside, 'installed'))
+    const linked = tempRoot('ramp-install-target-')
+    linkDirectory(outside, join(linked, '.ramp'))
+    const dangling = tempRoot('ramp-install-target-')
+    symlinkSync(join(outside, 'missing'), join(dangling, '.ramp'))
+    for (const [target, args] of [[linked, ['--dry-run']], [linked, []], [dangling, []]]) {
+      const before = snapshot(target)
+      const result = run(state, target, ...args)
+      expect(result.status, args.join(' ')).not.toBe(0)
+      expect(snapshot(target)).toEqual(before)
+    }
+    expect(snapshot(outside)).toEqual([['installed', Buffer.from('directory'), expect.any(Number)]])
+  })
+
   test('tells how to recover from a stale lock without removing it', () => {
     const state = bundle()
     const target = tempRoot('ramp-install-target-')

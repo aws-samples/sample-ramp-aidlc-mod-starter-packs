@@ -633,6 +633,9 @@ function Import-InstalledState {
   $script:Claims = New-Object 'System.Collections.Generic.List[object]'
   $script:Origins = New-Object 'System.Collections.Generic.Dictionary[string,string]' ([System.StringComparer]::Ordinal)
   $stateCount = 0
+  if (-not (Test-OrdinaryDirectoryAncestry $script:TargetDir ($script:StateRoot + '/installed'))) {
+    return $false
+  }
   $installedKind = Get-PathKind $script:InstalledDir
   if ($installedKind -cne 'absent') {
     if ($installedKind -cne 'directory') { return $false }

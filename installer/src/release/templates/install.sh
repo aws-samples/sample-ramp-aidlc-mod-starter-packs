@@ -555,6 +555,7 @@ load_state() {
   : > "$all_states"
   : > "$origins"
   state_count=0
+  ordinary_directory_ancestry "$target" "$STATE_ROOT/installed" || return 1
   if lexists "$installed_dir"; then
     [ -d "$installed_dir" ] && [ ! -L "$installed_dir" ] || return 1
     for item in "$installed_dir"/* "$installed_dir"/.[!.]* "$installed_dir"/..?*; do
@@ -1095,7 +1096,7 @@ if [ "$operation" = "dry-run" ]; then
   exit 0
 fi
 
-if [ ! -e "$target/$STATE_ROOT" ]; then
+if ! lexists "$target/$STATE_ROOT"; then
   mkdir "$target/$STATE_ROOT"
   ramp_created=1
 else
