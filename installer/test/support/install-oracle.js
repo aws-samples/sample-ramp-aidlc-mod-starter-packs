@@ -173,6 +173,16 @@ export function registerInstallerContract(engine) {
       .toMatch(/z\/conflict\.txt/)
   })
 
+  // sha256sum escapes such a name and prefixes its hash with a backslash.
+  test.skipIf(onWindows)('installs into a target whose path holds a newline', () => {
+    const state = bundle()
+    const target = join(tempRoot('ramp-install-parent-'), 'new\nline')
+    mkdirSync(target)
+    expectSuccess(run(state, target))
+    expect(readFileSync(join(target, 'guide.md'), 'utf8')).toBe('guide\n')
+    expectSuccess(run(state, target, '--uninstall'))
+  })
+
   test('rejects a tampered source before target writes', () => {
     const state = bundle()
     const target = tempRoot('ramp-install-target-')

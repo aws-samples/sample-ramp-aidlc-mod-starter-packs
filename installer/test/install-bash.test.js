@@ -78,6 +78,16 @@ describe('generated Bash bundle installer', () => {
     expect(readFileSync(join(target, 'guide.md'), 'utf8')).toBe('guide 1.0.0\n')
   })
 
+  // PowerShell reads a backslash as a separator on every platform.
+  it('installs into a target whose path holds a backslash', () => {
+    const state = bundle()
+    const target = join(tempRoot('ramp-install-parent-'), 'back\\slash')
+    mkdirSync(target)
+    expectSuccess(run(state, target))
+    expect(readFileSync(join(target, 'guide.md'), 'utf8')).toBe('guide\n')
+    expectSuccess(run(state, target, '--uninstall'))
+  })
+
   it('installs into relative targets that look like cd options or CDPATH names', () => {
     const state = bundle()
     const parent = tempRoot('ramp-install-parent-')

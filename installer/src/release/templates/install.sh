@@ -182,10 +182,12 @@ ordinary_directory_path "$overlay_dir" || {
   exit 1
 }
 
+# Hashing stdin keeps a backslash or newline in the name from escaping the
+# output, which would prefix the hash with a backslash.
 if command -v sha256sum >/dev/null 2>&1; then
-  hash_file() { sha256sum "$1" | awk '{print $1}'; }
+  hash_file() { sha256sum < "$1" | awk '{print $1}'; }
 elif command -v shasum >/dev/null 2>&1; then
-  hash_file() { shasum -a 256 "$1" | awk '{print $1}'; }
+  hash_file() { shasum -a 256 < "$1" | awk '{print $1}'; }
 else
   echo "error: sha256sum or shasum is required" >&2
   exit 1
