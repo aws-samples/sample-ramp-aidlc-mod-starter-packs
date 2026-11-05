@@ -1,0 +1,329 @@
+import { spawn, spawnSync } from 'node:child_process'
+import { existsSync, mkdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { describe, expect, it } from 'vitest'
+import { renderInstallers } from '../src/release/installers.js'
+import {
+  bundle,
+  expectSuccess,
+  registerInstallerContract,
+  snapshot,
+  tempRoot,
+  templates,
+} from './support/install-oracle.js'
+
+const bashTemplate = templates.bash.toString('utf8')
+const template = templates.powershell.toString('utf8')
+const rendered = renderInstallers({
+  manifestName: 'install-files.tsv',
+  overlayRoot: 'overlay',
+  conflictName: 'install-conflicts.txt',
+  stateRoot: '.ramp',
+  templates,
+}).powershell
+
+// Script text without comments or string literals, for construct checks.
+function codeOnly(text) {
+  return text
+    .replace(/<#[\s\S]*?#>/g, '')
+    .replace(/'[^'\n]*'/g, "''")
+    .replace(/"[^"\n]*"/g, '""')
+    .replace(/#.*$/gm, '')
+}
+
+// install.sh messages that only its own argument parser or tool lookup prints.
+const BASH_ONLY_MESSAGES = new Set([
+  'error: --target requires one value',
+  'error: unknown argument: ',
+  'error: sha256sum or shasum is required',
+])
+
+describe('generated PowerShell bundle installer: static contract', () => {
+  it('renders the layout into single-quoted values as canonical ASCII LF text', () => {
+    expect(rendered).toContain("$ManifestName = 'install-files.tsv'")
+    expect(rendered).toContain("$OverlayRoot = 'overlay'")
+    expect(rendered).toContain("$ConflictName = 'install-conflicts.txt'")
+    expect(rendered).toContain("$StateRoot = '.ramp'")
+    expect(rendered).not.toMatch(/__[A-Z][A-Z0-9_]+__/)
+    expect(rendered.endsWith('\n') && !rendered.endsWith('\n\n')).toBe(true)
+    // Windows PowerShell 5.1 reads a BOM-less script as ANSI.
+    expect([...templates.powershell].every((byte) => byte === 0x0a || (byte >= 0x20 && byte <= 0x7e)))
+      .toBe(true)
+  })
+
+  it('declares the Bash operations as parameters with help examples', () => {
+    expect(template).toMatch(/\[Parameter\(Mandatory = \$true\)\]\s*\[string\]\$Target,/)
+    for (const name of ['DryRun', 'Uninstall', 'Rollback']) {
+      expect(template).toContain(`[switch]$${name}`)
+    }
+    for (const flag of ['--dry-run', '--uninstall', '--rollback', 'install.sh --target']) {
+      expect(template).toContain(flag)
+    }
+    expect(template.match(/^\.EXAMPLE$/gm)).toHaveLength(4)
+  })
+
+  it('is a real installer rather than the execution-gate placeholder', () => {
+    expect(template).not.toContain('Windows execution gate')
+    expect(template).toContain('Restore-Transaction')
+    expect(template).toContain('Invoke-Preflight')
+  })
+
+  it('fails closed with strict mode, Stop errors, and a FullLanguage guard', () => {
+    expect(template).toMatch(/^Set-StrictMode -Version 2\.0$/m)
+    expect(template).toMatch(/^\$ErrorActionPreference = 'Stop'$/m)
+    expect(template).toContain('$ExecutionContext.SessionState.LanguageMode')
+  })
+
+  it('avoids path cmdlets that follow links, drop fields, or rewrite encodings', () => {
+    const code = codeOnly(template)
+    for (const banned of [
+      'Test-Path', 'Resolve-Path', 'Get-Content', 'Set-Content', 'Out-File',
+      'Copy-Item', 'Move-Item', 'Remove-Item', 'Get-ChildItem', 'New-Item',
+      '-split', 'Sort-Object',
+    ]) {
+      expect(code, banned).not.toContain(banned)
+    }
+    expect(code).not.toMatch(/Get-Item(?! -Force -LiteralPath)/)
+  })
+
+  it('uses no network, external tools, dynamic code, or PowerShell 7-only syntax', () => {
+    const code = codeOnly(template)
+    for (const banned of [
+      'Invoke-WebRequest', 'Invoke-RestMethod', 'WebClient', 'HttpClient', 'BitsTransfer',
+      'Install-Module', 'Install-Package', 'Invoke-Expression', 'Add-Type', 'Start-Process',
+      'curl', 'wget', 'winget', 'choco', 'node', 'npm', 'git ',
+      '??', '?.', '&&', '||', '-Parallel', '-AsHashtable', '$IsWindows', '$IsLinux', '$IsMacOS',
+    ]) {
+      expect(code, banned).not.toContain(banned)
+    }
+    expect(code).not.toMatch(/\biex\b/)
+  })
+
+  it('hashes with lowercase SHA-256 only', () => {
+    expect(template).toContain(
+      '(Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash.ToLowerInvariant()',
+    )
+    expect(template).not.toMatch(/MD5|SHA1\b|SHA384|SHA512/)
+    expect(template.match(/Get-FileHash/g)).toHaveLength(1)
+  })
+
+  it('checks reparse points lexically and compares paths ordinally', () => {
+    expect(template).toContain('[System.IO.File]::GetAttributes($Path)')
+    expect(template).toContain('[System.IO.FileAttributes]::ReparsePoint')
+    expect(template).toContain('[System.StringComparer]::Ordinal')
+    expect(template).toContain('[string]::CompareOrdinal')
+    expect(template).toContain('[System.StringComparison]::OrdinalIgnoreCase')
+  })
+
+  it('takes the target lock with an atomic exclusive create', () => {
+    expect(template).toContain("'install.lock'")
+    expect(template).toContain('[System.IO.FileMode]::CreateNew')
+    expect(template).toContain('[System.IO.FileShare]::None')
+  })
+
+  it('shares every state literal, conflict reason, and error message with install.sh', () => {
+    for (const literal of [
+      'RAMP-INSTALL-MANIFEST', 'RAMP-INSTALL-ORIGINS', 'RAMP-INSTALL-BACKUP',
+      "'installed'", "'.origins.tsv'", "'backups'", "'.transaction.'",
+      "'install-files.tsv'", "'origins.tsv'", "'backup-meta.tsv'", "'SHA256SUMS'",
+      "'owner'", "'from-bundle'", "'from-version'", "'to-bundle'", "'to-version'",
+      "'managed'", "'external'",
+    ]) {
+      expect(template, literal).toContain(literal)
+    }
+    const reasons = [...bashTemplate.matchAll(/add_conflict "[^"]*" "([^"]+)"/g)].map((match) => match[1])
+    expect(reasons.length).toBeGreaterThan(10)
+    for (const reason of reasons) expect(template, reason).toContain(`'${reason}'`)
+    const messages = [...bashTemplate.matchAll(/echo "(error: [^"$]*)/g)]
+      .map((match) => match[1])
+      .filter((message) => !BASH_ONLY_MESSAGES.has(message))
+    expect(messages.length).toBeGreaterThan(10)
+    for (const message of messages) expect(template, message).toContain(message)
+  })
+
+  it('marks a commit final before removing transaction staging', () => {
+    const tail = template.slice(template.lastIndexOf('# The commit is final'))
+    const finished = tail.indexOf('$script:MutationStarted = $false')
+    const removed = tail.indexOf('[System.IO.Directory]::Delete($script:Txn, $true)')
+    expect(finished).toBeGreaterThan(0)
+    expect(removed).toBeGreaterThan(finished)
+  })
+})
+
+function probePowerShell(command, requireDesktop) {
+  const result = spawnSync(
+    command,
+    [
+      '-NoLogo',
+      '-NoProfile',
+      '-NonInteractive',
+      '-Command',
+      '$edition = $PSVersionTable.PSEdition; if (-not $edition) { $edition = "Desktop" }; Write-Output ($edition + ":" + $PSVersionTable.PSVersion.Major)',
+    ],
+    { encoding: 'utf8', shell: false },
+  )
+  const available = !result.error &&
+    result.status === 0 &&
+    (!requireDesktop || /^Desktop:5\s*$/i.test(result.stdout))
+  return { command, available }
+}
+
+const engines = [
+  { ...probePowerShell('powershell.exe', true), label: 'powershell.exe 5.1' },
+  { ...probePowerShell('powershell', true), label: 'powershell 5.1' },
+  { ...probePowerShell('pwsh', false), label: 'pwsh' },
+]
+
+// install.sh flags map to PowerShell parameters: --dry-run becomes -DryRun.
+function powerShellArguments(command, state, target, args) {
+  const mapped = args.map((arg) => (arg.startsWith('--')
+    ? `-${arg.slice(2).split('-').map((word) => word[0].toUpperCase() + word.slice(1)).join('')}`
+    : arg))
+  return [
+    '-NoLogo',
+    '-NoProfile',
+    '-NonInteractive',
+    ...(process.platform === 'win32' ? ['-ExecutionPolicy', 'Bypass'] : []),
+    '-File',
+    state.powershell,
+    '-Target',
+    target,
+    ...mapped,
+  ]
+}
+
+function powerShellEngine(command) {
+  return {
+    timeout: 120_000,
+    run(state, target, ...args) {
+      return spawnSync(command, powerShellArguments(command, state, target, args), {
+        cwd: tempRoot('ramp-install-cwd-'),
+        encoding: 'utf8',
+        shell: false,
+        timeout: 60_000,
+      })
+    },
+    runBounded(state, target, args, ms = 30_000) {
+      return new Promise((resolve) => {
+        const child = spawn(command, powerShellArguments(command, state, target, args), {
+          cwd: tempRoot('ramp-install-cwd-'),
+          detached: process.platform !== 'win32',
+          stdio: ['ignore', 'pipe', 'pipe'],
+        })
+        let stderr = ''
+        let timedOut = false
+        child.stdout.resume()
+        child.stderr.on('data', (chunk) => { stderr += chunk })
+        const timer = setTimeout(() => {
+          timedOut = true
+          if (process.platform === 'win32') child.kill('SIGKILL')
+          else process.kill(-child.pid, 'SIGKILL')
+        }, ms)
+        child.on('close', (status) => {
+          clearTimeout(timer)
+          resolve({ status, stderr, timedOut })
+        })
+      })
+    },
+  }
+}
+
+function runBash(state, target, ...args) {
+  return spawnSync('bash', [state.script, '--target', target, ...args], {
+    cwd: tempRoot('ramp-install-cwd-'),
+    encoding: 'utf8',
+    shell: false,
+    timeout: 20_000,
+  })
+}
+
+const bashAvailable = process.platform !== 'win32' &&
+  !spawnSync('bash', ['-c', 'true']).error
+
+for (const { command, available, label } of engines) {
+  describe.skipIf(!available)(`generated PowerShell bundle installer: ${label}`, () => {
+    const engine = powerShellEngine(command)
+    const run = engine.run
+
+    it('parses without errors', () => {
+      const script = bundle().powershell
+      const result = spawnSync(command, [
+        '-NoLogo',
+        '-NoProfile',
+        '-NonInteractive',
+        '-Command',
+        `$tokens = $null; $errors = $null; [void][System.Management.Automation.Language.Parser]::ParseFile('${script.replace(/'/g, "''")}', [ref]$tokens, [ref]$errors); $errors | ForEach-Object { $_.Message }; exit @($errors).Count`,
+      ], { encoding: 'utf8', shell: false })
+      expect(result.status, result.stdout).toBe(0)
+    }, engine.timeout)
+
+    registerInstallerContract(engine)
+
+    it('rejects two operation flags as a usage error', () => {
+      const result = run(bundle(), tempRoot('ramp-install-target-'), '--dry-run', '--uninstall')
+      expect(result.status).toBe(2)
+      expect(result.stderr).toContain('operation flags are mutually exclusive')
+    }, engine.timeout)
+
+    it('fails without touching an existing target lock', () => {
+      const state = bundle()
+      const target = tempRoot('ramp-install-target-')
+      mkdirSync(join(target, '.ramp/install.lock'), { recursive: true })
+      const before = snapshot(target)
+      const result = run(state, target)
+      expect(result.status).not.toBe(0)
+      expect(result.stderr).toContain('another RAMP installer holds the target lock')
+      expect(snapshot(target)).toEqual(before)
+    }, engine.timeout)
+
+    describe.skipIf(!bashAvailable)('interoperates with install.sh', () => {
+      const versions = () => ({
+        v1: bundle({
+          files: {
+            'docs/guide.md': 'guide\n',
+            'scripts/run.sh': { bytes: '#!/bin/sh\n', mode: 0o100755 },
+            'removed.txt': 'remove\n',
+          },
+        }),
+        v2: bundle({
+          version: '1.1.0',
+          bundleId: 'demo--kiro--v1.1.0',
+          files: {
+            'added/new.txt': 'add\n',
+            'docs/guide.md': 'guide v2\n',
+            'scripts/run.sh': { bytes: '#!/bin/sh\n', mode: 0o100755 },
+          },
+        }),
+      })
+
+      it('writes the same target bytes and modes as install.sh', () => {
+        const { v1, v2 } = versions()
+        const viaBash = tempRoot('ramp-install-target-')
+        const viaPowerShell = tempRoot('ramp-install-target-')
+        for (const [state, args] of [[v1, []], [v2, []], [v2, ['--rollback']]]) {
+          expectSuccess(runBash(state, viaBash, ...args))
+          expectSuccess(run(state, viaPowerShell, ...args))
+          expect(snapshot(viaPowerShell)).toEqual(snapshot(viaBash))
+        }
+        expect(readFileSync(join(v1.root, 'install-files.tsv'), 'utf8'))
+          .toBe(readFileSync(join(viaPowerShell, '.ramp/installed/demo--kiro--standalone.tsv'), 'utf8'))
+      }, engine.timeout)
+
+      it('continues an install.sh lifecycle and hands it back', () => {
+        const { v1, v2 } = versions()
+        const target = tempRoot('ramp-install-target-')
+        expectSuccess(runBash(v1, target))
+        expectSuccess(run(v2, target))
+        expectSuccess(runBash(v2, target, '--rollback'))
+        expect(readFileSync(join(target, 'docs/guide.md'), 'utf8')).toBe('guide\n')
+        expectSuccess(run(v1, target, '--uninstall'))
+        expect(existsSync(join(target, 'docs'))).toBe(false)
+        expect(snapshot(target)).toEqual([
+          ['.ramp', Buffer.from('directory'), expect.any(Number)],
+          ['.ramp/backups', Buffer.from('directory'), expect.any(Number)],
+          ['.ramp/installed', Buffer.from('directory'), expect.any(Number)],
+        ])
+      }, engine.timeout)
+    })
+  })
+}
