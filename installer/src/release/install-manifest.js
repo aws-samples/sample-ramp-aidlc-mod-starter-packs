@@ -68,6 +68,20 @@ function assertNoCollisions(files) {
     }
     folded.set(key, file.path)
   }
+  // A case-insensitive filesystem would merge Dir/ and dir/ into one directory.
+  const directories = new Map()
+  for (const file of files) {
+    let separator = file.path.indexOf('/')
+    while (separator !== -1) {
+      const directory = file.path.slice(0, separator)
+      const previous = directories.get(directory.toLowerCase())
+      if (previous !== undefined && previous !== directory) {
+        throw new Error(`case-colliding install directories: ${previous}, ${directory}`)
+      }
+      directories.set(directory.toLowerCase(), directory)
+      separator = file.path.indexOf('/', separator + 1)
+    }
+  }
   for (const [path, original] of folded) {
     let separator = path.indexOf('/')
     while (separator !== -1) {

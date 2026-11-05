@@ -412,6 +412,34 @@ export function registerInstallerContract(engine) {
     expect(snapshot(target)).toEqual([])
   })
 
+  // A case-insensitive filesystem merges Dir/ and dir/, so the backup listing
+  // could never match the manifest again.
+  test('rejects one manifest spelling a directory in two cases', () => {
+    const state = bundle()
+    const target = tempRoot('ramp-install-target-')
+    const manifest = join(state.root, 'install-files.tsv')
+    const hash = readFileSync(manifest, 'utf8').match(/^file\t([0-9a-f]{64})\t/m)?.[1]
+    expect(hash).toBeTruthy()
+    write(state.root, 'overlay/Dir/a.md', 'guide\n')
+    write(state.root, 'overlay/dir/b.md', 'guide\n')
+    writeFileSync(
+      manifest,
+      [
+        'RAMP-INSTALL-MANIFEST\t1',
+        'bundle\tdemo--kiro--v1.0.0',
+        'owner\tdemo--kiro--standalone',
+        'version\t1.0.0',
+        `file\t${hash}\t0644\tDir/a.md`,
+        `file\t${hash}\t0644\tdir/b.md`,
+        '',
+      ].join('\n'),
+    )
+    const result = run(state, target)
+    expect(result.status).not.toBe(0)
+    expect(result.stderr).toContain('invalid install manifest')
+    expect(snapshot(target)).toEqual([])
+  })
+
   describe('rollback-only destinations get the same safety checks', () => {
     const v1 = () => bundle({ files: { 'keep.txt': 'keep\n', 'nested/removed.txt': 'remove\n' } })
     const v2 = () => bundle({

@@ -300,6 +300,21 @@ folded_paths_have_no_ancestors() {
   ' "$1"
 }
 
+# A case-insensitive filesystem would merge Dir/ and dir/ into one directory,
+# so every folded directory prefix of a parsed manifest has one spelling.
+directory_prefixes_fold_uniquely() {
+  awk -F '\t' '
+    {
+      directory = $3
+      while (sub("/[^/]+$", "", directory)) {
+        key = tolower(directory)
+        if ((key in spelled) && spelled[key] != directory) exit 1
+        spelled[key] = directory
+      }
+    }
+  ' "$1"
+}
+
 parse_manifest() {
   local input output expected_owner line_no previous lower_file line
   local one two three four five folded field_count
@@ -376,6 +391,7 @@ EOF
     esac
   done < "$input"
   folded_paths_have_no_ancestors "$lower_file" || return 1
+  directory_prefixes_fold_uniquely "$output" || return 1
   rm -f "$lower_file"
   [ "$line_no" -ge 5 ] && [ -s "$output" ] || return 1
   [ -z "$expected_owner" ] || [ "$parsed_owner" = "$expected_owner" ] || return 1

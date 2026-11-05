@@ -49,6 +49,7 @@ describe('install ownership manifest', () => {
     ['duplicate path', [entry('overlay/a', 'x'), entry('overlay/a', 'x')]],
     ['case collision', [entry('overlay/A', 'x'), entry('overlay/a', 'x')]],
     ['prefix collision', [entry('overlay/a', 'x'), entry('overlay/a/b', 'x')]],
+    ['mixed-case directory prefix', [entry('overlay/Dir/a', 'x'), entry('overlay/dir/b', 'x')]],
     [
       'non-adjacent folded prefix collision',
       [

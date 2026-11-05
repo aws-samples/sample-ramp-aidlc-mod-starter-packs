@@ -381,6 +381,7 @@ function Read-InstallManifest {
   if ($null -eq $lines -or $lines.Length -lt 5) { return $null }
   $records = New-Object 'System.Collections.Generic.List[object]'
   $folded = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::Ordinal)
+  $directories = New-Object 'System.Collections.Generic.Dictionary[string,string]' ([System.StringComparer]::Ordinal)
   $bundle = ''
   $owner = ''
   $version = ''
@@ -429,6 +430,14 @@ function Read-InstallManifest {
         if ($path.StartsWith($previous + '/', [System.StringComparison]::Ordinal)) { return $null }
       }
       if (-not $folded.Add($path.ToLowerInvariant())) { return $null }
+      # A case-insensitive filesystem would merge Dir/ and dir/ into one directory.
+      $directory = Get-ParentRelative $path
+      while ($directory.Length -gt 0) {
+        $key = $directory.ToLowerInvariant()
+        if ($directories.ContainsKey($key) -and $directories[$key] -cne $directory) { return $null }
+        $directories[$key] = $directory
+        $directory = Get-ParentRelative $directory
+      }
       $records.Add([pscustomobject]@{ Hash = $fields[1]; Mode = $fields[2]; Path = $path })
       $previous = $path
     }
