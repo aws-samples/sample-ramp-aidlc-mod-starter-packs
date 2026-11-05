@@ -544,6 +544,49 @@ describe('generated Bash bundle installer', () => {
     expect(snapshot(target)).toEqual(before)
   })
 
+  it('keeps a committed upgrade when removing transaction staging fails', () => {
+    const v1 = bundle({
+      version: '1.0.0',
+      files: { 'changed.txt': 'old\n', 'removed.txt': 'remove\n' },
+    })
+    const v2 = bundle({
+      version: '1.1.0',
+      bundleId: 'demo--kiro--v1.1.0',
+      files: { 'added.txt': 'add\n', 'changed.txt': 'new\n' },
+    })
+    const target = tempRoot('ramp-install-target-')
+    expectSuccess(run(v1, target))
+    // An rm that fails only on the transaction directory stands in for a
+    // signal or set -e exit after the commit and before staging is gone.
+    const realRm = spawnSync('bash', ['-c', 'command -v rm'], { encoding: 'utf8' }).stdout.trim()
+    const shims = tempRoot('ramp-install-shims-')
+    write(shims, 'rm', [
+      '#!/bin/bash',
+      'for arg in "$@"; do',
+      '  [[ $arg =~ /\\.ramp/\\.transaction\\.[0-9]+$ ]] && exit 1',
+      'done',
+      `exec '${realRm}' "$@"`,
+      '',
+    ].join('\n'), 0o755)
+    const result = spawnSync('bash', [v2.script, '--target', target], {
+      cwd: tempRoot('ramp-install-cwd-'),
+      encoding: 'utf8',
+      env: { ...process.env, PATH: `${shims}:${process.env.PATH}` },
+      shell: false,
+      timeout: 20_000,
+    })
+
+    // The committed files and state come first: the bug restores over them.
+    expect(readFileSync(join(target, 'changed.txt'), 'utf8')).toBe('new\n')
+    expect(readFileSync(join(target, 'added.txt'), 'utf8')).toBe('add\n')
+    expect(existsSync(join(target, 'removed.txt'))).toBe(false)
+    expect(readFileSync(join(target, '.ramp/installed/demo--kiro--standalone.tsv'), 'utf8'))
+      .toContain('1.1.0')
+    expect(existsSync(join(target, '.ramp/backups/demo--kiro--standalone/1.0.0/install-files.tsv'))).toBe(true)
+    expectSuccess(result)
+    expect(result.stderr).toContain('could not remove transaction staging')
+  })
+
   // Root ignores the read-only directory mode, so the forced failure cannot occur.
   it.skipIf(process.getuid?.() === 0)('removes transaction staging after a recoverable state-publish failure', () => {
     const first = bundle({ owner: 'owner-first' })

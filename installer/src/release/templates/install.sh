@@ -1422,10 +1422,13 @@ if [ "$commit_failed" -ne 0 ]; then
   exit 1
 fi
 
-rm -rf "$txn"
+# The commit is final: mark it first so an exit or signal from here on
+# never restores the transaction over it.
+mutation_started=0
+rm -rf "$txn" ||
+  echo "warning: could not remove transaction staging $txn" >&2
 txn=""
 transaction_active=0
-mutation_started=0
 while IFS="$TAB" read -r action source_kind mode hash path; do
   [ "$action" = "remove" ] || continue
   directory="$(dirname "$target/$path")"
