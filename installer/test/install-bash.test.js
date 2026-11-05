@@ -237,6 +237,43 @@ describe('generated Bash bundle installer', () => {
       .toContain('1.0.0')
   })
 
+  // GNU stat reads a BSD-style '%Lp' format as a file operand.
+  it('installs from a working directory that holds a file named %Lp', () => {
+    const state = bundle()
+    const target = tempRoot('ramp-install-target-')
+    const cwd = tempRoot('ramp-install-cwd-')
+    write(cwd, '%Lp', 'decoy\n')
+    const result = spawnSync('bash', [state.script, '--target', target], {
+      cwd,
+      encoding: 'utf8',
+      shell: false,
+      timeout: 20_000,
+    })
+    expectSuccess(result)
+    expectSuccess(run(state, target, '--uninstall'))
+  })
+
+  // Per-path subprocesses made each run grow with files times installed
+  // paths: 300 files took minutes. Every run here has a 60 s budget, which
+  // the old helper missed at 100 files and the current one meets with room.
+  it('installs, reinstalls, and shares a 300-file bundle within a time budget', () => {
+    const files = Object.fromEntries(Array.from({ length: 300 }, (_, i) => [`dir${i % 10}/file${i}.md`, `file ${i}\n`]))
+    const first = bundle({ files })
+    const second = bundle({ owner: 'other--kiro--standalone', bundleId: 'other--kiro--v1.0.0', files })
+    const target = tempRoot('ramp-install-target-')
+    const timed = (state, ...args) => spawnSync('bash', [state.script, '--target', target, ...args], {
+      cwd: tempRoot('ramp-install-cwd-'),
+      encoding: 'utf8',
+      shell: false,
+      timeout: 60_000,
+    })
+    expectSuccess(timed(first))
+    expectSuccess(timed(first))
+    expectSuccess(timed(second))
+    expectSuccess(timed(first, '--uninstall'))
+    expect(readFileSync(join(target, 'dir9/file299.md'), 'utf8')).toBe('file 299\n')
+  }, 300_000)
+
   it('keeps a committed upgrade when removing transaction staging fails', () => {
     const v1 = bundle({
       version: '1.0.0',

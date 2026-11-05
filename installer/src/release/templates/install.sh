@@ -64,20 +64,23 @@ lexists() {
   [ -e "$1" ] || [ -L "$1" ]
 }
 
+# Pure shell tests: a subprocess per segment made large bundles take minutes.
+# LC_ALL=C makes ${#} count bytes and the bracket range compare bytes, so
+# [! -~] matches control characters, DEL and every non-ASCII byte.
 portable_segment() {
-  local segment base lower
+  local segment base
   segment="$1"
   [ -n "$segment" ] &&
     [ "$segment" != "." ] &&
     [ "$segment" != ".." ] || return 1
-  [ "$(printf '%s' "$segment" | wc -c | tr -d ' ')" -le 255 ] || return 1
-  printf '%s' "$segment" | grep -q '[[:cntrl:]]' && return 1
-  printf '%s' "$segment" | grep -q '[^ -~]' && return 1
-  printf '%s' "$segment" | grep -q '[<>:"\\|?*]' && return 1
+  [ "${#segment}" -le 255 ] || return 1
+  case "$segment" in *[!\ -~]*|*[\<\>:\"\\\|\?\*]*) return 1 ;; esac
   case "$segment" in \ *|*[.\ ]) return 1 ;; esac
   base="${segment%%.*}"
-  lower="$(printf '%s' "$base" | tr 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' 'abcdefghijklmnopqrstuvwxyz')"
-  case "$lower" in con|prn|aux|nul|clock\$|conin\$|conout\$|com[1-9]|lpt[1-9]) return 1 ;; esac
+  case "$base" in
+    [Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Ll][Oo][Cc][Kk]\$) return 1 ;;
+    [Cc][Oo][Nn][Ii][Nn]\$|[Cc][Oo][Nn][Oo][Uu][Tt]\$|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9]) return 1 ;;
+  esac
   return 0
 }
 
@@ -85,7 +88,7 @@ portable_path() {
   local candidate rest part depth
   candidate="$1"
   [ -n "$candidate" ] || return 1
-  [ "$(printf '%s' "$candidate" | wc -c | tr -d ' ')" -le 1024 ] || return 1
+  [ "${#candidate}" -le 1024 ] || return 1
   case "$candidate" in /*|*\\*) return 1 ;; esac
   rest="$candidate"
   depth=0
@@ -207,13 +210,14 @@ else
   exit 1
 fi
 
-mode_file() {
-  if stat -f '%Lp' "$1" >/dev/null 2>&1; then
-    stat -f '%Lp' "$1"
-  else
-    stat -c '%a' "$1"
-  fi
-}
+# Pick the stat dialect once, on a fixed path: GNU stat reads -f's '%Lp' as
+# a file operand, so probing each file failed whenever the caller's working
+# directory held a file named %Lp.
+if stat -c '%a' / >/dev/null 2>&1; then
+  mode_file() { stat -c '%a' -- "$1"; }
+else
+  mode_file() { stat -f '%Lp' -- "$1"; }
+fi
 
 work="$(mktemp -d "${TMPDIR:-/tmp}/ramp-install.XXXXXX")" || exit 1
 bundle_records="$work/bundle.tsv"
@@ -335,7 +339,7 @@ directory_prefixes_fold_uniquely() {
 
 parse_manifest() {
   local input output expected_owner line_no previous lower_file line
-  local one two three four five folded field_count
+  local one two three four five tabs field_count
   input="$1"
   output="$2"
   expected_owner="${3:-}"
@@ -351,7 +355,8 @@ parse_manifest() {
   while IFS= read -r line || [ -n "$line" ]; do
     line_no=$((line_no + 1))
     case "$line" in *"$CR"*) return 1 ;; esac
-    field_count="$(printf '%s\n' "$line" | awk -F '\t' '{print NF}')"
+    tabs="${line//[!$TAB]/}"
+    field_count=$((${#tabs} + 1))
     if [ "$line_no" -le 4 ]; then
       [ "$field_count" -eq 2 ] || return 1
     else
@@ -392,7 +397,7 @@ EOF
       *)
         [ "$one" = "file" ] &&
           [ "${#two}" -eq 64 ] &&
-          [ -z "$(printf '%s' "$two" | tr -d '0-9a-f')" ] &&
+          case "$two" in *[!0-9a-f]*) false ;; esac &&
           { [ "$three" = "0644" ] || [ "$three" = "0755" ]; } &&
           portable_path "$four" &&
           [ -z "${five:-}" ] || return 1
@@ -400,14 +405,14 @@ EOF
           [ "$previous" \< "$four" ] || return 1
           case "$four" in "$previous"/*) return 1 ;; esac
         fi
-        folded="$(printf '%s' "$four" | tr 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' 'abcdefghijklmnopqrstuvwxyz')"
-        grep -Fqx -- "$folded" "$lower_file" && return 1
-        printf '%s\n' "$folded" >> "$lower_file"
         printf '%s\t%s\t%s\n' "$two" "$three" "$four" >> "$output"
         previous="$four"
         ;;
     esac
   done < "$input"
+  # Paths are printable ASCII here, so tolower folds exactly as tr would.
+  awk -F '\t' '{ print tolower($3) }' "$output" > "$lower_file"
+  [ -z "$(sort "$lower_file" | uniq -d)" ] || return 1
   folded_paths_have_no_ancestors "$lower_file" || return 1
   directory_prefixes_fold_uniquely "$output" || return 1
   rm -f "$lower_file"
@@ -417,7 +422,7 @@ EOF
 }
 
 parse_origins() {
-  local input output line_no previous line one two three four field_count
+  local input output line_no previous line one two three four tabs field_count
   input="$1"
   output="$2"
   canonical_text_file "$input" || return 1
@@ -427,7 +432,8 @@ parse_origins() {
   while IFS= read -r line || [ -n "$line" ]; do
     line_no=$((line_no + 1))
     case "$line" in *"$CR"*) return 1 ;; esac
-    field_count="$(printf '%s\n' "$line" | awk -F '\t' '{print NF}')"
+    tabs="${line//[!$TAB]/}"
+    field_count=$((${#tabs} + 1))
     if [ "$line_no" -eq 1 ]; then
       [ "$field_count" -eq 2 ] || return 1
     else
@@ -527,21 +533,36 @@ origin_for() {
   awk -F '\t' -v p="$1" '$2 == p { print $1; exit }' "$origins"
 }
 
+# Lists the paths in field 3 of $1 that differ from an installed path but
+# fold to it, or to one of its ancestors or descendants. One awk pass per
+# plan replaces a subprocess per pair of paths, which grew quadratically.
+colliding_paths() {
+  awk -F '\t' '
+    FILENAME == ARGV[1] {
+      if ($4 in seen) next
+      seen[$4] = 1
+      folded = tolower($4)
+      spellings[folded]++
+      ancestor = folded
+      while (sub("/[^/]+$", "", ancestor)) below[ancestor] = 1
+      next
+    }
+    {
+      folded = tolower($3)
+      same = (folded in spellings) ? spellings[folded] : 0
+      hit = (same > (($3 in seen) ? 1 : 0)) || (folded in below)
+      ancestor = folded
+      while (!hit && sub("/[^/]+$", "", ancestor)) {
+        if (ancestor in spellings) hit = 1
+      }
+      if (hit) print $3
+    }
+  ' "$all_states" "$1"
+}
+
+# $collisions holds the colliding_paths output of the current plan.
 portable_collision_with_states() {
-  local desired other desired_folded other_folded
-  desired="$1"
-  desired_folded="$(printf '%s' "$desired" |
-    tr 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' 'abcdefghijklmnopqrstuvwxyz')"
-  while IFS= read -r other; do
-    [ "$other" != "$desired" ] || continue
-    other_folded="$(printf '%s' "$other" |
-      tr 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' 'abcdefghijklmnopqrstuvwxyz')"
-    if [ "$other_folded" = "$desired_folded" ]; then return 0; fi
-    case "$desired_folded" in "$other_folded"/*) return 0 ;; esac
-    case "$other_folded" in "$desired_folded"/*) return 0 ;; esac
-  done <<EOF
-$(awk -F '\t' '{print $4}' "$all_states" | sort -u)
-EOF
+  case "$LF$collisions$LF" in *"$LF$1$LF"*) return 0 ;; esac
   return 1
 }
 
@@ -679,6 +700,7 @@ prepare_install_plan() {
       add_conflict "$owner" "same version has different manifest"
     fi
   fi
+  collisions="$(colliding_paths "$bundle_records")"
   while IFS="$TAB" read -r desired_hash desired_mode path; do
     if portable_collision_with_states "$path"; then
       add_conflict "$path" "portable path collides with another owner"
@@ -888,7 +910,7 @@ find_backup() {
 
 verify_backup() {
   local previous current_bundle current_version previous_bundle previous_version
-  local line expected path file prior_path field_count
+  local line expected path file prior_path tabs field_count
   local actual_files listed_files expected_files expected_mode
   previous="$1"
   current_bundle="$2"
@@ -911,7 +933,8 @@ verify_backup() {
   while IFS= read -r line || [ -n "$line" ]; do
     meta_line=$((meta_line + 1))
     case "$line" in *"$CR"*) return 1 ;; esac
-    field_count="$(printf '%s\n' "$line" | awk -F '\t' '{print NF}')"
+    tabs="${line//[!$TAB]/}"
+    field_count=$((${#tabs} + 1))
     [ "$field_count" -eq 2 ] || return 1
     IFS="$TAB" read -r one two three <<EOF
 $line
@@ -1008,6 +1031,7 @@ prepare_rollback_plan() {
         add_conflict "$path" "rollback origin mismatch"
     fi
   done < "$previous"
+  collisions="$(colliding_paths "$previous")"
   while IFS="$TAB" read -r hash mode path; do
     source="$rollback_dir/overlay/$path"
     ordinary_ancestry "$rollback_dir/overlay" "$path" || return 1
