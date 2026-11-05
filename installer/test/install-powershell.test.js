@@ -1,6 +1,7 @@
 import { spawn, spawnSync } from 'node:child_process'
-import { chmodSync, existsSync, mkdirSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { chmodSync, existsSync, mkdirSync, readFileSync, realpathSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { basename, join, parse, relative, sep } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { renderInstallers } from '../src/release/installers.js'
 import {
@@ -282,6 +283,17 @@ for (const { command, available, label } of engines) {
       expect(result.status).not.toBe(0)
       expect(result.stderr).toContain('another RAMP installer holds the target lock')
       expect(snapshot(target)).toEqual(before)
+    }, engine.timeout)
+
+    // C:\ trimmed to C: would name the current directory of drive C.
+    it('plans against a drive or file-system root target', () => {
+      const temporary = realpathSync(tmpdir())
+      const root = parse(temporary).root
+      const probe = `${relative(root, temporary).split(sep)[0]}/${basename(tempRoot('ramp-root-probe-'))}.txt`
+      const result = run(bundle({ files: { [probe]: 'probe\n' } }), root, '--dry-run')
+      expectSuccess(result)
+      expect(result.stdout).toContain('RAMP dry run: 1 planned paths')
+      expect(existsSync(join(root, ...probe.split('/')))).toBe(false)
     }, engine.timeout)
 
     // Node's chmod sets the Windows ReadOnly attribute when the write bit is

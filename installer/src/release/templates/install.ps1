@@ -101,9 +101,19 @@ function Stop-Installer {
   throw 'RAMP installer stopped'
 }
 
+# A target at a drive or file-system root keeps its trailing separator: C: alone
+# names the current directory of drive C.
+function Join-Child {
+  param([string]$Parent, [string]$Name)
+  if ($Parent.EndsWith($script:Separator, [System.StringComparison]::Ordinal)) {
+    return $Parent + $Name
+  }
+  return $Parent + $script:Separator + $Name
+}
+
 function Join-Relative {
   param([string]$Root, [string]$Relative)
-  return $Root + $script:Separator + $Relative.Replace('/', $script:Separator)
+  return Join-Child $Root $Relative.Replace('/', $script:Separator)
 }
 
 function Get-ParentRelative {
@@ -170,7 +180,7 @@ function Test-OrdinaryAncestry {
   $parts = $Relative.Split([char]'/')
   for ($index = 0; $index -lt $parts.Length; $index++) {
     $parent = $current
-    $current = $current + $script:Separator + $parts[$index]
+    $current = Join-Child $current $parts[$index]
     $kind = Get-PathKind $current
     if ($kind -ceq 'absent') { continue }
     if ($kind -ceq 'link') { return $false }
@@ -190,7 +200,7 @@ function Test-OrdinaryDirectoryAncestry {
   $current = $Root
   foreach ($part in $Relative.Split([char]'/')) {
     $parent = $current
-    $current = $current + $script:Separator + $part
+    $current = Join-Child $current $part
     $kind = Get-PathKind $current
     if ($kind -ceq 'absent') { continue }
     if ($kind -cne 'directory') { return $false }
@@ -1313,7 +1323,7 @@ function Resolve-TargetDirectory {
       ))
   }
   if ((Get-PathKind $path) -cne 'directory') { Stop-Installer $message }
-  return $path.TrimEnd([char[]]@([System.IO.Path]::DirectorySeparatorChar))
+  return $path
 }
 
 function Invoke-Installer {
