@@ -1663,9 +1663,12 @@ function Invoke-Installer {
   $script:TransactionActive = $false
   foreach ($entry in $script:Plan) {
     if ($entry.Action -cne 'remove') { continue }
+    # Only directories along removed owned paths go, each rechecked so a link
+    # swapped in after the commit is never followed.
     $directory = Get-ParentRelative $entry.Path
     while ($directory.Length -gt 0) {
       try {
+        if (-not (Test-OrdinaryDirectoryAncestry $script:TargetDir $directory)) { break }
         if (-not (Remove-EmptyDirectory (Join-Relative $script:TargetDir $directory))) { break }
       }
       catch {

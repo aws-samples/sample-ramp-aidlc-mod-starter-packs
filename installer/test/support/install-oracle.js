@@ -352,6 +352,17 @@ export function registerInstallerContract(engine) {
     expect(existsSync(join(target, 'nested'))).toBe(false)
   })
 
+  test('removes emptied owned directories at every depth and keeps customer ones', () => {
+    const state = bundle({ files: { 'deep/er/est.txt': 'x\n', 'kept/er/est.txt': 'y\n' } })
+    const target = tempRoot('ramp-install-target-')
+    expectSuccess(run(state, target))
+    write(target, 'kept/customer.txt', 'mine\n')
+    expectSuccess(run(state, target, '--uninstall'))
+    expect(existsSync(join(target, 'deep'))).toBe(false)
+    expect(existsSync(join(target, 'kept/er'))).toBe(false)
+    expect(readFileSync(join(target, 'kept/customer.txt'), 'utf8')).toBe('mine\n')
+  })
+
   test('rejects NUL bytes and missing terminal LF in canonical TSV inputs', () => {
     for (const mutation of ['nul', 'missing-lf']) {
       const state = bundle()

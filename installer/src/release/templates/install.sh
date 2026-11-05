@@ -1447,11 +1447,14 @@ rm -rf "$txn" ||
   echo "warning: could not remove transaction staging $txn" >&2
 txn=""
 transaction_active=0
+# Only directories along removed owned paths go, each rechecked so a link
+# swapped in after the commit is never followed.
 while IFS="$TAB" read -r action source_kind mode hash path; do
   [ "$action" = "remove" ] || continue
-  directory="$(dirname "$target/$path")"
-  while [ "$directory" != "$target" ]; do
-    rmdir "$directory" 2>/dev/null || break
+  directory="$(dirname "$path")"
+  while [ "$directory" != "." ]; do
+    ordinary_directory_ancestry "$target" "$directory" &&
+      rmdir "$target/$directory" 2>/dev/null || break
     directory="$(dirname "$directory")"
   done
 done < "$plan"
