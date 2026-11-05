@@ -1116,7 +1116,8 @@ if lexists "$owner_backup"; then
     "$current_check_version" "$previous_check_bundle" \
     "$previous_check_version" || exit 1
   mkdir -p "$txn/backup.old"
-  cp -R "$rollback_dir" "$txn/backup.old/$previous_check_version"
+  # -p keeps the verified 0644/0755 modes under any umask.
+  cp -pR "$rollback_dir" "$txn/backup.old/$previous_check_version"
   owner_backup_old=1
 fi
 : > "$txn/journal.tsv"
@@ -1268,7 +1269,7 @@ restore_transaction() {
     fi
     if [ "$restore_failed" -eq 0 ] && [ "$owner_backup_old" -eq 1 ]; then
       mkdir -p "$owner_backup" &&
-        cp -R "$txn/backup.old/." "$owner_backup" || restore_failed=1
+        cp -pR "$txn/backup.old/." "$owner_backup" || restore_failed=1
     fi
   fi
   [ "$restore_failed" -eq 0 ] || return 1
