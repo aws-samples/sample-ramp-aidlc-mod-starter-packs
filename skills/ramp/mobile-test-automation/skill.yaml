@@ -1,0 +1,5 @@
+schemaVersion: 1
+kind: ramp-skill
+name: mobile-test-automation
+version: 1.0.0
+license: MIT-0

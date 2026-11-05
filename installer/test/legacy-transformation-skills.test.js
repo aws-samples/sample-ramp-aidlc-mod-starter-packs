@@ -1,26 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { existsSync, readFileSync, statSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { loadManifest } from '../src/manifest.js'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const packDir = join(repoRoot, 'packs', 'legacy-transformation-on-aws')
-const libraryRoot = join(repoRoot, 'skills-library')
 const activationPath = join(packDir, 'instructions/skill-activation.md')
 
-// Skills are now declared explicitly in pack.yaml and resolved from the shared
-// skills-library/ (previously they were physical dirs under the pack). Derive
-// the bundled set from the manifest and confirm each resolves to a real library
-// skill (or a pack-local shadow, if one ever exists).
+// The manifest is the declaration authority. Provenance and source locations
+// are verified separately, so activation coverage must not silently shrink
+// when a declared skill moves between pack, RAMP, cache, or compatibility roots.
 const bundledSkills = [...loadManifest(packDir).skills]
-  .filter((name) => {
-    const local = join(packDir, 'skills', name, 'SKILL.md')
-    const lib = join(libraryRoot, name, 'SKILL.md')
-    const path = existsSync(local) ? local : lib
-    return existsSync(path) && statSync(path).isFile()
-  })
-  .sort()
+  .sort((left, right) => left < right ? -1 : left > right ? 1 : 0)
 
 const activation = readFileSync(activationPath, 'utf8')
 const activationWithSentinel = `${activation}\n## End of skill sections\n`

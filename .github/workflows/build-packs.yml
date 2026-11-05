@@ -1,9 +1,8 @@
 name: verify
 
-# Model C: committed scaffolds are steering-only + an editable add-skills.sh,
-# regenerated from source (no gh-pages publishing). This workflow just proves
-# the source still renders and the tests pass, and flags stale committed
-# scaffolds so they don't drift from source.
+# Committed scaffolds and no-Node skill helpers are regenerated from source.
+# The runner synchronizes immutable upstream skills into one disposable cache,
+# verifies them offline, and then proves every committed output is current.
 on:
   push:
     branches: [main]
@@ -16,23 +15,51 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      RAMP_SKILLS_CACHE: ${{ runner.temp }}/ramp-skills
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 20
       - name: Install installer deps
-        working-directory: installer
-        run: npm ci
-      - name: Run installer test suite
-        working-directory: installer
-        run: npm test
-      - name: Regenerate committed scaffolds and fail if stale
+        run: npm ci --prefix installer
+      - name: Assert clean skill caches
         run: |
-          node installer/bin/ramp-pack.js build-all --in-place
-          if ! git diff --quiet -- 'packs/*/scaffolded-packs' 'packs/*/add-skills.sh'; then
-            echo "::error::Committed scaffolds/add-skills.sh are out of date. Run ./scripts/regenerate.sh and commit."
-            git --no-pager diff --stat -- 'packs/*/scaffolded-packs' 'packs/*/add-skills.sh'
+          test ! -e "$RAMP_SKILLS_CACHE"
+          test ! -e .ramp-cache
+      - name: Confirm locked pilot skills require synchronization
+        env:
+          RAMP_PILOT_CACHE_EXPECTATION: unsynchronized
+        run: npm test --prefix installer -- test/pilot-skill-provenance.test.js
+      - name: Synchronize locked upstream skills
+        run: |
+          node installer/bin/ramp-pack.js skills sync \
+            --locked \
+            --cache "$RAMP_SKILLS_CACHE"
+      - name: Verify synchronized skills offline
+        run: |
+          node installer/bin/ramp-pack.js skills verify \
+            --cache "$RAMP_SKILLS_CACHE"
+      - name: Run installer test suite
+        run: npm test --prefix installer
+      - name: Regenerate committed scaffolds and helpers
+        run: ./scripts/regenerate.sh
+      - name: Fail on generated-output drift
+        run: |
+          if ! git diff --quiet -- \
+            'packs/*/scaffolded-packs' \
+            'packs/*/add-skills.sh' \
+            'packs/*/add-skills.ps1'; then
+            echo "::error::Committed scaffolds and skill helpers are out of date. Run ./scripts/regenerate.sh and commit."
+            git --no-pager diff --stat -- \
+              'packs/*/scaffolded-packs' \
+              'packs/*/add-skills.sh' \
+              'packs/*/add-skills.ps1'
             exit 1
           fi
-          echo "Committed scaffolds are in sync with source."
+          echo "Committed scaffolds and helpers are in sync with source."
+      - name: Assert no repository-local skill cache
+        run: test ! -e .ramp-cache

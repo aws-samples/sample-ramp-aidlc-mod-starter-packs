@@ -1,0 +1,5 @@
+schemaVersion: 1
+kind: ramp-skill
+name: ecs-architect
+version: 1.0.0
+license: MIT-0

@@ -1,9 +1,19 @@
-import { readdirSync, existsSync, rmSync, mkdirSync, writeFileSync } from 'node:fs'
+import {
+  chmodSync,
+  readdirSync,
+  existsSync,
+  rmSync,
+  mkdirSync,
+  writeFileSync,
+} from 'node:fs'
 import { join, resolve } from 'node:path'
 import { buildPlan } from './plan.js'
 import { applyPlan } from './apply.js'
 import { loadManifest } from './manifest.js'
-import { renderAddSkills } from './render/add-skills.js'
+import {
+  renderAddSkillsBash,
+  renderAddSkillsPowerShell,
+} from './render/add-skills.js'
 import { listAdapterIds } from './adapters/index.js'
 import { resolveWorkspace } from './workspace.js'
 import { createSkillResolver } from './dependencies/resolver.js'
@@ -21,13 +31,13 @@ export function listPacks(packsRoot) {
 
 // Regenerate per-tool output for one pack (or all) from source.
 //
-// Model C: the committed scaffolds are steering-only (no skills) plus a
-// generated, editable add-skills.sh that ports skills from skills-library/.
-// - includeSkills=false (default): lean scaffold + add-skills.sh
+// Model C: the committed scaffolds are steering-only (no skills) plus
+// generated, editable Bash and PowerShell helpers for installing skills.
+// - includeSkills=false (default): lean scaffold + both add-skills helpers
 // - includeSkills=true: also copy skills (full preview, e.g. for local checks)
 // - inPlace=true: write to <repo>/packs/<pack>/scaffolded-packs/<tool>/ and
-//   .../scaffolded-packs/add-skills.sh (the committed layout)
-// - inPlace=false: write to <outDir>/<pack>/<tool>/ + <outDir>/<pack>/add-skills.sh
+//   both helpers at the pack root (the committed layout)
+// - inPlace=false: write tool folders and both helpers below <outDir>/<pack>/
 export function buildAll({
   packsRoot,
   repoRoot = resolve(packsRoot, '..'),
@@ -91,8 +101,20 @@ export function buildAll({
       // scaffolded-packs/. In --out preview mode it sits beside the tool folders.
       const scriptDir = inPlace ? packDir : join(outDir, p)
       mkdirSync(scriptDir, { recursive: true })
-      writeFileSync(join(scriptDir, 'add-skills.sh'), renderAddSkills(manifest), { mode: 0o755 })
+      const bashPath = join(scriptDir, 'add-skills.sh')
+      const powerShellPath = join(scriptDir, 'add-skills.ps1')
+      writeFileSync(bashPath, renderAddSkillsBash(manifest), { mode: 0o755 })
+      writeFileSync(
+        powerShellPath,
+        renderAddSkillsPowerShell(manifest),
+        { mode: 0o644 },
+      )
+      if (process.platform !== 'win32') {
+        chmodSync(bashPath, 0o755)
+        chmodSync(powerShellPath, 0o644)
+      }
       results.push({ pack: p, tool: 'add-skills.sh', count: 1 })
+      results.push({ pack: p, tool: 'add-skills.ps1', count: 1 })
     }
   }
   return results

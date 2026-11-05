@@ -1,6 +1,14 @@
 // installer/test/build-all.test.js
 import { describe, it, expect, beforeEach } from 'vitest'
-import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync, statSync } from 'node:fs'
+import {
+  chmodSync,
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  existsSync,
+  readFileSync,
+  statSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { buildAll, listPacks } from '../src/build-all.js'
@@ -22,14 +30,19 @@ beforeEach(() => {
   )
 })
 
-describe('buildAll (Model C: lean scaffolds + add-skills.sh)', () => {
+describe('buildAll (Model C: lean scaffolds + generated skill helpers)', () => {
   it('lists packs by pack.yaml', () => {
     expect(listPacks(packsRoot)).toEqual(['demo'])
   })
 
-  it('renders steering per tool with NO skills, and emits an executable add-skills.sh', () => {
+  it('renders steering per tool with NO skills, and emits both skill helpers', () => {
     const out = mkdtempSync(join(tmpdir(), 'out-'))
-    buildAll({ packsRoot, outDir: out, includeSkills: false, emitSkillScript: true })
+    const results = buildAll({
+      packsRoot,
+      outDir: out,
+      includeSkills: false,
+      emitSkillScript: true,
+    })
 
     // steering present, no skills dir bundled
     expect(existsSync(join(out, 'demo/kiro/.kiro/steering/aidlc-workflow.md'))).toBe(true)
@@ -44,7 +57,48 @@ describe('buildAll (Model C: lean scaffolds + add-skills.sh)', () => {
     expect(body).toContain('PACK_NAME="demo"')
     expect(body).toMatch(/SKILLS=\(\n\s+aws-lambda\n\s+api-gateway\n\)/)
     expect(body).toContain('--tool <kiro|claude-code|copilot|cursor>')
+
+    const powerShell = join(out, 'demo/add-skills.ps1')
+    expect(existsSync(powerShell)).toBe(true)
+    if (process.platform !== 'win32') {
+      expect(statSync(script).mode & 0o777).toBe(0o755)
+      expect(statSync(powerShell).mode & 0o777).toBe(0o644)
+    }
+    expect(readFileSync(powerShell, 'utf8')).toMatch(
+      /\$Skills = @\(\n\s+'aws-lambda'\n\s+'api-gateway'\n\)/,
+    )
+    expect(results).toContainEqual({
+      pack: 'demo',
+      tool: 'add-skills.sh',
+      count: 1,
+    })
+    expect(results).toContainEqual({
+      pack: 'demo',
+      tool: 'add-skills.ps1',
+      count: 1,
+    })
   })
+
+  it.runIf(process.platform !== 'win32')(
+    'repairs deliberately wrong existing helper modes during in-place regeneration',
+    () => {
+      const packDir = join(packsRoot, 'demo')
+      writeFileSync(join(packDir, 'add-skills.sh'), 'old bash\n')
+      writeFileSync(join(packDir, 'add-skills.ps1'), 'old powershell\n')
+      chmodSync(join(packDir, 'add-skills.sh'), 0o644)
+      chmodSync(join(packDir, 'add-skills.ps1'), 0o755)
+
+      buildAll({
+        packsRoot,
+        inPlace: true,
+        includeSkills: false,
+        emitSkillScript: true,
+      })
+
+      expect(statSync(join(packDir, 'add-skills.sh')).mode & 0o777).toBe(0o755)
+      expect(statSync(join(packDir, 'add-skills.ps1')).mode & 0o777).toBe(0o644)
+    },
+  )
 
   it('with includeSkills=true it would copy skills (shadow/local resolution)', () => {
     // give the pack a local shadow skill so no external library is needed
@@ -65,6 +119,7 @@ describe('buildAll (Model C: lean scaffolds + add-skills.sh)', () => {
     })
     expect(existsSync(join(out, 'demo/kiro/.kiro/skills/aws-lambda/SKILL.md'))).toBe(true)
     expect(existsSync(join(out, 'demo/add-skills.sh'))).toBe(false)
+    expect(existsSync(join(out, 'demo/add-skills.ps1'))).toBe(false)
     expect(existsSync(cacheDir)).toBe(false)
   })
 

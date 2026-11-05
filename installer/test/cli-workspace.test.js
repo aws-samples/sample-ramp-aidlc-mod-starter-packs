@@ -15,12 +15,39 @@ function run(args) {
 }
 
 describe('ramp-pack init workspace options', () => {
+  it('describes and reports both generated no-Node helpers for build-all', () => {
+    const help = run(['build-all', '--help'])
+    expect(help.status, help.stderr).toBe(0)
+    expect(help.stdout).toMatch(/add-skills\.sh/)
+    expect(help.stdout).toMatch(/add-skills\.ps1/)
+
+    const root = mkdtempSync(join(tmpdir(), 'ramp-cli-build-'))
+    const out = join(root, 'out')
+    const result = run([
+      'build-all',
+      '--pack',
+      'qa-automated-testing',
+      '--out',
+      out,
+    ])
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(result.stdout).toMatch(/add-skills\.sh/)
+    expect(result.stdout).toMatch(/add-skills\.ps1/)
+    expect(
+      existsSync(join(out, 'qa-automated-testing', 'add-skills.sh')),
+    ).toBe(true)
+    expect(
+      existsSync(join(out, 'qa-automated-testing', 'add-skills.ps1')),
+    ).toBe(true)
+  })
+
   it('installs Kiro and Claude Code with one shared spec root', () => {
     const target = mkdtempSync(join(tmpdir(), 'ramp-cli-'))
     const cache = join(target, 'unused-cache')
     const result = run([
       'init',
-      'qa-automated-testing',
+      'agentic-ai-workflow',
       '--tools',
       'kiro,claude-code',
       '--cache',

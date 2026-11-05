@@ -5,6 +5,7 @@ import {
   readFileSync,
   readdirSync,
   rmSync,
+  statSync,
   symlinkSync,
   writeFileSync,
 } from 'node:fs'
@@ -16,7 +17,10 @@ import { listAdapterIds } from '../src/adapters/index.js'
 import { listPacks } from '../src/build-all.js'
 import { loadManifest } from '../src/manifest.js'
 import { buildPlan } from '../src/plan.js'
-import { renderAddSkills } from '../src/render/add-skills.js'
+import {
+  renderAddSkillsBash,
+  renderAddSkillsPowerShell,
+} from '../src/render/add-skills.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(here, '..', '..')
@@ -219,13 +223,23 @@ describe.each(scaffoldCases)('scaffold parity: $pack / $tool', ({
 })
 
 describe.each(packNames)('skill installer parity: %s', (pack) => {
-  it('matches the production add-skills renderer', () => {
+  it('matches both production add-skills renderers and committed modes', () => {
     const packDir = join(packsRoot, pack)
     const manifest = loadManifest(packDir)
+    const bash = join(packDir, 'add-skills.sh')
+    const powerShell = join(packDir, 'add-skills.ps1')
 
     expect(
-      readFileSync(join(packDir, 'add-skills.sh'), 'utf8'),
+      readFileSync(bash, 'utf8'),
       `${pack}/add-skills.sh: committed bytes`,
-    ).toBe(renderAddSkills(manifest))
+    ).toBe(renderAddSkillsBash(manifest))
+    expect(
+      readFileSync(powerShell, 'utf8'),
+      `${pack}/add-skills.ps1: committed bytes`,
+    ).toBe(renderAddSkillsPowerShell(manifest))
+    if (process.platform !== 'win32') {
+      expect(statSync(bash).mode & 0o777).toBe(0o755)
+      expect(statSync(powerShell).mode & 0o777).toBe(0o644)
+    }
   })
 })

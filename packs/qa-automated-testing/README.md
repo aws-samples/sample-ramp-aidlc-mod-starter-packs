@@ -22,7 +22,11 @@ Pick **one** of the two ways to add this pack to your project.
 
 ### Option A — copy the committed folder (no tooling)
 
-Each pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. Copy the folder for your tool into your project root — no Node required — then run `add-skills.sh` to port this pack's skills from the shared `skills-library/` (the `SKILLS` list at the top of the script is editable):
+Each pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`.
+Copy the folder for your tool into your project root — no Node required —
+then run `add-skills.sh` (or `add-skills.ps1`) to port the named skills. The
+editable helper resolves each name from a pack-local override, a RAMP-owned
+skill, or the reviewed committed compatibility library.
 
 | Your tool | Copy from | Into your project |
 |---|---|---|
@@ -41,7 +45,36 @@ On Windows (PowerShell), use the equivalent `add-skills.ps1`:
 add-skills.ps1 -Tool <kiro|claude-code|copilot|cursor> -Target C:\path\to\your\project
 ```
 
-The `scaffolded-packs/<tool>/` folders contain steering/MCP/command files only (no skills); `add-skills.sh` copies this pack's skills in separately.
+When the helper remains in this cloned repository it discovers the repository
+root automatically. If you copy the helper elsewhere, point it back to the
+clone:
+
+```bash
+add-skills.sh --tool kiro --target /path/to/project --repo-root /path/to/ramp-repo
+```
+
+```powershell
+add-skills.ps1 -Tool kiro -Target C:\path\to\project -RepoRoot C:\path\to\ramp-repo
+```
+
+`--skills-src` / `-SkillsSrc` is a compatibility-only override for a different
+reviewed `skills-library/`; it does not replace `--repo-root` / `-RepoRoot`
+when the editable list includes RAMP-owned or pack-local skills.
+
+The no-Node helpers use these three committed source classes:
+
+- a pack-local override under `packs/<pack>/skills/`;
+- a RAMP-owned skill under `skills/ramp/`;
+- reviewed committed compatibility content under `skills-library/`.
+
+The no-Node path copies reviewed repository content and does not synchronize
+or verify the immutable upstream lock/cache. For exact pinned upstream
+content, use the Node workflow: synchronize and verify the lock into one
+cache, then run the installer with that synchronized cache. Locked upstream
+skills are then consumed from the exact verified content.
+
+The `scaffolded-packs/<tool>/` folders contain steering/MCP/command files only
+(no skills); the helper copies the skills in separately.
 
 ### Option B — generate it (installer)
 
@@ -51,7 +84,7 @@ Run the `ramp-pack` installer from the repo root; it reads the neutral source an
 node installer/bin/ramp-pack.js init qa-automated-testing --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
 ```
 
-Add `--dry-run` to preview, `--force` to overwrite existing files. To rebuild all four committed tool scaffolds in place, run `./scripts/regenerate.sh qa-automated-testing` (requires Node). The common lifecycle, named QA overlay, pack-local instructions, and shared `skills-library/` are the sources of truth for both the committed `scaffolded-packs/` and the installer output.
+Add `--dry-run` to preview, `--force` to overwrite existing files. To rebuild all four committed tool scaffolds in place, run `./scripts/regenerate.sh qa-automated-testing` (requires Node). The common lifecycle, named QA overlay, pack-local instructions, pack overrides, RAMP-owned skills, reviewed compatibility content, and immutable skill lock are the sources of truth for the committed outputs and installer resolution.
 
 Use `--spec-root <safe-relative-path>` and
 `--state-root <safe-relative-path>` to select custom workspace roots. For
@@ -84,7 +117,7 @@ packs/qa-automated-testing/
 ├── pack.yaml                     # Instruction roles, skills, MCP, and command
 ├── instructions/
 │   └── skill-activation.md       # QA skill and MCP activation
-├── add-skills.sh                 # Ports named skills from skills-library/
+├── add-skills.sh                 # Resolves pack, RAMP, then compatibility sources
 ├── add-skills.ps1                # Windows/PowerShell equivalent
 └── scaffolded-packs/             # Generated per-tool steering
     └── kiro/ claude-code/ copilot/ cursor/
@@ -107,10 +140,12 @@ Source ownership for authors:
   regenerate it with
   `./scripts/regenerate.sh qa-automated-testing`.
 
-Skills are **not** stored in the pack — they are referenced by name in
-`pack.yaml` (`skills:`) and live in the shared
-[`skills-library/`](../../skills-library/) at the repo root (a local `skills/`
-directory appears only when a pack overrides a library skill).
+Skills are referenced by name in `pack.yaml` (`skills:`). Resolution checks a
+pack-local `skills/` override first, repository-wide RAMP-owned content in
+[`skills/ramp/`](../../skills/ramp/) second, and reviewed committed
+compatibility content in [`skills-library/`](../../skills-library/) third.
+Node-based installation can instead resolve locked upstream names from a
+synchronized, verified cache.
 
 ### How each instruction maps per tool
 

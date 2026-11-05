@@ -2088,7 +2088,7 @@ describe('skills CLI', () => {
 })
 
 describe('committed immutable skill lock', () => {
-  const expected = [
+  const compatibilityMirrors = [
     ['amazon-aurora-mysql', 'agent-toolkit-for-aws', 'b6d5b7894cc8ae875307f232830acdad683164dc', 'skills/specialized-skills/database-skills/amazon-aurora-mysql'],
     ['amazon-aurora-postgresql', 'agent-toolkit-for-aws', 'b6d5b7894cc8ae875307f232830acdad683164dc', 'skills/specialized-skills/database-skills/amazon-aurora-postgresql'],
     ['api-gateway', 'agent-plugins', '097fe8ad56d8a1d5e2c81d7880adf145553cf244', 'plugins/aws-serverless/skills/api-gateway'],
@@ -2101,12 +2101,30 @@ describe('committed immutable skill lock', () => {
     ['signing-in-to-aws', 'agent-toolkit-for-aws', 'b6d5b7894cc8ae875307f232830acdad683164dc', 'skills/core-skills/signing-in-to-aws'],
   ]
 
-  it('pins exactly the ten compatibility mirrors and verifies them without cache or upstream checkouts', () => {
+  const expectedLockNames = [
+    'amazon-aurora-mysql',
+    'amazon-aurora-postgresql',
+    'amazon-bedrock',
+    'api-gateway',
+    'aurora-dsql',
+    'aws-cloudformation',
+    'aws-iam',
+    'aws-lambda',
+    'aws-lambda-durable-functions',
+    'aws-lambda-microvms',
+    'aws-observability',
+    'aws-step-functions',
+    'connecting-lambda-to-api-gateway',
+    'creating-amazon-aurora-db-cluster-with-instances',
+    'signing-in-to-aws',
+  ]
+
+  it('pins all 15 locks and verifies the ten compatibility mirrors without cache or upstream checkouts', () => {
     const lock = loadSkillLock(projectRoot, { required: true })
-    expect([...lock.skills.keys()]).toEqual(expected.map(([name]) => name))
+    expect([...lock.skills.keys()]).toEqual(expectedLockNames)
 
     const legalBySourceCommit = new Map()
-    for (const [name, source, commit, path] of expected) {
+    for (const [name, source, commit, path] of compatibilityMirrors) {
       const skill = lock.skills.get(name)
       expect(skill).toMatchObject({ name, source, commit, path })
 

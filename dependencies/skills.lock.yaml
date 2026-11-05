@@ -338,6 +338,173 @@ skills:
       sha256: d4290ed64c2edd0fce1d84e3f9dfb2881240fe534def76b8cd29ed6af683e287
       size: 67
       executable: false
+  - name: amazon-bedrock
+    source: agent-toolkit-for-aws
+    commit: b6d5b7894cc8ae875307f232830acdad683164dc
+    path: skills/core-skills/amazon-bedrock
+    treeSha256: ac9a7fa35003b085cdbe4333d8f95e8c0bbc9122b26afacffd7722eef09b2554
+    files:
+      - path: SKILL.md
+        sha256: 4ab492890e6a55d0c01ce6a6461fe2d3db3ac9c86e33cfb51c52b0683ea005dd
+        size: 34421
+        executable: false
+      - path: assets/kb_shim.py.tmpl
+        sha256: 67802ea670c5ba754899f7990452ae4d17b36a375533de4390912ec81838aa48
+        size: 3455
+        executable: false
+      - path: assets/lambda_shim.py.tmpl
+        sha256: 104fa92274dc18e3b311db266a8fbf2dc5fea338341d3519da8a99a6c3c52072
+        size: 8192
+        executable: false
+      - path: assets/tool_schema.json.tmpl
+        sha256: 80b6f6963f1ed4ca421054ada7bc75ca067efbf99306e1914db2d390c39a4d0d
+        size: 389
+        executable: false
+      - path: references/agentcore-credentials-and-security.md
+        sha256: f392084b05f40bfc558a74e1964bd6df46af9ed5029c88d6e63a31f5fcdf906f
+        size: 6631
+        executable: false
+      - path: references/agentcore-gateway.md
+        sha256: ae76ccfb36483817146dcafad235b24d009a2e31e240533186cb2e7a1f5d294a
+        size: 6675
+        executable: false
+      - path: references/agentcore-harness.md
+        sha256: 5ca71e3ae85f6b0401f59e850fbca5232533e12fbff58fa7b4508c7a65055f92
+        size: 22521
+        executable: false
+      - path: references/agentcore-memory-observability.md
+        sha256: 552c5157b8fbfa1baf39158593dcea1c8b1ade4dd7fd117b696885c01f0e86e4
+        size: 5402
+        executable: false
+      - path: references/agentcore-payments-setup-script.md
+        sha256: b78937a86a9dff578409a99ca6fa41977eeed98e952d1a8cfdf3dfd98cc14ed1
+        size: 12616
+        executable: false
+      - path: references/agentcore-payments-wiring.md
+        sha256: 4fa5ae9707dbb22099c807161d9719266803ce1a993c43e7aab313c64a6ef41a
+        size: 12390
+        executable: false
+      - path: references/agentcore-payments.md
+        sha256: 60d7cd708a68dd96f7f2a894d1445cb53d414bef3352954a778e7e07e02380cf
+        size: 19938
+        executable: false
+      - path: references/agentcore-registry-evaluations.md
+        sha256: e8bf1964d09b94df9e2590e12597eed4eebf4bbfecc33cbd1ccd4dea481199cc
+        size: 5833
+        executable: false
+      - path: references/agentcore-runtime-container-build.md
+        sha256: 1b782c4b4f1bd7973e31df5465f3503e53d62b5034820e488f91c988b0442922
+        size: 10701
+        executable: false
+      - path: references/agentcore-runtime.md
+        sha256: eef148faa38245dc23becd21369aa2dc05699c2b67be35f767a5900335cbe910
+        size: 7541
+        executable: false
+      - path: references/agents-and-action-groups.md
+        sha256: cb9c37658613cf97c4849bf34954873a747ba4f97deba5a930ad89189803a015
+        size: 16926
+        executable: false
+      - path: references/bedrock-agents-to-agentcore-harness/cli.md
+        sha256: 3082bebebf863d31691a92a4aa0a24c8e27fcf6614c901c6da262e65e9f711e9
+        size: 2068
+        executable: false
+      - path: references/bedrock-agents-to-agentcore-harness/deploy.md
+        sha256: 3778a4ef2e5f78906c56ee3f251810fc8b9b9e90457c88ef8a1472af055aa4df
+        size: 12378
+        executable: false
+      - path: references/bedrock-agents-to-agentcore-harness/discovery.md
+        sha256: 3267f827630664d1118ac10bbeddba89e4b8042a2d5cb2eb7de9fbb8826fbca0
+        size: 4001
+        executable: false
+      - path: references/bedrock-agents-to-agentcore-harness/eligibility.md
+        sha256: db0428c538f1e7c62fe91ba90aabe124437112006113ee6cb83c1efe3f46f115
+        size: 3377
+        executable: false
+      - path: references/bedrock-agents-to-agentcore-harness/mapping.md
+        sha256: 84a535d9489ede7202efbf51774f4b844a5b689cae270fe67d482135461de7c6
+        size: 9110
+        executable: false
+      - path: references/cost-tracking.md
+        sha256: 54a44ff324b1e331a8b77f50ef5026cc59799d573f5b15b0528b076f12a6fb51
+        size: 4422
+        executable: false
+      - path: references/guardrails.md
+        sha256: 4f860fe86892f940c8054b2b6dd734d6b35295c6e8264de5498a922ffefc3b26
+        size: 15069
+        executable: false
+      - path: references/knowledge-bases-decision-guide.md
+        sha256: 9cde4703034463eed6aeda236903320b4c4721463eadeec8a9628abc486ffa55
+        size: 2871
+        executable: false
+      - path: references/knowledge-bases-retrieval.md
+        sha256: 1be91ee485ba5ff1fd345778e49d09f50d0b871076e3f49d28bcba75c20776a2
+        size: 8519
+        executable: false
+      - path: references/knowledge-bases-setup.md
+        sha256: 5e4a306f351309fd3bba4263b388ec5a787ec84e658514716f1881cea70119e0
+        size: 18302
+        executable: false
+      - path: references/managed-knowledge-bases-retrieval.md
+        sha256: 1d3a660e8dde9522e1d06a0ae578bf9241eb18c85d3e58cbee26a0ed2a0eb300
+        size: 8286
+        executable: false
+      - path: references/managed-knowledge-bases-setup.md
+        sha256: c43215cb788ea2225da5062ba0ba168094efd0be92356d677a2175f5e18efd57
+        size: 13028
+        executable: false
+      - path: references/migrate-bedrock-agents-to-agentcore-harness.md
+        sha256: 3f7bbb15cf207b02cc3e3e1f65a6cf9f55f271ce833b797a7932765876096096
+        size: 11734
+        executable: false
+      - path: references/model-invocation.md
+        sha256: e137ca48c64a483b962bffd07b9192947cd008c26bf6dbf50e580009aa382097
+        size: 11230
+        executable: false
+      - path: references/model-migration.md
+        sha256: 4c96e74626a7f76012529eab1effaa5a8743d6b57af9c6d0b5105bdab08cc5f0
+        size: 4445
+        executable: false
+      - path: references/model-selection-guide.md
+        sha256: 4a2f452df530e43cc284e82a1673b32c1c752f00e0415bd3e2b9231f35995624
+        size: 7389
+        executable: false
+      - path: references/prompt-caching.md
+        sha256: c75898bcb9d737305d2acd48ff0e7dda047cea6c6e463ddd3f1f075b4622b397
+        size: 5312
+        executable: false
+      - path: references/prompt-engineering-by-model.md
+        sha256: cb901d9162e4444aab9c0beca0d8b9bb4b7b4d3c1ee46fdbe28eac638fb04be8
+        size: 8145
+        executable: false
+      - path: references/quota-health.md
+        sha256: f30d99715f25f65076768569e780a14b36f1f650143746b2ad4b85be7df70087
+        size: 4072
+        executable: false
+      - path: references/sdk-converse-api-python.md
+        sha256: ea894c41ff2b16045662c6939b77cd86f199dce0edac026c543bf30dfec11d16
+        size: 6505
+        executable: false
+      - path: references/sdk-converse-api-typescript.md
+        sha256: 50e5dcdc13f0dd0c20db3f859b9de2e5cab467653fde63bb4b391f6f88e4a277
+        size: 6699
+        executable: false
+      - path: scripts/fetch_bedrock_agent.py
+        sha256: 0c0066a623551395dfaa9d9092ffa75659452a3d833792275c68310887049c10
+        size: 14444
+        executable: false
+    license: Apache-2.0
+    licensePath: LICENSE
+    licenseFile:
+      path: LICENSE
+      sha256: 09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b
+      size: 10142
+      executable: false
+    noticePath: NOTICE
+    noticeFile:
+      path: NOTICE
+      sha256: d4290ed64c2edd0fce1d84e3f9dfb2881240fe534def76b8cd29ed6af683e287
+      size: 67
+      executable: false
   - name: api-gateway
     source: agent-plugins
     commit: 097fe8ad56d8a1d5e2c81d7880adf145553cf244
@@ -652,6 +819,89 @@ skills:
       sha256: d4290ed64c2edd0fce1d84e3f9dfb2881240fe534def76b8cd29ed6af683e287
       size: 67
       executable: false
+  - name: aws-cloudformation
+    source: agent-toolkit-for-aws
+    commit: b6d5b7894cc8ae875307f232830acdad683164dc
+    path: skills/core-skills/aws-cloudformation
+    treeSha256: 61a92a63c53cb0735a305d1494a0d28546c3cdc3eaa4ad8965eb2671a3a2c568
+    files:
+      - path: SKILL.md
+        sha256: 4c58cdf1e1532d9fab6cfc98de2b0cfb0d171fc414bb0032dbe5f4dfe01872be
+        size: 14498
+        executable: false
+      - path: references/author-cloudformation-best-practices.script.md
+        sha256: f823e4c7ed10c10a67fc9b77a728837d0e6bbbdc105085354e18638529da7fc8
+        size: 9101
+        executable: false
+      - path: references/check-cloudformation-template-compliance.script.md
+        sha256: 886d5863afc46366c60c506050bb40f20adba625065842c19bbfcf25f8334643
+        size: 8125
+        executable: false
+      - path: references/cloudformation-language-server.md
+        sha256: bc124030ce3e56efc293c3f4b3f7e84654afd84d9c0b245ba4daac65573fb55d
+        size: 8339
+        executable: false
+      - path: references/cloudformation-pre-deploy-validation.script.md
+        sha256: ff9ea5895c8d55be112b5eb38683708bde5eb776f5bea2b13f5533cf99e595a6
+        size: 19945
+        executable: false
+      - path: references/deploy-with-express-mode.script.md
+        sha256: ae5135d93e0ffa0bc61b68a329b8d63c93a1f88bccb3097751c37fc46385c48b
+        size: 12658
+        executable: false
+      - path: references/lookup-resource-properties.script.md
+        sha256: 6f0b3bd79dc18344f601d1c2b8cc3c4211ffdc523e50079ed9e524315798c904
+        size: 6464
+        executable: false
+      - path: references/persist-template-context.script.md
+        sha256: 5aa3a7b6091e18232f553395efa02587a3649d713dd96c3dc0ea991cd5b8456e
+        size: 14729
+        executable: false
+      - path: references/retrieve-template-context.script.md
+        sha256: 7f209c76e890132274900670ac9dad72fe5a9102c8fc64d4673a121a2b16cf5f
+        size: 19319
+        executable: false
+      - path: references/security-considerations.md
+        sha256: ca6f81bcd7e2007a24a23853d6d6f17524b9e259273f0e88cadd756773cd4268
+        size: 4519
+        executable: false
+      - path: references/template-safety-guidance.md
+        sha256: 16457bbd4479dfb7d4350a15d8f66003c0254951a8bb52d25ea8098dab9570be
+        size: 8256
+        executable: false
+      - path: references/troubleshoot-deployment.script.md
+        sha256: fe994a5ec891918b29aa84a4d7a2a5e9d26da939dbfdbf856d3c5328e68b81ec
+        size: 12732
+        executable: false
+      - path: references/troubleshoot-failed-stack.script.md
+        sha256: 2e332c2856b451682d4a480f70f1be8ad526252c2a0a0572ac45e77817915127
+        size: 9277
+        executable: false
+      - path: references/validate-with-cfn-lint.script.md
+        sha256: 5458d0e637fc8755db022dc04ae30e6c4ee3e3dc8e174703dcb4b6a1c644724a
+        size: 8041
+        executable: false
+      - path: references/validate-with-cloudformation-validate.script.md
+        sha256: 97cb16d73eb85e15457a6bdbb9f3e1708dfdcf0845d1e041432eede0fde75166
+        size: 9428
+        executable: false
+      - path: references/validation-tool-selection.md
+        sha256: 5dcc41d42ef67902a180bf3e45f577d63d74423febbd5b10aeb4aff65af58657
+        size: 3774
+        executable: false
+    license: Apache-2.0
+    licensePath: LICENSE
+    licenseFile:
+      path: LICENSE
+      sha256: 09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b
+      size: 10142
+      executable: false
+    noticePath: NOTICE
+    noticeFile:
+      path: NOTICE
+      sha256: d4290ed64c2edd0fce1d84e3f9dfb2881240fe534def76b8cd29ed6af683e287
+      size: 67
+      executable: false
   - name: aws-iam
     source: agent-toolkit-for-aws
     commit: b6d5b7894cc8ae875307f232830acdad683164dc
@@ -749,6 +999,339 @@ skills:
       path: NOTICE
       sha256: 0295e4b248c03b34b07e1768b791612a367504f73926aa5aad336ac3c789f7c4
       size: 89
+      executable: false
+  - name: aws-lambda-durable-functions
+    source: agent-toolkit-for-aws
+    commit: b6d5b7894cc8ae875307f232830acdad683164dc
+    path: skills/specialized-skills/serverless-skills/aws-lambda-durable-functions
+    treeSha256: b168923eb71b9c36a0b5232ee7a8f60e44c2d9c61e86958dc21aa4e6580d944e
+    files:
+      - path: SKILL.md
+        sha256: b5acc4ad2d570e835dde4b4582204c32cc62f3d806487cba7f292f5ccb40ac16
+        size: 9080
+        executable: false
+      - path: references/advanced-error-handling.md
+        sha256: f7be2d0095159f1a17b78c4f9b284092d99377a75d56c84ff9934c02535b03b4
+        size: 4971
+        executable: false
+      - path: references/advanced-patterns.md
+        sha256: fdda24968ee19c0434077ceba836e85b8de65b69ac6f7f6ec4a771f101c3c2e6
+        size: 10603
+        executable: false
+      - path: references/concurrent-operations.md
+        sha256: 7d4773db469696dc0cfb7dddf4705c9aa6b8a35e7377c05d9147fe0329136f15
+        size: 8633
+        executable: false
+      - path: references/deployment-iac.md
+        sha256: 9da616d9e2fa75732d3300cd3c959731c5aec7fd0a642e3b03880328c1e7c9a5
+        size: 14374
+        executable: false
+      - path: references/error-handling.md
+        sha256: aec89f309c59ae2838ba65e67ae0ead2a9951e551bafda6308c61520e8d5cbaa
+        size: 10791
+        executable: false
+      - path: references/getting-started.md
+        sha256: 1828428cd6429f5f9c1bf50f8a6b596856a4e010a83b3260f40f20a5781bfefd
+        size: 12932
+        executable: false
+      - path: references/replay-model-rules.md
+        sha256: 9606ff4878b86744a736f6fb360b8df82ec692ed58da185b82a847391014bd42
+        size: 8493
+        executable: false
+      - path: references/step-operations.md
+        sha256: d486496fc5b9ba8fcf27f7a4dd8a7626dafdf6b3931a81b6294d734e644de98b
+        size: 8511
+        executable: false
+      - path: references/testing-patterns.md
+        sha256: 44ddb1a9c2c93650ade80e8d530429ae04848e0d602d8d19d6356c190219f7ed
+        size: 17784
+        executable: false
+      - path: references/troubleshooting-executions.md
+        sha256: a15d78eba1ca6850a63551c0e0dd00ee2c8e438f05b2e4acd2caa226ad4ae3fd
+        size: 8716
+        executable: false
+      - path: references/wait-operations.md
+        sha256: e2a5ad644965968eeddf4819bf13bf469aeefe91dcf865da751f12f3b7406267
+        size: 9729
+        executable: false
+    license: Apache-2.0
+    licensePath: LICENSE
+    licenseFile:
+      path: LICENSE
+      sha256: 09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b
+      size: 10142
+      executable: false
+    noticePath: NOTICE
+    noticeFile:
+      path: NOTICE
+      sha256: d4290ed64c2edd0fce1d84e3f9dfb2881240fe534def76b8cd29ed6af683e287
+      size: 67
+      executable: false
+  - name: aws-lambda-microvms
+    source: agent-plugins
+    commit: 097fe8ad56d8a1d5e2c81d7880adf145553cf244
+    path: plugins/aws-serverless/skills/aws-lambda-microvms
+    treeSha256: a68e89fe345d716ae824949de5cff78e7947c27a3f977eeb8e3a57cfe1ddd565
+    files:
+      - path: SKILL.md
+        sha256: 8b90386e379e877fd0efb2e34d2fee6e47e9fbb4a8b5387aa7178ad9da450fe5
+        size: 16403
+        executable: false
+      - path: references/getting-started.md
+        sha256: 9e45e1113a2935e6ddff8a9d35fead8f097de65e2a868fda044add9d23f0aeaa
+        size: 8923
+        executable: false
+      - path: references/iam-and-security.md
+        sha256: ff9e9fe2ef25db4ab7a815ce0c2cea45296f776a5d88e43b7c56568da4ef135b
+        size: 6729
+        executable: false
+      - path: references/lifecycle-model.md
+        sha256: 5b3ea9bfaf4361dce2fbad43dd9795dff803843cad4a18ebbe5f5f1fa0badd89
+        size: 11004
+        executable: false
+      - path: references/networking.md
+        sha256: fde2d4962b37db47ab1986f07103d2f7519045489ff364fc64252920241b4543
+        size: 9381
+        executable: false
+      - path: references/snapshots-and-uniqueness.md
+        sha256: de83911f85f146720e02a9b7b098ee92e64055dc4333f63b9feaa40a2293a9d9
+        size: 7716
+        executable: false
+      - path: references/troubleshooting.md
+        sha256: 89f94a0177a8659d51f3ca880439f9ff240301a20e9e27ff37581273dc040c72
+        size: 13252
+        executable: false
+    license: Apache-2.0
+    licensePath: LICENSE
+    licenseFile:
+      path: LICENSE
+      sha256: 09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b
+      size: 10142
+      executable: false
+    noticePath: NOTICE
+    noticeFile:
+      path: NOTICE
+      sha256: 0295e4b248c03b34b07e1768b791612a367504f73926aa5aad336ac3c789f7c4
+      size: 89
+      executable: false
+  - name: aws-observability
+    source: agent-toolkit-for-aws
+    commit: b6d5b7894cc8ae875307f232830acdad683164dc
+    path: skills/core-skills/aws-observability
+    treeSha256: 2d32aa645e6d406831503e9f9d3f83bbc23fb4740132fc4993f9cd5c09447f72
+    files:
+      - path: SKILL.md
+        sha256: 08928e4f903bf7e045625ae318c6e5453b38bbd540c433ad36a749df2e8a9a79
+        size: 28996
+        executable: false
+      - path: assets/cloudwatch/alarm-template.ts
+        sha256: b242e56ac6a51788da30cc2ed9a957a49891c0e363ec865c925041074d43a7b8
+        size: 4002
+        executable: false
+      - path: assets/cloudwatch/otel-config.yaml
+        sha256: 8f1fcd6e1ebd6a9cfe6efe06a614270e94a78883dbea497c5af9766ef6070dbe
+        size: 1930
+        executable: false
+      - path: references/cloudwatch-omni/agent-evaluation.md
+        sha256: 0834c938ed1f2aef4ec93fea61a0c3a0d17ddd18b6de50e6c63b5cd0b5cae311
+        size: 101342
+        executable: false
+      - path: references/cloudwatch-omni/alerts.md
+        sha256: 9981c8301fd37dca54d3b8c520c463d2574b983052328810d93862aa12636261
+        size: 105734
+        executable: false
+      - path: references/cloudwatch-omni/concepts.md
+        sha256: a7f55909041ba8917b7ff198962f30bd598afc756028c67691bbc8030e5dfc7f
+        size: 29487
+        executable: false
+      - path: references/cloudwatch-omni/context-graph.md
+        sha256: 2b3f611091b7af9ab816f8a4508200c105510fdc72f2ef96eae3a97374b256f3
+        size: 29908
+        executable: false
+      - path: references/cloudwatch-omni/dashboards.md
+        sha256: a8dad38dfe0588635764bb5994ed08ac5e007eda5df71725394890b1fc9dafb1
+        size: 77352
+        executable: false
+      - path: references/cloudwatch-omni/programmatic-access.md
+        sha256: 5f7a959266a666aa22e4bb33664cc7b00396d3285898ed99f7710587d3b75cfa
+        size: 8836
+        executable: false
+      - path: references/cloudwatch-omni/query/promql-metrics.md
+        sha256: 93fb9b6a22bbff88710ff8ad46599eca153fc84cc0f30481da89bbcdcc549a23
+        size: 65454
+        executable: false
+      - path: references/cloudwatch-omni/query/sql-logs-traces.md
+        sha256: 6aca6afad81910b0d51590986878271c50cd13a34faac301ff21bcca43cad7be
+        size: 43981
+        executable: false
+      - path: references/cloudwatch-omni/query/views.md
+        sha256: 8d2bcb6eb56d5d435191908aa37df5c780014c27e265fdee7a8583a98e27ae5f
+        size: 13060
+        executable: false
+      - path: references/cloudwatch/alarms.md
+        sha256: 466542b3b2e30f5710ba415c3609c66ac73c503e3cc8b103995804e33c9a6f31
+        size: 11828
+        executable: false
+      - path: references/cloudwatch/cloudtrail.md
+        sha256: 72c6949761a85e2c71cb24c2e4826bcff920ffc1ef33f94ef00fd48a4e807670
+        size: 5479
+        executable: false
+      - path: references/cloudwatch/dashboards.md
+        sha256: 1e253b7ad7ea549f8d8d063bd0553623effd58dfdd0eb662f05c93e4e32db94a
+        size: 5953
+        executable: false
+      - path: references/cloudwatch/dynamic-instrumentation.md
+        sha256: 67eb3e156fe7570636a45c237c6a1df18475719046e3e054d21b32b518971a69
+        size: 40290
+        executable: false
+      - path: references/cloudwatch/dynamic-instrumentation/breakpoint-creation.md
+        sha256: 57ef70dbd46d415370dc2b3fe1a1b87bcc005beaf3638e5c80e506762f2e5fd2
+        size: 16676
+        executable: false
+      - path: references/cloudwatch/dynamic-instrumentation/call-tree-and-directions.md
+        sha256: d7e9023303000302b3e2431aee8084a5fc1ec83300a518cf8e2f4e02d8b49cef
+        size: 5836
+        executable: false
+      - path: references/cloudwatch/dynamic-instrumentation/snapshot-parsing.md
+        sha256: de067baac858f7c77a2690bd72a8d8a8680f00859f0f02e3d5d8cfad60e0a1f9
+        size: 4318
+        executable: false
+      - path: references/cloudwatch/log-insights.md
+        sha256: 2ae72120f4f34ab6fddf0726e9e6a8dfc3066a6889493b16cc174ac069d5aa87
+        size: 7141
+        executable: false
+      - path: references/cloudwatch/metrics.md
+        sha256: 7260fe26d2473fe9614b264ac461d45363fa1d4b743bc3bcd5bba959bce30ae8
+        size: 7630
+        executable: false
+      - path: references/cloudwatch/synthetics.md
+        sha256: f4476ea7d49652ade89995b63d352c79dce4b700042c647e37862528daf532a9
+        size: 6619
+        executable: false
+      - path: references/cloudwatch/tracing.md
+        sha256: 95065d5c154973e3c2bc48b5b17883357454205d0618c43f32073abe71de2090
+        size: 9611
+        executable: false
+      - path: references/cloudwatch/troubleshooting.md
+        sha256: f86334892375966bb5599dc9eccf6048d47b0fbdf6f0385d4ce956d8b336ce98
+        size: 7728
+        executable: false
+      - path: scripts/cloudwatch-omni/capture_dataset_from_traces.py
+        sha256: f8a289b5d1210299f4b8abfee14b59e8f1a932723ae595b14dfea6d9c672b39f
+        size: 19706
+        executable: false
+      - path: scripts/cloudwatch-omni/evaluate_traces.py
+        sha256: 0260ce6074f9863f433579ffeeca35fd2418f803918eb9b6aece0fb73013c25e
+        size: 42798
+        executable: false
+      - path: scripts/cloudwatch-omni/test_evaluate_traces.py
+        sha256: 5cc2e859f638c6450f16f7775195748926435b2e364eea6b95009468f4fe7db5
+        size: 12334
+        executable: false
+      - path: scripts/cloudwatch/di_app_signals_client.py
+        sha256: 946c61a57089189d37b5138748d4ed598b6bf48318a8ead5ef1748a1e5718ba8
+        size: 3422
+        executable: false
+      - path: scripts/cloudwatch/di_capture.py
+        sha256: bcf808de0ccab0f5cc75d84961cc2c3272123bd870777df38add112d062e09e4
+        size: 8723
+        executable: false
+      - path: scripts/cloudwatch/di_constants.py
+        sha256: d0e6abbe921bf4add096a46b6f90544c317382accf97bca8d433fc981d45e105
+        size: 560
+        executable: false
+      - path: scripts/cloudwatch/di_crud_rendering.py
+        sha256: ed670954d47ccf880753da349f5af492746faff6827e56f70ee5af655ec5037b
+        size: 13420
+        executable: false
+      - path: scripts/cloudwatch/di_crud_tools.py
+        sha256: 132c2ef6318ddd3a44797e55cc2f7d0cfbf8f8dd37e401117572a16f07b336c5
+        size: 29486
+        executable: false
+      - path: scripts/cloudwatch/di_error_translation.py
+        sha256: 8d2f5ac61e4499bcd57050274cfa3a1f862173fcc37e9bb89d87092e1fc0da2b
+        size: 5742
+        executable: false
+      - path: scripts/cloudwatch/di_formatting.py
+        sha256: 2793a664f304218cbcf8c6076bc9379a69ceb973e0755cc70f6185ddad1e2ea8
+        size: 992
+        executable: false
+      - path: scripts/cloudwatch/di_gateway.py
+        sha256: 1fa5de4858c680adefba5c84e220156d20a039ec6c5814a4f3099b4318b2ef4a
+        size: 7161
+        executable: false
+      - path: scripts/cloudwatch/di_instrumentation.py
+        sha256: 05dd4de7bd08650955a29d3686094bce73d63f9de4c42d21e031dcfb02bcafd1
+        size: 13280
+        executable: false
+      - path: scripts/cloudwatch/di_location.py
+        sha256: 1772cc8c66ec0f85e0fd9b17bd4b71af5eb29b0258ace5ba54340ac78a489897
+        size: 15668
+        executable: false
+      - path: scripts/cloudwatch/di_logs_client.py
+        sha256: 9c107f8f9145acee4d33807f99d36a4f9bbb2b4e754198542f8c2d08fa9979af
+        size: 4327
+        executable: false
+      - path: scripts/cloudwatch/di_region.py
+        sha256: ef6b3c96951f4b045d8d8f10685dd9f29f5805201b41da829a7b4761826b74bc
+        size: 2032
+        executable: false
+      - path: scripts/cloudwatch/di_result.py
+        sha256: 39875674c626f17e2388d67870cd7e8771ad83598c9f570d161dd2038b6a7d7d
+        size: 1998
+        executable: false
+      - path: scripts/cloudwatch/di_session.py
+        sha256: bafbaec1b83975a6c5702d4a8a9ecd95b509abff69b2eb52e967284e124dc223
+        size: 2032
+        executable: false
+      - path: scripts/cloudwatch/di_snapshot_parsing.py
+        sha256: 53db896ac57b2b174da5affcfc72c0d81b85ca17448006ad68266952139c0398
+        size: 11678
+        executable: false
+      - path: scripts/cloudwatch/di_snapshot_queries.py
+        sha256: 0c7863824199e5da9dfc87eb0199d5bcfd6e06d3babd5beaa5d88508cdeb8f18
+        size: 2458
+        executable: false
+      - path: scripts/cloudwatch/di_snapshot_rendering.py
+        sha256: 3b2726ffba95872c5e41cc495aa0000be36740e1740e2cad1a42a0d02dc441c4
+        size: 12762
+        executable: false
+      - path: scripts/cloudwatch/di_snapshot_tools.py
+        sha256: 374eea422d58fb6c8d6548bebf65847cdd6623257d6aeee4a93afafe26f5df4d
+        size: 12320
+        executable: false
+      - path: scripts/cloudwatch/di_snapshots.py
+        sha256: a4aaa1aa457d7f2e003fbc14098fffc6021a911a2255f36b52e841b0294658fe
+        size: 13150
+        executable: false
+      - path: scripts/cloudwatch/di_status_assessment.py
+        sha256: 4ec65bb5bd07a0de8314116d3649246620f986d7b020cbbf40083f7c3c581428
+        size: 4813
+        executable: false
+      - path: scripts/cloudwatch/di_status_rendering.py
+        sha256: 29ffe8f1854bd04b65ff9691ea7553914e703d734126dca53729e39253cadde4
+        size: 12061
+        executable: false
+      - path: scripts/cloudwatch/di_status_tools.py
+        sha256: 9c3c835cc5d7a0029a4264f38cd705d5a57ecd5f1bb7ad005aab14460a50fb93
+        size: 13295
+        executable: false
+      - path: scripts/cloudwatch/di_validation.py
+        sha256: fa729c80aa684e1c74150eb00ea4478dd761e3cc2d92b8cf8ebac06d1aa6f939
+        size: 11486
+        executable: false
+    license: Apache-2.0
+    licensePath: LICENSE
+    licenseFile:
+      path: LICENSE
+      sha256: 09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b
+      size: 10142
+      executable: false
+    noticePath: NOTICE
+    noticeFile:
+      path: NOTICE
+      sha256: d4290ed64c2edd0fce1d84e3f9dfb2881240fe534def76b8cd29ed6af683e287
+      size: 67
       executable: false
   - name: aws-step-functions
     source: agent-toolkit-for-aws

@@ -4,15 +4,16 @@
 #
 # Committed scaffolds live at packs/<pack>/scaffolded-packs/<tool>/ and contain
 # the tool-native steering/MCP/command files ONLY (no skills). Each pack also
-# gets an editable add-skills.sh that ports its skills from skills-library/.
+# gets generated, editable add-skills.sh and add-skills.ps1 helpers that
+# resolve pack, RAMP-owned, and compatibility skills.
 # Run this after editing a pack's instructions or pack.yaml.
 #
 #   ./scripts/regenerate.sh              # rebuild every pack in place
 #   ./scripts/regenerate.sh <pack>       # rebuild one pack in place
 #
 # Requires Node 18+ (the renderer is Node). End users who just want the files
-# copy packs/<pack>/scaffolded-packs/<tool>/ and run that pack's add-skills.sh —
-# no Node needed for either of those.
+# copy packs/<pack>/scaffolded-packs/<tool>/ and run that pack's Bash or
+# PowerShell add-skills helper — no Node needed for either of those.
 #
 set -euo pipefail
 
@@ -32,4 +33,4 @@ else
   echo "Regenerating scaffolds for all packs ..."
   node installer/bin/ramp-pack.js build-all --in-place
 fi
-echo "Done. Review packs/<pack>/scaffolded-packs/ and commit."
+echo "Done. Review packs/<pack>/scaffolded-packs/ and both add-skills helpers."

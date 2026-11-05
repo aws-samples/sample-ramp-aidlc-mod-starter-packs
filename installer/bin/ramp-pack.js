@@ -140,7 +140,7 @@ program
   .option('--out <dir>', 'output directory (default: dist)', 'dist')
   .option('--pack <pack>', 'build a single pack instead of all')
   .option('--in-place', 'write committed scaffolds into packs/<pack>/scaffolded-packs/', false)
-  .option('--with-skills', 'also copy skills (default: steering-only + add-skills.sh)', false)
+  .option('--with-skills', 'also copy skills (default: steering-only + add-skills.sh/add-skills.ps1)', false)
   .option('--cache <dir>', 'skill cache root when --with-skills is used')
   .action((opts) => {
     try {
@@ -161,7 +161,7 @@ program
       const packs = opts.pack ? [opts.pack] : listPacks(packsRoot)
       for (const r of results) console.log(`  ${r.pack} → ${r.tool}: ${r.count} paths`)
       const where = opts.inPlace ? 'packs/<pack>/scaffolded-packs/' : outDir
-      console.log(`\nBuilt ${packs.length} pack(s) → ${where}${opts.withSkills ? ' (with skills)' : ' (steering + add-skills.sh)'}`)
+      console.log(`\nBuilt ${packs.length} pack(s) → ${where}${opts.withSkills ? ' (with skills)' : ' (steering + add-skills.sh/add-skills.ps1)'}`)
     } catch (err) {
       console.error(err.message)
       process.exit(1)

@@ -29,7 +29,11 @@ Pick **one** of the two ways to add this pack to your project.
 
 ### Option A — copy the committed scaffold (no tooling)
 
-Each pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. Copy the folder for your tool into your project root — no Node required — then run the pack's `add-skills.sh` to port its skills in from the shared `skills-library/`:
+Each pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`.
+Copy the folder for your tool into your project root — no Node required —
+then run the pack's `add-skills.sh` (or `add-skills.ps1`) to port the named
+skills from pack-local overrides, RAMP-owned skills, and reviewed committed
+compatibility content.
 
 | Your tool | Copy from | Lands as |
 |---|---|---|
@@ -50,7 +54,35 @@ On Windows (PowerShell), use the equivalent `add-skills.ps1`:
 add-skills.ps1 -Tool <kiro|claude-code|copilot|cursor> -Target C:\path\to\your\monolith
 ```
 
-`add-skills.sh` is pure bash + `cp` (no Node) and copies this pack's skills from the shared `skills-library/` into the target's per-tool skills directory. The `SKILLS=()` list at the top of the script is editable — add or remove skills for your use case.
+When the helper remains in this cloned repository it discovers the repository
+root automatically. If you copy it elsewhere, point it back to the clone:
+
+```bash
+add-skills.sh --tool kiro --target /path/to/monolith --repo-root /path/to/ramp-repo
+```
+
+```powershell
+add-skills.ps1 -Tool kiro -Target C:\path\to\monolith -RepoRoot C:\path\to\ramp-repo
+```
+
+`--skills-src` / `-SkillsSrc` is a compatibility-only override for a different
+reviewed `skills-library/`; it does not replace `--repo-root` / `-RepoRoot`
+when the editable list contains RAMP-owned or pack-local skills.
+
+The no-Node helper copies three committed source classes in precedence order:
+
+- a pack-local override under `packs/<pack>/skills/`;
+- a RAMP-owned skill under `skills/ramp/`;
+- reviewed committed compatibility content under `skills-library/`.
+
+This no-Node path does not synchronize or verify the immutable upstream
+lock/cache. For exact pinned upstream content, use the Node workflow:
+synchronize and verify the lock into one cache, then run the installer with
+that synchronized cache. Locked upstream skills are then consumed from the
+exact verified content.
+
+The helper's `SKILLS=()` list is editable — add or remove skills for your use
+case.
 
 ### Option B — generate it (installer)
 
@@ -60,7 +92,7 @@ Run the `ramp-pack` installer from the repo root; it reads the neutral source an
 node installer/bin/ramp-pack.js init legacy-transformation-on-aws --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/monolith
 ```
 
-Add `--dry-run` to preview or `--force` to overwrite existing generated files; this installs steering **and** skills in one step. To rebuild the committed per-tool scaffolds in place, run `./scripts/regenerate.sh legacy-transformation-on-aws` (requires Node). The common lifecycle and reverse-engineering source, named legacy overlays, pack-local skill activation, and shared `skills-library/` are the sources of truth.
+Add `--dry-run` to preview or `--force` to overwrite existing generated files; this installs steering **and** skills in one step. To rebuild the committed per-tool scaffolds in place, run `./scripts/regenerate.sh legacy-transformation-on-aws` (requires Node). The common lifecycle and reverse-engineering source, named legacy overlays, pack-local skill activation, pack overrides, RAMP-owned skills, reviewed compatibility content, and immutable skill lock are the sources of truth.
 
 Use `--spec-root <safe-relative-path>` and
 `--state-root <safe-relative-path>` to select custom workspace roots. For
@@ -131,16 +163,20 @@ legacy-transformation-on-aws/
 ├── pack.yaml                 # Manifest: instruction roles, MCP servers, skills, /aidlc command
 ├── instructions/
 │   └── skill-activation.md       # Routing for all 19 bundled skills + AWS Knowledge validation
-├── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills-library/
+├── add-skills.sh             # editable list; resolves pack, RAMP, then compatibility
 ├── add-skills.ps1            # Windows/PowerShell equivalent of add-skills.sh (no Node)
 └── scaffolded-packs/         # Committed, regenerated from source
     └── kiro/ claude-code/ copilot/ cursor/   # per-tool steering/MCP/command (steering only, NO skills)
 ```
 
-> The pack's 19 skills are referenced **by name** from `pack.yaml` (`skills:` list) and resolved from the
-> shared [`skills-library/`](../../skills-library/) at the repo root — the pack has no `skills/` directory of
-> its own (a local `skills/` appears only when a pack overrides a library skill). They are ported into a target
-> project by `add-skills.sh`. The primary workflow and reverse-engineering
+> The pack's 19 skills are referenced **by name** from `pack.yaml` (`skills:`
+> list). Resolution checks a pack-local `skills/` override first,
+> repository-wide RAMP-owned content in
+> [`skills/ramp/`](../../skills/ramp/) second, and reviewed committed
+> compatibility content in [`skills-library/`](../../skills-library/) third.
+> Node installation can resolve locked upstream names from a synchronized,
+> verified cache. The skills are ported into a target project by the helper.
+> The primary workflow and reverse-engineering
 > companion both inherit their common sources, then the manifest applies
 > `legacy-transformation-workflow.md` and
 > `legacy-adaptive-reverse-engineering.md` as the two named specializations.
@@ -170,7 +206,11 @@ The manifest declares AWS Knowledge once; the installer writes it to each tool's
 
 ## Bundled skills (19)
 
-Skills are referenced by name from the shared `skills-library/` and copied into every generated per-tool output, then activated by intent. During reverse engineering, discovery/assessment skills are used only when their capabilities apply to the approved scope; target design or implementation skills wait for the corresponding decision gate.
+Skills are referenced by name and resolved through the declared provenance
+layers before being copied into generated per-tool output and activated by
+intent. During reverse engineering, discovery/assessment skills are used only
+when their capabilities apply to the approved scope; target design or
+implementation skills wait for the corresponding decision gate.
 
 ### Serverless compute and workflows
 
