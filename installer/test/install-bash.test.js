@@ -161,6 +161,59 @@ describe('generated Bash bundle installer', () => {
     }
   })
 
+  // A cp that fails only for snapshot overlay copies stands in for ENOSPC or
+  // EIO while the rollback snapshot is built: the upgrade must not commit.
+  it('refuses an upgrade whose rollback snapshot cannot be built', () => {
+    const v1 = bundle({ files: { 'guide.md': 'guide 1\n' } })
+    const v2 = bundle({
+      version: '1.1.0',
+      bundleId: 'demo--kiro--v1.1.0',
+      files: { 'guide.md': 'guide 2\n' },
+    })
+    const target = tempRoot('ramp-install-target-')
+    expectSuccess(run(v1, target))
+    const realCp = spawnSync('sh', ['-c', 'command -v cp'], { encoding: 'utf8' }).stdout.trim()
+    const shims = tempRoot('ramp-install-shims-')
+    write(shims, 'cp', [
+      '#!/bin/sh',
+      'for last; do :; done',
+      'case "$last" in */backup/*/overlay/*) exit 1 ;; esac',
+      `exec ${realCp} "$@"`,
+      '',
+    ].join('\n'), 0o755)
+    const result = spawnSync('bash', [v2.script, '--target', target], {
+      cwd: tempRoot('ramp-install-cwd-'),
+      encoding: 'utf8',
+      env: { ...process.env, PATH: `${shims}:${process.env.PATH}` },
+      shell: false,
+      timeout: 20_000,
+    })
+    expect(result.status).not.toBe(0)
+    expect(result.stderr).toContain('could not build the rollback snapshot')
+    expect(readFileSync(join(target, 'guide.md'), 'utf8')).toBe('guide 1\n')
+    expect(existsSync(join(target, '.ramp/backups/demo--kiro--standalone/1.0.0'))).toBe(false)
+    expectSuccess(run(v2, target))
+    expectSuccess(run(v2, target, '--rollback'))
+    expect(readFileSync(join(target, 'guide.md'), 'utf8')).toBe('guide 1\n')
+  })
+
+  it('names a damaged rollback snapshot instead of failing silently', () => {
+    const v1 = bundle({ files: { 'guide.md': 'guide 1\n' } })
+    const v2 = bundle({
+      version: '1.1.0',
+      bundleId: 'demo--kiro--v1.1.0',
+      files: { 'guide.md': 'guide 2\n' },
+    })
+    const target = tempRoot('ramp-install-target-')
+    expectSuccess(run(v1, target))
+    expectSuccess(run(v2, target))
+    write(target, '.ramp/backups/demo--kiro--standalone/1.0.0/overlay/guide.md', 'damaged\n')
+    const result = run(v2, target, '--uninstall')
+    expect(result.status).not.toBe(0)
+    expect(result.stderr).toContain('.ramp/backups/demo--kiro--standalone')
+    expect(readFileSync(join(target, 'guide.md'), 'utf8')).toBe('guide 2\n')
+  })
+
   it('keeps a committed upgrade when removing transaction staging fails', () => {
     const v1 = bundle({
       version: '1.0.0',

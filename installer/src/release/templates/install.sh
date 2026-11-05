@@ -828,9 +828,12 @@ build_backup() {
   old_version="$4"
   new_version="$5"
   source_root="$6"
-  mkdir -p "$backup_stage/overlay"
-  cp "$owner_state" "$backup_stage/install-files.tsv"
-  cp "$origin_state" "$backup_stage/origins.tsv"
+  # Callers run this under ||, which turns set -e off here, so every step
+  # checks its own status. A copy must match the old record: a file edited
+  # since preflight would make the snapshot unusable for rollback.
+  mkdir -p "$backup_stage/overlay" || return 1
+  cp "$owner_state" "$backup_stage/install-files.tsv" || return 1
+  cp "$origin_state" "$backup_stage/origins.tsv" || return 1
   {
     printf 'RAMP-INSTALL-BACKUP\t1\n'
     printf 'owner\t%s\n' "$owner"
@@ -838,26 +841,29 @@ build_backup() {
     printf 'from-version\t%s\n' "$old_version"
     printf 'to-bundle\t%s\n' "$bundle_id"
     printf 'to-version\t%s\n' "$new_version"
-  } > "$backup_stage/backup-meta.tsv"
+  } > "$backup_stage/backup-meta.tsv" || return 1
   chmod 644 "$backup_stage/install-files.tsv" \
-    "$backup_stage/origins.tsv" "$backup_stage/backup-meta.tsv"
+    "$backup_stage/origins.tsv" "$backup_stage/backup-meta.tsv" || return 1
   while IFS="$TAB" read -r hash mode path; do
-    mkdir -p "$(dirname "$backup_stage/overlay/$path")"
-    cp "$source_root/$path" "$backup_stage/overlay/$path"
-    chmod "${mode#0}" "$backup_stage/overlay/$path"
+    mkdir -p "$(dirname "$backup_stage/overlay/$path")" || return 1
+    cp "$source_root/$path" "$backup_stage/overlay/$path" || return 1
+    chmod "${mode#0}" "$backup_stage/overlay/$path" || return 1
+    [ "$(hash_file "$backup_stage/overlay/$path")" = "$hash" ] || return 1
   done < "$old_manifest"
   sums="$backup_stage/SHA256SUMS"
-  : > "$sums"
+  : > "$sums" || return 1
   (
+    set -e
     cd "$backup_stage"
     find . -type f ! -path ./SHA256SUMS -print |
       sed 's#^\./##' |
       sort |
       while IFS= read -r path; do
-        printf '%s  %s\n' "$(hash_file "$path")" "$path"
+        sum="$(hash_file "$path")"
+        printf '%s  %s\n' "$sum" "$path"
       done
-  ) > "$sums"
-  chmod 644 "$sums"
+  ) > "$sums" || return 1
+  chmod 644 "$sums" || return 1
 }
 
 find_backup() {
@@ -1162,20 +1168,25 @@ if lexists "$origin_state"; then
   cp "$origin_state" "$txn/state.old/origins.tsv"
   origin_state_old=1
 fi
+snapshot_damaged() {
+  echo "error: the rollback snapshot in $STATE_ROOT/backups/$owner does not match its records" >&2
+  echo "recovery: move $STATE_ROOT/backups/$owner out of the target to continue without a rollback" >&2
+  exit 1
+}
 if lexists "$owner_backup"; then
   current_check="$work/current-backup-check.tsv"
   parse_manifest "$owner_state" "$current_check" "$owner" || exit 1
   current_check_bundle="$parsed_bundle"
   current_check_version="$parsed_version"
-  find_backup || exit 1
+  find_backup || snapshot_damaged
   previous_check="$work/previous-backup-check.tsv"
   parse_manifest "$rollback_dir/install-files.tsv" "$previous_check" "$owner" ||
-    exit 1
+    snapshot_damaged
   previous_check_bundle="$parsed_bundle"
   previous_check_version="$parsed_version"
   verify_backup "$previous_check" "$current_check_bundle" \
     "$current_check_version" "$previous_check_bundle" \
-    "$previous_check_version" || exit 1
+    "$previous_check_version" || snapshot_damaged
   mkdir -p "$txn/backup.old"
   # -p keeps the verified 0644/0755 modes under any umask.
   cp -pR "$rollback_dir" "$txn/backup.old/$previous_check_version"
@@ -1219,8 +1230,10 @@ if [ "$operation" = "install" ] && lexists "$owner_state"; then
   if [ "$upgrade_old_version" != "$bundle_version" ]; then
     upgrade_backup_stage="$txn/backup/$upgrade_old_version"
     build_backup "$upgrade_backup_stage" "$work/old-for-backup.tsv" \
-      "$upgrade_old_bundle" "$upgrade_old_version" "$bundle_version" "$target" ||
+      "$upgrade_old_bundle" "$upgrade_old_version" "$bundle_version" "$target" || {
+      echo "error: could not build the rollback snapshot for $upgrade_old_version; the target is unchanged" >&2
       exit 1
+    }
   fi
 fi
 if [ "$operation" = "rollback" ]; then
