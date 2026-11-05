@@ -327,9 +327,12 @@ for (const { command, available, label } of engines) {
         expect(snapshot(target)).toEqual(before)
       }, engine.timeout)
 
-      it('installs from a read-only manifest without leaving read-only copies', () => {
+      // A bundle on read-only media or in a Perforce workspace is only read.
+      it('installs from a read-only bundle without leaving read-only copies', () => {
         const { v1, v2 } = versions()
-        for (const state of [v1, v2]) chmodSync(join(state.root, 'install-files.tsv'), 0o444)
+        for (const state of [v1, v2]) {
+          for (const path of ['install-files.tsv', 'overlay/guide.md']) chmodSync(join(state.root, path), 0o444)
+        }
         const target = tempRoot('ramp-install-target-')
         expectSuccess(run(v1, target))
         expectSuccess(run(v2, target))

@@ -591,7 +591,10 @@ function Test-SourceRecords {
     $source = Join-Relative $script:OverlayDir $record.Path
     if ((Get-PathKind $source) -cne 'file') { return $false }
     if ((Get-Sha256 $source) -cne $record.Hash) { return $false }
-    if (-not (Test-ModeMatches $source $record.Mode)) { return $false }
+    # A source is only read, so a read-only Windows copy still matches.
+    if (-not $script:RunningOnWindows -and -not (Test-ModeMatches $source $record.Mode)) {
+      return $false
+    }
   }
   return $true
 }
