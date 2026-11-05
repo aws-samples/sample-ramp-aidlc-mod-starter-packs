@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from 'node:child_process'
-import { existsSync, lstatSync, mkdirSync, readFileSync } from 'node:fs'
+import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
@@ -112,6 +112,33 @@ describe('generated Bash bundle installer', () => {
     expect(readFileSync(join(state.root, 'install-conflicts.txt'), 'utf8'))
       .toBe('late.txt\tcustomer file differs\n')
     expect(snapshot(target)).toEqual([['late.txt', Buffer.from('customer\n'), expect.any(Number)]])
+  })
+
+  // Command substitution strips trailing newlines, so a directory named
+  // "proj<LF>" must not resolve to its sibling "proj".
+  it('keeps a trailing newline in target and bundle directory names', () => {
+    const parent = tempRoot('ramp-install-parent-')
+    const real = bundle()
+    const decoy = bundle({ files: { 'guide.md': 'decoy\n' } })
+    cpSync(real.root, join(parent, 'b\n'), { recursive: true })
+    cpSync(decoy.root, join(parent, 'b'), { recursive: true })
+    const script = join(parent, 'b\n', 'install.sh')
+    for (const name of ['proj\n', 'here\n']) {
+      mkdirSync(join(parent, name))
+      mkdirSync(join(parent, name.trimEnd()))
+    }
+    expectSuccess(run({ script }, join(parent, 'proj\n')))
+    const dot = spawnSync('bash', [script, '--target', '.'], {
+      cwd: join(parent, 'here\n'),
+      encoding: 'utf8',
+      shell: false,
+      timeout: 20_000,
+    })
+    expectSuccess(dot)
+    for (const name of ['proj', 'here']) {
+      expect(readFileSync(join(parent, `${name}\n`, 'guide.md'), 'utf8')).toBe('guide\n')
+      expect(snapshot(join(parent, name))).toEqual([])
+    }
   })
 
   it('installs into relative targets that look like cd options or CDPATH names', () => {

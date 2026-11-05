@@ -9,6 +9,8 @@ CONFLICT_NAME="__CONFLICT_NAME__"
 STATE_ROOT="__STATE_ROOT__"
 TAB="$(printf '\t')"
 CR="$(printf '\r')"
+LF='
+'
 
 usage() {
   echo "usage: $0 --target <dir> [--dry-run|--uninstall|--rollback]" >&2
@@ -150,20 +152,31 @@ ordinary_directory_path() {
   return 0
 }
 
-# Resolve a directory without cd treating it as an option ("-P", "--"), as
-# OLDPWD ("-"), or as a CDPATH entry: relative names are anchored with "./".
+# Resolve a directory into $physical without cd treating it as an option
+# ("-P", "--"), as OLDPWD ("-"), or as a CDPATH entry: relative names are
+# anchored with "./". Command substitution strips every trailing newline,
+# which would turn a directory named "repo<LF>" into its sibling "repo", so
+# a sentinel follows pwd's own newline and both are removed here.
 physical_directory() {
   local path
   path="$1"
   case "$path" in /*) ;; *) path="./$path" ;; esac
-  (CDPATH='' cd -P -- "$path" 2>/dev/null && pwd -P)
+  physical="$(CDPATH='' cd -P -- "$path" 2>/dev/null && pwd -P && printf x)" || return 1
+  physical="${physical%x}"
+  physical="${physical%"$LF"}"
 }
 
 if [ -L "$0" ]; then
   echo "error: installer script must not be a symbolic link" >&2
   exit 1
 fi
-script_dir="$(physical_directory "$(dirname -- "$0")")" || exit 1
+case "$0" in
+  */*) script_parent="${0%/*}" ;;
+  *) script_parent="." ;;
+esac
+[ -n "$script_parent" ] || script_parent="/"
+physical_directory "$script_parent" || exit 1
+script_dir="$physical"
 manifest_path="$script_dir/$MANIFEST_NAME"
 overlay_dir="$script_dir/$OVERLAY_ROOT"
 conflict_path="$script_dir/$CONFLICT_NAME"
@@ -172,7 +185,8 @@ ordinary_directory_path "$target_input" || {
   echo "error: target must be an existing ordinary directory" >&2
   exit 1
 }
-target="$(physical_directory "$target_input")" || exit 1
+physical_directory "$target_input" || exit 1
+target="$physical"
 ordinary_directory_path "$overlay_dir" || {
   echo "error: bundle overlay must be an ordinary directory" >&2
   exit 1
