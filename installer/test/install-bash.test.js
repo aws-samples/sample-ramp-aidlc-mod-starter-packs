@@ -233,6 +233,26 @@ describe('generated Bash bundle installer', () => {
     expect(unknown.status).not.toBe(0)
   })
 
+  it('installs into relative targets that look like cd options or CDPATH names', () => {
+    const state = bundle()
+    const parent = tempRoot('ramp-install-parent-')
+    const decoy = tempRoot('ramp-install-decoy-')
+    mkdirSync(join(decoy, 'proj'))
+    for (const name of ['-', '-P', '-L', '-e', '--', 'proj']) {
+      mkdirSync(join(parent, name))
+      const result = spawnSync('bash', [state.script, '--target', name], {
+        cwd: parent,
+        encoding: 'utf8',
+        env: { ...process.env, HOME: decoy, OLDPWD: decoy, CDPATH: decoy },
+        shell: false,
+        timeout: 20_000,
+      })
+      expectSuccess(result)
+      expect(readFileSync(join(parent, name, 'guide.md'), 'utf8')).toBe('guide\n')
+      expect(snapshot(decoy)).toEqual([['proj', Buffer.from('directory'), lstatSync(join(decoy, 'proj')).mode & 0o777]])
+    }
+  })
+
   it('rejects empty TSV fields and cross-owner portable path collisions', () => {
     const forged = bundle()
     const target = tempRoot('ramp-install-target-')

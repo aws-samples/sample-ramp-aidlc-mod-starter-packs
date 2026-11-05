@@ -150,11 +150,20 @@ ordinary_directory_path() {
   return 0
 }
 
+# Resolve a directory without cd treating it as an option ("-P", "--"), as
+# OLDPWD ("-"), or as a CDPATH entry: relative names are anchored with "./".
+physical_directory() {
+  local path
+  path="$1"
+  case "$path" in /*) ;; *) path="./$path" ;; esac
+  (CDPATH='' cd -P -- "$path" 2>/dev/null && pwd -P)
+}
+
 if [ -L "$0" ]; then
   echo "error: installer script must not be a symbolic link" >&2
   exit 1
 fi
-script_dir="$(cd "$(dirname "$0")" 2>/dev/null && pwd -P)" || exit 1
+script_dir="$(physical_directory "$(dirname -- "$0")")" || exit 1
 manifest_path="$script_dir/$MANIFEST_NAME"
 overlay_dir="$script_dir/$OVERLAY_ROOT"
 conflict_path="$script_dir/$CONFLICT_NAME"
@@ -163,7 +172,7 @@ ordinary_directory_path "$target_input" || {
   echo "error: target must be an existing ordinary directory" >&2
   exit 1
 }
-target="$(cd "$target_input" 2>/dev/null && pwd -P)" || exit 1
+target="$(physical_directory "$target_input")" || exit 1
 ordinary_directory_path "$overlay_dir" || {
   echo "error: bundle overlay must be an ordinary directory" >&2
   exit 1
