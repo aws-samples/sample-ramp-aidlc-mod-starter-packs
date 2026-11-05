@@ -31,6 +31,8 @@ import {
   readOrdinaryFile,
 } from './entries.js'
 import { createInputClosure } from './input-closure.js'
+import { renderInstallManifest } from './install-manifest.js'
+import { renderInstallers } from './installers.js'
 import {
   collectLegalPayloads,
   renderThirdPartyNotices,
@@ -58,7 +60,17 @@ const RELEASE_GENERATOR_FILES = [
   'installer/src/release/notices.js',
   'installer/src/release/readme-first.js',
   'installer/src/release/bundle.js',
+  'installer/src/release/install-manifest.js',
+  'installer/src/release/installers.js',
+  'installer/src/release/templates/install.sh',
+  'installer/src/release/templates/install.ps1',
 ]
+const INSTALLER_LAYOUT = {
+  manifestName: 'install-files.tsv',
+  overlayRoot: 'overlay',
+  conflictName: 'install-conflicts.txt',
+  stateRoot: '.ramp',
+}
 const DEPENDENCY_INPUTS = [
   'dependencies/skills.sources.yaml',
   'dependencies/skills.lock.yaml',
@@ -154,7 +166,10 @@ function recordRepositoryPath(closure, root, path, role) {
   return bytes
 }
 
+// Returns the authenticated bytes so installer templates are rendered from
+// exactly what the closure records, never from a second read.
 function recordReleaseGeneratorInputs(closure, repoRoot) {
+  const captured = new Map()
   for (const path of RELEASE_GENERATOR_FILES) {
     const repositoryBytes = readOrdinaryFile(
       join(repoRoot, ...path.split('/')),
@@ -180,7 +195,9 @@ function recordReleaseGeneratorInputs(closure, repoRoot) {
       role: 'generator',
       bytes: repositoryBytes,
     })
+    captured.set(path, Buffer.from(repositoryBytes))
   }
+  return captured
 }
 
 function loadCapturedDependencyEnvironment({
@@ -316,12 +333,12 @@ function sourceMetadata(repositoryIsVerified, sourceCommit, buildTime) {
       }
 }
 
-function generatedEntry(path, value) {
+function generatedEntry(path, value, mode = 0o100644) {
   const bytes = Buffer.isBuffer(value) ? Buffer.from(value) : Buffer.from(value, 'utf8')
   return {
     path: assertArtifactPath(path),
     bytes,
-    mode: 0o100644,
+    mode,
     provenance: { kind: 'generated' },
   }
 }
@@ -429,7 +446,7 @@ export function buildBundle(packDir, options = {}) {
     dispatchInput(closure, event)
   }
 
-  recordReleaseGeneratorInputs(closure, repoRoot)
+  const generatorBytes = recordReleaseGeneratorInputs(closure, repoRoot)
   const dependencyBytes = new Map()
   for (const path of DEPENDENCY_INPUTS) {
     const bytes = recordRepositoryPath(
@@ -567,6 +584,19 @@ export function buildBundle(packDir, options = {}) {
     `${manifest.name}--${target}--${profile ?? 'standalone'}`
   assertArtifactPath(artifactName, 'artifactName')
   assertArtifactPath(ownershipKey, 'ownershipKey')
+  const installManifest = renderInstallManifest({
+    bundleId: artifactName,
+    ownershipKey,
+    version: manifest.version,
+    files: overlayEntries,
+  })
+  const helpers = renderInstallers({
+    ...INSTALLER_LAYOUT,
+    templates: {
+      bash: generatorBytes.get('installer/src/release/templates/install.sh'),
+      powershell: generatorBytes.get('installer/src/release/templates/install.ps1'),
+    },
+  })
 
   const entries = [
     generatedEntry(
@@ -588,6 +618,9 @@ export function buildBundle(packDir, options = {}) {
       generatedEntry(`licenses/${source.id}/LICENSE`, source.licenseBytes),
       generatedEntry(`licenses/${source.id}/NOTICE`, source.noticeBytes),
     ]),
+    generatedEntry(INSTALLER_LAYOUT.manifestName, installManifest),
+    generatedEntry('install.sh', helpers.bash, 0o100755),
+    generatedEntry('install.ps1', helpers.powershell),
     ...overlayEntries,
   ].sort((left, right) => comparePortablePaths(left.path, right.path))
   assertNoPrivateMaterial(entries, { repoRoot, cacheDir, manifest })

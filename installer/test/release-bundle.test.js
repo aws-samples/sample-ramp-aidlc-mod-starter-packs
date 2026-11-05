@@ -1,10 +1,13 @@
 import { createHash } from 'node:crypto'
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import {
   chmodSync,
+  existsSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   renameSync,
   rmSync,
   symlinkSync,
@@ -36,6 +39,7 @@ import {
   renderReadmeFirst,
 } from '../src/release/readme-first.js'
 import { buildBundle } from '../src/release/bundle.js'
+import { renderInstallers } from '../src/release/installers.js'
 
 const roots = []
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -67,7 +71,17 @@ const GENERATOR_FILES = [
   'installer/src/release/notices.js',
   'installer/src/release/readme-first.js',
   'installer/src/release/bundle.js',
+  'installer/src/release/install-manifest.js',
+  'installer/src/release/installers.js',
+  'installer/src/release/templates/install.sh',
+  'installer/src/release/templates/install.ps1',
 ]
+const INSTALLER_LAYOUT = {
+  manifestName: 'install-files.tsv',
+  overlayRoot: 'overlay',
+  conflictName: 'install-conflicts.txt',
+  stateRoot: '.ramp',
+}
 const ADAPTER_FILES = [
   'installer/src/adapters/kiro.js',
   'installer/src/adapters/claude-code.js',
@@ -1618,7 +1632,29 @@ describe('legal payloads and customer guidance', () => {
     expect(readme).toMatch(/copy.*overlay|overlay.*copy/i)
     expect(readme).toMatch(/merge|conflict/i)
     expect(readme).not.toContain('do-not-copy-this-value')
-    expect(readme).not.toMatch(/run install\.(sh|ps1)/i)
+    expect(readme).not.toMatch(/does not include an installer/i)
+    expect(readme).toContain('bash install.sh --target <project-directory> --dry-run')
+    expect(readme).toContain('bash install.sh --target <project-directory>\n')
+    expect(readme).toContain('--uninstall')
+    expect(readme).toContain('--rollback')
+    expect(readme).toContain(
+      'powershell -NoProfile -ExecutionPolicy Bypass -File install.ps1 -Target <project-directory> -DryRun',
+    )
+    expect(readme).toMatch(/-Uninstall/)
+    expect(readme).toMatch(/-Rollback/)
+    expect(readme).toContain('install-files.tsv')
+    expect(readme).toContain('install-conflicts.txt')
+    expect(readme).toContain('.ramp/')
+    expect(readme).toMatch(/nothing is written to your project/i)
+    expect(readme).toMatch(/one step/i)
+    expect(readme).toMatch(/Windows PowerShell 5\.1/)
+    expect(readme).toMatch(/PowerShell 7\.3/)
+    expect(readme).toContain('sha256sum -c SHA256SUMS')
+    expect(readme).toContain('shasum -a 256 -c SHA256SUMS')
+    expect(readme).toMatch(/not.*authentic|authenticity/i)
+    expect(readme).toMatch(/copied manually.*not recorded|not recorded.*manual/i)
+    expect(readme).not.toMatch(/Set-ExecutionPolicy|\.\/install\.sh/)
+    expect(containsLocalAbsolutePath(readme)).toBe(false)
   })
 
   it.each([
@@ -1755,6 +1791,9 @@ describe('deterministic unpacked bundle', () => {
       'SHA256SUMS',
       'THIRD_PARTY_NOTICES.md',
       'bundle-manifest.json',
+      'install-files.tsv',
+      'install.ps1',
+      'install.sh',
       'overlay/.kiro/settings/mcp.json',
       'overlay/.kiro/skills/demo-skill/SKILL.md',
       'overlay/.kiro/skills/demo-skill/references/guide.md',
@@ -1885,6 +1924,109 @@ describe('deterministic unpacked bundle', () => {
       expect(text).not.toMatch(/\/(?:Users|home)\/[^/\s]+\/(?:Documents|Desktop)\//)
       expect(text).not.toMatch(/AKIA[0-9A-Z]{16}|aws_secret_access_key/i)
     }
+  })
+
+  it('ships standalone installers derived from the authenticated overlay', () => {
+    for (const profile of [undefined, 'shared-kiro-claude']) {
+      const state = makeBundleRepository()
+      const result = buildBundle(state.packDir, bundleOptions(state, profile ? { profile } : {}))
+      const byPath = new Map(result.entries.map((entry) => [entry.path, entry]))
+      for (const [path, mode] of [
+        ['install-files.tsv', 0o100644],
+        ['install.ps1', 0o100644],
+        ['install.sh', 0o100755],
+      ]) {
+        expect(byPath.get(path), path).toMatchObject({ mode, provenance: { kind: 'generated' } })
+      }
+
+      // Derived independently of renderInstallManifest from the bundle manifest.
+      const expectedTsv = [
+        'RAMP-INSTALL-MANIFEST\t1',
+        `bundle\t${result.artifactName}`,
+        `owner\t${result.ownershipKey}`,
+        'version\t1.2.3',
+        ...result.manifest.files.map((file) =>
+          `file\t${file.sha256}\t${file.executable ? '0755' : '0644'}\t${file.path.slice('overlay/'.length)}`),
+        '',
+      ].join('\n')
+      expect(byPath.get('install-files.tsv').bytes.toString('utf8')).toBe(expectedTsv)
+      expect(expectedTsv).toContain('\t0755\t.kiro/skills/demo-skill/scripts/check.sh\n')
+      expect(result.ownershipKey).toBe(
+        profile ? 'demo-pack--kiro--shared-kiro-claude' : 'demo-pack--kiro--standalone',
+      )
+
+      const templates = {
+        bash: readFileSync(join(projectRoot, 'installer/src/release/templates/install.sh')),
+        powershell: readFileSync(join(projectRoot, 'installer/src/release/templates/install.ps1')),
+      }
+      const helpers = renderInstallers({ ...INSTALLER_LAYOUT, templates })
+      expect(byPath.get('install.sh').bytes.toString('utf8')).toBe(helpers.bash)
+      expect(byPath.get('install.ps1').bytes.toString('utf8')).toBe(helpers.powershell)
+      expect(helpers.bash).toContain('MANIFEST_NAME="install-files.tsv"')
+      for (const [name, bytes] of Object.entries(templates)) {
+        const path = `installer/src/release/templates/install.${name === 'bash' ? 'sh' : 'ps1'}`
+        expect(result.consumedInputs.find((input) => input.path === path)).toMatchObject({
+          sourceKind: 'generator',
+          sha256: sha256(bytes),
+        })
+      }
+
+      const sums = byPath.get('SHA256SUMS').bytes.toString('utf8')
+      for (const path of ['install-files.tsv', 'install.ps1', 'install.sh']) {
+        expect(sums).toContain(`${sha256(byPath.get(path).bytes)}  ${path}\n`)
+      }
+    }
+  })
+
+  it.skipIf(process.platform === 'win32')('installs the unpacked bundle with its own helper', () => {
+    const state = makeBundleRepository()
+    const result = buildBundle(state.packDir, bundleOptions(state))
+    const unpacked = tempRoot('ramp-release-unpacked-')
+    for (const entry of result.entries) write(unpacked, entry.path, entry.bytes, entry.mode & 0o777)
+    const target = tempRoot('ramp-release-target-')
+    const helper = (args) => spawnSync('bash', ['install.sh', '--target', target, ...args], {
+      cwd: unpacked,
+      encoding: 'utf8',
+      shell: false,
+      timeout: 60_000,
+    })
+
+    const dryRun = helper(['--dry-run'])
+    expect(dryRun.status, dryRun.stderr).toBe(0)
+    expect(readdirSync(target)).toEqual([])
+    const installed = helper([])
+    expect(installed.status, installed.stderr).toBe(0)
+    for (const entry of result.entries.filter(({ path }) => path.startsWith('overlay/'))) {
+      const destination = join(target, entry.path.slice('overlay/'.length))
+      expect(readFileSync(destination)).toEqual(entry.bytes)
+      expect(lstatSync(destination).mode & 0o777).toBe(entry.mode & 0o777)
+    }
+    expect(readFileSync(join(target, '.ramp/installed/demo-pack--kiro--standalone.tsv')))
+      .toEqual(result.entries.find(({ path }) => path === 'install-files.tsv').bytes)
+    const checker = ['sha256sum', 'shasum'].find((command) =>
+      !spawnSync(command, ['--version']).error)
+    if (checker) {
+      const verified = spawnSync(checker, [
+        ...(checker === 'shasum' ? ['-a', '256'] : []),
+        '-c',
+        'SHA256SUMS',
+      ], { cwd: unpacked, encoding: 'utf8' })
+      expect(verified.status, verified.stdout + verified.stderr).toBe(0)
+    }
+    const uninstalled = helper(['--uninstall'])
+    expect(uninstalled.status, uninstalled.stderr).toBe(0)
+    expect(existsSync(join(target, '.kiro'))).toBe(false)
+  }, 120_000)
+
+  it('rejects an installer template changed after it was captured', () => {
+    const state = makeBundleRepository()
+    expect(() => buildBundle(state.packDir, bundleOptions(state, {
+      onReleasePhase({ phase }) {
+        if (phase === 'afterDependencyInputsCaptured') {
+          write(state.repository, 'installer/src/release/templates/install.sh', '#!/bin/sh\n')
+        }
+      },
+    }))).toThrow(/changed|capture|drift|mismatch/i)
   })
 
   it('returns defensive entry, manifest, and consumed-input copies', () => {
@@ -2156,6 +2298,8 @@ describe('deterministic unpacked bundle', () => {
       writeFileSync(join(state.repository, 'LICENSE'), 'dirty\n')],
     ['dirty generator', (state) =>
       writeFileSync(join(state.repository, 'installer/src/plan.js'), '// dirty\n')],
+    ['dirty installer template', (state) =>
+      writeFileSync(join(state.repository, 'installer/src/release/templates/install.ps1'), '# dirty\n')],
     ['untracked selected skill file', (state) =>
       write(state.repository, 'skills/ramp/demo-skill/.DS_Store', 'ignored')],
   ])('rejects repository-verified bundle with %s', (_label, mutate) => {
@@ -2169,6 +2313,8 @@ describe('deterministic unpacked bundle', () => {
   it.each([
     'installer/src/plan.js',
     'installer/src/adapters/kiro.js',
+    'installer/src/release/install-manifest.js',
+    'installer/src/release/templates/install.sh',
   ])('rejects a clean committed generator file that did not execute: %s', (path) => {
     const state = makeBundleRepository()
     write(state.repository, path, '// committed but not executing\n')
