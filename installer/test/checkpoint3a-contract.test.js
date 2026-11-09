@@ -451,14 +451,18 @@ describe('Checkpoint 3A clean-clone workflow contract', () => {
     const steps = verify?.steps ?? []
 
     expect(workflow.permissions).toEqual({ contents: 'read' })
-    expect(verify?.env).toEqual({
-      RAMP_SKILLS_CACHE: '${{ runner.temp }}/ramp-skills',
-    })
-    expect(
-      Object.values(workflow.jobs ?? {}).filter(
-        (job) => job?.env?.RAMP_SKILLS_CACHE !== undefined,
-      ),
-    ).toHaveLength(1)
+    // jobs.<id>.env cannot read the runner context (the run fails at startup),
+    // so the first step exports the cache path through GITHUB_ENV instead.
+    for (const job of Object.values(workflow.jobs ?? {})) {
+      expect(JSON.stringify(job?.env ?? {})).not.toContain('runner.')
+      expect(job?.env?.RAMP_SKILLS_CACHE).toBeUndefined()
+    }
+    const cacheEnvIndex = stepIndex(
+      steps,
+      (_step, run) =>
+        run === 'echo "RAMP_SKILLS_CACHE=$RUNNER_TEMP/ramp-skills" >> "$GITHUB_ENV"',
+    )
+    expect(cacheEnvIndex).toBe(0)
     expect(
       steps.some((step) => step?.env?.RAMP_SKILLS_CACHE !== undefined),
     ).toBe(false)

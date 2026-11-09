@@ -15,9 +15,10 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    env:
-      RAMP_SKILLS_CACHE: ${{ runner.temp }}/ramp-skills
     steps:
+      # The runner context is unavailable in jobs.<id>.env, so export the path here.
+      - name: Point the skill cache at runner temp
+        run: echo "RAMP_SKILLS_CACHE=$RUNNER_TEMP/ramp-skills" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
