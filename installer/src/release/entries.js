@@ -368,7 +368,8 @@ function listTree(root, { limits, onFilesystemPhase } = {}) {
   visit(root)
   const rootAfter = ancestrySnapshot(root, root, 'copy source root', 'directory')
   assertSameSnapshot(rootSnapshot, rootAfter, 'copy source root')
-  return files
+  // Full-path order, as in the provenance list; per-directory order puts a/ before a-b/.
+  return files.sort((left, right) => comparePortablePaths(left.path, right.path))
 }
 
 function normalizedExpectedFiles(provenance) {

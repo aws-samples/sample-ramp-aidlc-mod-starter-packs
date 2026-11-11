@@ -18,7 +18,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
-import { hashSkillTree } from '../src/dependencies/checksum.js'
+import { comparePortablePaths, hashSkillTree } from '../src/dependencies/checksum.js'
 import { writeSkillLock } from '../src/dependencies/manifests.js'
 import {
   collectPlanEntries,
@@ -651,6 +651,28 @@ describe('release plan entry collection', () => {
       { path: 'z.txt', content: 'z', kind: 'text' },
     ])
     expect(first).toEqual(second)
+  })
+
+  it('accepts a tree whose directory order differs from full-path order', () => {
+    // Per directory, cloudwatch/ sorts before cloudwatch-omni/; by full path
+    // cloudwatch-omni/... comes first because '-' sorts before '/'.
+    const state = makeCopyFixture([
+      { path: 'a/x.md', bytes: 'x', executable: false },
+      { path: 'a-b/y.md', bytes: 'y', executable: false },
+      { path: 'cloudwatch/alarms.md', bytes: 'alarms', executable: false },
+      { path: 'cloudwatch-omni/agent-evaluation.md', bytes: 'eval', executable: false },
+    ])
+    const result = collectPlanEntries(copyPlan(state.root, state.files, {
+      path: 'skill',
+    }))
+
+    expect(paths(result)).toEqual([
+      'skill/a-b/y.md',
+      'skill/a/x.md',
+      'skill/cloudwatch-omni/agent-evaluation.md',
+      'skill/cloudwatch/alarms.md',
+    ])
+    expect(paths(result)).toEqual([...paths(result)].sort(comparePortablePaths))
   })
 
   it.each([
@@ -1925,6 +1947,26 @@ describe('deterministic unpacked bundle', () => {
       expect(text).not.toMatch(/\/(?:Users|home)\/[^/\s]+\/(?:Documents|Desktop)\//)
       expect(text).not.toMatch(/AKIA[0-9A-Z]{16}|aws_secret_access_key/i)
     }
+  })
+
+  it('builds a skill whose directory order differs from full-path order', () => {
+    const state = makeBundleRepository()
+    write(state.repository, 'skills/ramp/demo-skill/references/cloudwatch/alarms.md', 'alarms\n')
+    write(
+      state.repository,
+      'skills/ramp/demo-skill/references/cloudwatch-omni/agent-evaluation.md',
+      'eval\n',
+    )
+    state.sourceCommit = commitAll(state.repository, 'sibling folder names')
+
+    const result = buildBundle(state.packDir, bundleOptions(state))
+    const references = paths(result.entries).filter((path) =>
+      path.startsWith('overlay/.kiro/skills/demo-skill/references/'))
+    expect(references).toEqual([
+      'overlay/.kiro/skills/demo-skill/references/cloudwatch-omni/agent-evaluation.md',
+      'overlay/.kiro/skills/demo-skill/references/cloudwatch/alarms.md',
+      'overlay/.kiro/skills/demo-skill/references/guide.md',
+    ])
   })
 
   it('ships standalone installers derived from the authenticated overlay', () => {
