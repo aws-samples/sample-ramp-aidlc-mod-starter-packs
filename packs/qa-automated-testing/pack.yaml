@@ -11,6 +11,7 @@ catalog:
   domain: quality-engineering
   executionModel: assisted-builder
   maturity: preview
+  useCases: [quality-engineering]
 
 workflow:
   provider: local-instructions-v1

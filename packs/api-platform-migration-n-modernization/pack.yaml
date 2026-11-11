@@ -2,6 +2,9 @@ name: api-platform-migration-n-modernization
 title: API Gateway Platform
 description: Amazon API Gateway platform / POC on AWS, built with Terraform via the AI-DLC decision-driven workflow.
 
+catalog:
+  useCases: [application-modernization]
+
 instructions:
   - file: aidlc-workflow.md
     role: primary

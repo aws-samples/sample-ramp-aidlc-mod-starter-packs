@@ -12,6 +12,9 @@ description: >
   the AWS architecture (trigger, orchestration, reasoning model, IaC) is
   discovered and gated in-flow, not assumed.
 
+catalog:
+  useCases: [operations-and-incident-response]
+
 instructions:
   - file: aidlc-workflow.md
     role: primary

@@ -2,6 +2,9 @@ name: ocr-mobile-app-on-serverless
 title: Mobile Document Capture on Serverless
 description: Build a mobile document-capture app plus serverless computer-vision extraction pipeline on AWS via the AI-DLC decision-driven workflow.
 
+catalog:
+  useCases: [cloud-native-development, generative-ai-and-agents]
+
 instructions:
   - file: aidlc-workflow.md
     role: primary
