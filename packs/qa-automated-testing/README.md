@@ -3,7 +3,7 @@
 A **tool-agnostic** starter pack for designing and building **automated test suites for web and mobile applications**, driven by the **AI-Driven Development Lifecycle (AI-DLC)** decision-gated workflow. It ships two curated testing skills — one for **web** (Playwright-first) and one for **mobile** (Maestro/Appium-first, with AWS Device Farm guidance) — plus a set of **AWS build skills** for standing up the serverless test infrastructure behind the suite (Lambda test runners, Step Functions orchestration, API Gateway trigger/results APIs, IAM roles, Bedrock for AI-assisted testing, and Lambda MicroVMs for isolated executors) — so the agent proposes current best-practice options instead of guessing.
 
 The pack combines a shared, tool-neutral lifecycle with QA-specific
-instructions and works with **Kiro, Claude Code, GitHub Copilot, and Cursor**.
+instructions and works with **Kiro, Claude Code, GitHub Copilot, Cursor, and Codex**.
 Whichever agent you use gains deep testing expertise and follows structured,
 decision-gated workflows — no manual setup needed.
 
@@ -34,15 +34,16 @@ skill, or the reviewed committed compatibility library.
 | **Claude Code** | `scaffolded-packs/claude-code/` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
 | **GitHub Copilot** | `scaffolded-packs/copilot/` | `.github/`, `.vscode/mcp.json` |
 | **Cursor** | `scaffolded-packs/cursor/` | `.cursor/` |
+| **Codex** | `scaffolded-packs/codex/` | `AGENTS.md`, `.codex/` (the helper adds `.agents/skills/`) |
 
 ```bash
-add-skills.sh --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
+add-skills.sh --tool <kiro|claude-code|copilot|cursor|codex> --target /path/to/your/project
 ```
 
 On Windows (PowerShell), use the equivalent `add-skills.ps1`:
 
 ```powershell
-add-skills.ps1 -Tool <kiro|claude-code|copilot|cursor> -Target C:\path\to\your\project
+add-skills.ps1 -Tool <kiro|claude-code|copilot|cursor|codex> -Target C:\path\to\your\project
 ```
 
 When the helper remains in this cloned repository it discovers the repository
@@ -81,10 +82,10 @@ The `scaffolded-packs/<tool>/` folders contain steering/MCP/command files only
 Run the `ramp-pack` installer from the repo root; it reads the neutral source and writes the correct layout into your target project:
 
 ```bash
-node installer/bin/ramp-pack.js init qa-automated-testing --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
+node installer/bin/ramp-pack.js init qa-automated-testing --tool <kiro|claude-code|copilot|cursor|codex> --target /path/to/your/project
 ```
 
-Add `--dry-run` to preview, `--force` to overwrite existing files. To rebuild all four committed tool scaffolds in place, run `./scripts/regenerate.sh qa-automated-testing` (requires Node). The common lifecycle, named QA overlay, pack-local instructions, pack overrides, RAMP-owned skills, reviewed compatibility content, and immutable skill lock are the sources of truth for the committed outputs and installer resolution.
+Add `--dry-run` to preview, `--force` to overwrite existing files. To rebuild all five committed tool scaffolds in place, run `./scripts/regenerate.sh qa-automated-testing` (requires Node). The common lifecycle, named QA overlay, pack-local instructions, pack overrides, RAMP-owned skills, reviewed compatibility content, and immutable skill lock are the sources of truth for the committed outputs and installer resolution.
 
 Use `--spec-root <safe-relative-path>` and
 `--state-root <safe-relative-path>` to select custom workspace roots. For
@@ -120,7 +121,7 @@ packs/qa-automated-testing/
 ├── add-skills.sh                 # Resolves pack, RAMP, then compatibility sources
 ├── add-skills.ps1                # Windows/PowerShell equivalent
 └── scaffolded-packs/             # Generated per-tool steering
-    └── kiro/ claude-code/ copilot/ cursor/
+    └── kiro/ claude-code/ copilot/ cursor/ codex/
 ```
 
 Source ownership for authors:
@@ -151,12 +152,15 @@ synchronized, verified cache.
 
 The neutral instructions declare a **role** (`primary` / `companion`) and a **load** rule (`always` / `auto`); the installer renders each into the target tool's native mechanism:
 
-| Neutral role | Kiro | Claude Code | Copilot | Cursor |
-|---|---|---|---|---|
-| `aidlc-workflow` (primary) | `.kiro/steering/*` `inclusion: always` | `CLAUDE.md` | `.github/copilot-instructions.md` | `.cursor/rules/*.mdc` `alwaysApply: true` |
-| `skill-activation` (always) | `inclusion: always` | `.claude/rules/*` | `.github/instructions/*` `applyTo: '**'` | `.mdc` `alwaysApply: false` |
-| `reverse-engineering` (auto) | `inclusion: auto` | `.claude/rules/*` | `.github/instructions/*` (conditional) | `.mdc` `alwaysApply: false` |
-| `/aidlc` command | — | `.claude/commands/aidlc.md` | `.github/prompts/aidlc.prompt.md` | — |
+| Neutral role | Kiro | Claude Code | Copilot | Cursor | Codex |
+|---|---|---|---|---|---|
+| `aidlc-workflow` (primary) | `.kiro/steering/*` `inclusion: always` | `CLAUDE.md` | `.github/copilot-instructions.md` | `.cursor/rules/*.mdc` `alwaysApply: true` | `AGENTS.md` |
+| `skill-activation` (always) | `inclusion: always` | `.claude/rules/*` | `.github/instructions/*` `applyTo: '**'` | `.mdc` `alwaysApply: true` | `.codex/instructions/*`, read at session start |
+| `reverse-engineering` (auto) | `inclusion: auto` | `.claude/rules/*` | `.github/instructions/*` with its `description` | `.mdc` `alwaysApply: false` with its `description` | `.codex/instructions/*`, read when its description applies |
+| `/aidlc` command | — | `.claude/commands/aidlc.md` | `.github/prompts/aidlc.prompt.md` | — | — |
+
+Codex reads only `AGENTS.md`, so `AGENTS.md` opens by naming each file under
+`.codex/instructions/` and when to read it.
 
 ### Skills — Testing + AWS test infrastructure
 
@@ -182,7 +186,7 @@ The pack includes eight skills that activate based on conversation triggers. The
 
 ### MCP servers
 
-Declared once in `pack.yaml`; the installer writes it to each tool's MCP config (`.kiro/settings/mcp.json`, `.mcp.json`, `.vscode/mcp.json`, `.cursor/mcp.json`).
+Declared once in `pack.yaml`; the installer writes it to each tool's MCP config (`.kiro/settings/mcp.json`, `.mcp.json`, `.vscode/mcp.json`, `.cursor/mcp.json`, `.codex/config.toml`).
 
 | MCP Server | When the agent uses it |
 |---|---|
@@ -190,7 +194,7 @@ Declared once in `pack.yaml`; the installer writes it to each tool's MCP config 
 
 ## Prerequisites
 
-- One of: [Kiro](https://kiro.dev), [Claude Code](https://claude.com/claude-code), GitHub Copilot, or Cursor — installed and signed in.
+- One of: [Kiro](https://kiro.dev), [Claude Code](https://claude.com/claude-code), GitHub Copilot, Cursor, or [Codex](https://developers.openai.com/codex/cli) — installed and signed in.
 - **Option B (installer) only:** Node.js 18+ (to run `ramp-pack`).
 - Test runtimes as chosen during the Design phase (e.g., Node.js + `npx playwright install` for web; Maestro / Appium / Xcode / Android SDK for mobile).
 - *(Optional)* An AWS account/profile if you adopt **AWS Device Farm** for device-cloud test runs, or if you build the serverless **test infrastructure** (Lambda, Step Functions, API Gateway, IAM, Bedrock, Lambda MicroVMs) covered by the AWS build skills.

@@ -49,6 +49,6 @@ skills:
   - web-test-automation
 
 distribution:
-  targets: [kiro, claude-code, copilot, cursor]
-  qualifiedTargets: [kiro, claude-code]
+  targets: [kiro, claude-code, copilot, cursor, codex]
+  qualifiedTargets: [kiro, claude-code, copilot, cursor, codex]
   profiles: []
