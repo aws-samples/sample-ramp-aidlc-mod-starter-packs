@@ -1,0 +1,11 @@
+schemaVersion: 2
+kind: ramp-skill
+name: kept
+origin: ramp
+version: 1.0.0
+license: MIT-0
+ownerPack: some-pack
+classification:
+  useCases: [quality-engineering]
+  awsServices: []
+  technologies: []

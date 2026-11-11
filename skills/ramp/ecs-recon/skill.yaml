@@ -1,5 +1,10 @@
-schemaVersion: 1
+schemaVersion: 2
 kind: ramp-skill
 name: ecs-recon
+origin: ramp
 version: 1.0.0
 license: MIT-0
+classification:
+  useCases: [application-modernization, operations-and-incident-response]
+  awsServices: [ecs]
+  technologies: []

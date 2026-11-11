@@ -1,5 +1,10 @@
-schemaVersion: 1
+schemaVersion: 2
 kind: ramp-skill
 name: mobile-test-automation
+origin: ramp
 version: 1.0.0
 license: MIT-0
+classification:
+  useCases: [quality-engineering]
+  awsServices: [device-farm]
+  technologies: [android, ios]

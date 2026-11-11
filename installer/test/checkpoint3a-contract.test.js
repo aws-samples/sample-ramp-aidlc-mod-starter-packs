@@ -123,6 +123,56 @@ const expectedMovedFiles = [
   ["web-test-automation","references/tool-selection.md","13508e111b1ea5cbf532a08bf1a4e2a1e1198f5d5eefdf28c7fbcc8168238c21",4506,false],
 ]
 
+// The schemaVersion 2 classification each moved skill declares (Appendix A of
+// the skills namespace design), in taxonomy display order.
+const movedSkillClassifications = {
+  'ecs-architect': {
+    useCases: ['application-modernization', 'cloud-native-development'],
+    awsServices: ['ecs', 'fargate', 'ec2'],
+    technologies: [],
+  },
+  'ecs-build': {
+    useCases: ['cloud-native-development', 'infrastructure-as-code'],
+    awsServices: ['ecs'],
+    technologies: ['terraform'],
+  },
+  'ecs-devops': {
+    useCases: ['cloud-native-development', 'operations-and-incident-response'],
+    awsServices: ['ecs'],
+    technologies: [],
+  },
+  'ecs-observability': {
+    useCases: ['operations-and-incident-response'],
+    awsServices: ['ecs', 'cloudwatch', 'x-ray'],
+    technologies: [],
+  },
+  'ecs-operation-review': {
+    useCases: ['operations-and-incident-response'],
+    awsServices: ['ecs'],
+    technologies: [],
+  },
+  'ecs-recon': {
+    useCases: ['application-modernization', 'operations-and-incident-response'],
+    awsServices: ['ecs'],
+    technologies: [],
+  },
+  'ecs-security': {
+    useCases: ['cloud-native-development', 'cloud-foundations'],
+    awsServices: ['ecs', 'iam'],
+    technologies: [],
+  },
+  'mobile-test-automation': {
+    useCases: ['quality-engineering'],
+    awsServices: ['device-farm'],
+    technologies: ['android', 'ios'],
+  },
+  'web-test-automation': {
+    useCases: ['quality-engineering'],
+    awsServices: [],
+    technologies: [],
+  },
+}
+
 const helperPackNames = [
   'agentic-ai-workflow',
   'agentic-incident-response',
@@ -322,23 +372,31 @@ describe('Checkpoint 3A RAMP-owned skill move contract', () => {
 
       for (const skill of movedSkills) {
         const directory = join(rampRoot, skill)
+        const classification = movedSkillClassifications[skill]
         const expectedMetadata = {
-          schemaVersion: 1,
+          schemaVersion: 2,
           kind: 'ramp-skill',
           name: skill,
+          origin: 'ramp',
           version: '1.0.0',
           license: 'MIT-0',
+          classification,
         }
         expect(loadRampSkillMetadata(directory, { expectedName: skill })).toEqual(
           expectedMetadata,
         )
         expect(readFileSync(join(directory, 'skill.yaml'), 'utf8')).toBe(
           [
-            'schemaVersion: 1',
+            'schemaVersion: 2',
             'kind: ramp-skill',
             `name: ${skill}`,
+            'origin: ramp',
             'version: 1.0.0',
             'license: MIT-0',
+            'classification:',
+            ...Object.entries(classification).map(
+              ([facet, values]) => `  ${facet}: [${values.join(', ')}]`,
+            ),
             '',
           ].join('\n'),
         )

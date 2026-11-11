@@ -1,0 +1,10 @@
+schemaVersion: 2
+kind: ramp-skill
+name: regression-testing
+origin: local
+version: 0.0.0
+license: MIT-0
+classification:
+  useCases: [application-modernization, quality-engineering]
+  awsServices: []
+  technologies: [java]

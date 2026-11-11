@@ -1,0 +1,10 @@
+schemaVersion: 2
+kind: ramp-skill
+name: gitlab-mr
+origin: local
+version: 0.0.0
+license: NOASSERTION # SKILL.md declares no licence
+classification:
+  useCases: [security-remediation]
+  awsServices: []
+  technologies: [gitlab]

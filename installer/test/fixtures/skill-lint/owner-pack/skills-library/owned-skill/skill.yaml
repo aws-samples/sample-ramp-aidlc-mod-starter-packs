@@ -1,0 +1,11 @@
+schemaVersion: 2
+kind: ramp-skill
+name: owned-skill
+origin: local
+version: 0.0.0
+license: MIT-0
+ownerPack: owner-pack
+classification:
+  useCases: [quality-engineering]
+  awsServices: []
+  technologies: []

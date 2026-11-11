@@ -1,0 +1,8 @@
+schemaVersion: 2
+kind: ramp-skill
+name: creating-amazon-aurora-db-cluster-with-instances
+origin: upstream
+classification:
+  useCases: [application-modernization, cloud-native-development]
+  awsServices: [aurora]
+  technologies: []

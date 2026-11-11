@@ -1,0 +1,10 @@
+schemaVersion: 2
+kind: ramp-skill
+name: aws-messaging-and-streaming
+origin: local
+version: 0.0.0
+license: NOASSERTION # SKILL.md declares no licence
+classification:
+  useCases: [cloud-native-development]
+  awsServices: [eventbridge, sqs, sns, kinesis]
+  technologies: []

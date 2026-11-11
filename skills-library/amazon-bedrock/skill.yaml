@@ -1,0 +1,8 @@
+schemaVersion: 2
+kind: ramp-skill
+name: amazon-bedrock
+origin: upstream
+classification:
+  useCases: [generative-ai-and-agents]
+  awsServices: [bedrock]
+  technologies: []
