@@ -597,6 +597,35 @@ function registerRuntimeContract({
       },
     )
 
+    it.runIf(available).each([
+      ['skills/ramp', 'ramp-only'],
+      ['packs/demo/skills', 'pack-only'],
+    ])(
+      'does not report --skills-src at the old root %s as ambiguous with itself',
+      (oldRoot, skill) => {
+        const fixture = createRepository({ name: 'demo', skills: [skill] })
+        const target = tempRoot('ramp-helper-target-')
+
+        const result = run(fixture[scriptKey], [
+          '--tool',
+          'kiro',
+          '--target',
+          target,
+          '--skills-src',
+          join(fixture.repo, ...oldRoot.split('/')),
+        ])
+
+        expect(result.error).toBeUndefined()
+        expect(result.status, result.stderr).toBe(0)
+        expect(result.stderr).not.toMatch(/ambiguous/)
+        expect(result.stdout).toContain(`+ ${skill} [skills-src]`)
+        expectSameTree(
+          join(target, '.kiro/skills', skill),
+          join(fixture.repo, oldRoot, skill),
+        )
+      },
+    )
+
     it.runIf(available)(
       'finds a repository with skills/ alone, treating the old roots as optional',
       () => {
@@ -1299,6 +1328,19 @@ describe('Bash and PowerShell helper error parity', { timeout: 60_000 }, () => {
       },
     },
     {
+      label: 'an explicit repository without skills/',
+      arrange(repo) {
+        rmSync(join(repo, 'skills'), { recursive: true })
+        return { skills: ['pack-only'], extra: ['--repo-root', repo] }
+      },
+    },
+    {
+      label: 'a missing --skills-src',
+      arrange(repo) {
+        return { skills: ['ramp-only'], extra: ['--skills-src', join(repo, 'missing-source')] }
+      },
+    },
+    {
       label: 'an upper-case skill name',
       arrange() {
         return { skills: ['Upper-Case'], extra: [] }
@@ -1354,7 +1396,8 @@ describe('Bash and PowerShell helper error parity', { timeout: 60_000 }, () => {
         } else {
           expect(bashResult.status).not.toBe(0)
           expect(powerShellResult.status).not.toBe(0)
-          expect(normalize(bashResult.stderr)).toMatch(/^error: add-skills preflight failed:\n/)
+          // Deprecation warnings may precede the error header.
+          expect(normalize(bashResult.stderr)).toMatch(/^error: add-skills preflight failed:$/m)
         }
         expect(normalize(powerShellResult.stderr).split('-RepoRoot <').join('--repo-root <'))
           .toBe(normalize(bashResult.stderr))

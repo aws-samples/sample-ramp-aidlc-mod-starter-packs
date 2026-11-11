@@ -65,7 +65,7 @@ describe('build-packs workflow helper coverage', () => {
     }
   })
 
-  it('runs the add-skills helper parity tests under Windows PowerShell 5.1 and pwsh', () => {
+  it('runs the add-skills helper tests under Windows PowerShell 5.1 and pwsh', () => {
     expect(entry('windows-latest').tests.split(' ')).toContain('test/add-skills-helpers.test.js')
   })
 

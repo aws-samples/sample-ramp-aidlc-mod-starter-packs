@@ -115,10 +115,16 @@ function Get-LexicalNormalizedPath {
 function Test-OrdinaryDirectoryItem {
   param(
     $Item,
-    [string]$Label
+    [string]$Label,
+    [string]$MissingPath
   )
   if ($null -eq $Item) {
-    Add-ErrorMessage "$Label does not exist"
+    if ([string]::IsNullOrEmpty($MissingPath)) {
+      Add-ErrorMessage "$Label does not exist"
+    }
+    else {
+      Add-ErrorMessage "$Label does not exist: $MissingPath"
+    }
     return $false
   }
   if (Test-IsReparsePoint $Item) {
@@ -135,10 +141,16 @@ function Test-OrdinaryDirectoryItem {
 function Test-OrdinaryFileItem {
   param(
     $Item,
-    [string]$Label
+    [string]$Label,
+    [string]$MissingPath
   )
   if ($null -eq $Item) {
-    Add-ErrorMessage "$Label does not exist"
+    if ([string]::IsNullOrEmpty($MissingPath)) {
+      Add-ErrorMessage "$Label does not exist"
+    }
+    else {
+      Add-ErrorMessage "$Label does not exist: $MissingPath"
+    }
     return $false
   }
   if (Test-IsReparsePoint $Item) {
@@ -170,7 +182,7 @@ function Resolve-OrdinaryDirectoryRoot {
   )
   $lexicalPath = Get-LexicalNormalizedPath $LiteralPath
   $item = Get-LexicalItem $lexicalPath
-  if (-not (Test-OrdinaryDirectoryItem $item $Label)) {
+  if (-not (Test-OrdinaryDirectoryItem $item $Label $LiteralPath)) {
     return $null
   }
   return (Resolve-Path -LiteralPath $item.FullName -ErrorAction Stop).ProviderPath
@@ -229,7 +241,7 @@ function Test-DirectoryPath {
     [string]$LiteralPath,
     [string]$Label
   )
-  return Test-OrdinaryDirectoryItem (Get-LexicalItem $LiteralPath) $Label
+  return Test-OrdinaryDirectoryItem (Get-LexicalItem $LiteralPath) $Label $LiteralPath
 }
 
 function Test-RegularFilePath {
@@ -237,7 +249,7 @@ function Test-RegularFilePath {
     [string]$LiteralPath,
     [string]$Label
   )
-  return Test-OrdinaryFileItem (Get-LexicalItem $LiteralPath) $Label
+  return Test-OrdinaryFileItem (Get-LexicalItem $LiteralPath) $Label $LiteralPath
 }
 
 function Test-DirectoryChain {
@@ -512,8 +524,13 @@ for ($skillIndex = 0; $skillIndex -lt $Skills.Count; $skillIndex++) {
   # Every compatibility root is consulted so the ambiguity guard sees them all.
   foreach ($root in $compatibilityRoots) {
     $rootRelative = "$($root.Relative)/$skill"
-    $null = Test-DirectoryChain $canonicalRepoRoot $rootRelative "$($root.Kind) source"
     $rootCandidate = Join-Path $canonicalRepoRoot ($rootRelative -replace '/', [IO.Path]::DirectorySeparatorChar)
+    # -SkillsSrc may name an old root itself; a directory is not ambiguous with itself.
+    if ($skillsRootHit -and
+        $rootCandidate.Equals($selectedSource, [System.StringComparison]::OrdinalIgnoreCase)) {
+      continue
+    }
+    $null = Test-DirectoryChain $canonicalRepoRoot $rootRelative "$($root.Kind) source"
     if ($null -ne (Get-LexicalItem $rootCandidate)) {
       $rootDisplay = Format-DisplayPath $rootCandidate
       if ($skillsRootHit) {

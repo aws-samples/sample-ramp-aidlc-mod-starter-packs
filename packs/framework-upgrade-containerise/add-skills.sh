@@ -460,6 +460,11 @@ for skill_index in "${!SKILLS[@]}"; do
     root_kind="${compatibility_kinds[$root_index]}"
     root_relative="${compatibility_roots[$root_index]}/$skill"
     root_candidate="$repo_root/$root_relative"
+    # --skills-src may name an old root itself; a directory is not ambiguous with itself.
+    if [ "$skills_root_hit" -eq 1 ] && [ "$root_candidate" = "$selected_source" ]; then
+      root_index=$((root_index + 1))
+      continue
+    fi
     check_directory_chain "$repo_root" "$root_relative" "$root_kind source" || true
     if lexists "$root_candidate"; then
       display_path "$root_candidate"
