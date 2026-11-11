@@ -8,10 +8,12 @@
 //
 // Modes are recorded as 0644 or 0755 from the executable bit, so the umask of
 // the machine that runs a route never changes the layout.
-import { spawn, spawnSync } from 'node:child_process'
+import { execFileSync, spawn, spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import {
+  copyFileSync,
   cpSync,
+  existsSync,
   lstatSync,
   mkdirSync,
   mkdtempSync,
@@ -20,7 +22,7 @@ import {
   rmSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join, relative, sep } from 'node:path'
+import { dirname, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { listAdapterIds } from '../../src/adapters/index.js'
 import { listPacks } from '../../src/build-all.js'
@@ -40,8 +42,9 @@ export const POWERSHELL = 'pwsh'
 const RELEASE_SOURCE_COMMIT = '0'.repeat(40)
 const RELEASE_BUILD_TIME = '2026-01-01T00:00:00.000Z'
 const RELEASE_INSTALLERS = new Set(['install.sh', 'install.ps1'])
-// Never copied into the release snapshot of the working tree.
+// Top-level entries left out of the release snapshot of a tree without Git.
 const SNAPSHOT_EXCLUDED = new Set(['.git', '.claude', '.beads', '.ramp-cache', 'node_modules', 'dist'])
+const ALLOWED_CHANGES = new Set(['added', 'removed', 'changed'])
 
 // Code-point order, so the result never depends on the runner locale.
 export function comparePaths(left, right) {
@@ -158,19 +161,39 @@ export function createLayoutContext({ root = repoRoot, cacheDir }) {
     releaseRoot() {
       if (snapshot === undefined) {
         snapshot = join(scratch, 'release-root')
-        cpSync(root, snapshot, {
-          recursive: true,
-          filter: (source) => {
-            const path = relative(root, source)
-            return !path.split(sep).some((segment) => SNAPSHOT_EXCLUDED.has(segment))
-          },
-        })
+        snapshotReleaseInputs(root, snapshot)
       }
       return snapshot
     },
     dispose() {
       rmSync(scratch, { recursive: true, force: true })
     },
+  }
+}
+
+// In a Git checkout release accepts only tracked inputs (each one is verified
+// against the source commit), so the snapshot holds exactly the tracked files,
+// with their working-tree bytes; a tracked file deleted from the working tree
+// stays absent. Outside Git, everything is copied except SNAPSHOT_EXCLUDED at
+// the top level.
+function snapshotReleaseInputs(root, snapshot) {
+  if (!existsSync(join(root, '.git'))) {
+    cpSync(root, snapshot, {
+      recursive: true,
+      filter: (source) => !SNAPSHOT_EXCLUDED.has(relative(root, source).split(sep)[0]),
+    })
+    return
+  }
+  const tracked = execFileSync('git', ['-C', root, 'ls-files', '-z', '--cached'], {
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+  }).split('\0').filter(Boolean)
+  for (const path of tracked) {
+    const source = join(root, ...path.split('/'))
+    if (!existsSync(source) || !lstatSync(source).isFile()) continue
+    const destination = join(snapshot, ...path.split('/'))
+    mkdirSync(dirname(destination), { recursive: true })
+    copyFileSync(source, destination)
   }
 }
 
@@ -243,9 +266,26 @@ export async function computeLayouts(context, specs, { concurrency = 4 } = {}) {
   )
 }
 
+// Problems with allowlist rules. A global or sticky RegExp keeps lastIndex
+// between test() calls, so it would match or miss depending on call order.
+export function allowlistProblems(allowlist) {
+  const problems = []
+  for (const [reason, rule] of Object.entries(allowlist)) {
+    if (!ALLOWED_CHANGES.has(rule?.change)) {
+      problems.push(`${reason}: change must be added, removed or changed`)
+    }
+    if (!(rule?.match instanceof RegExp)) problems.push(`${reason}: match must be a RegExp`)
+    else if (rule.match.global || rule.match.sticky) {
+      problems.push(`${reason}: match must not use the g or y flag`)
+    }
+  }
+  return problems
+}
+
 // A rule allows one kind of change ('added', 'removed' or 'changed') for every
-// `<layout id> <path>` its RegExp matches.
-export function layoutDifferences(id, expected, actual, allowlist = {}) {
+// `<layout id> <path>` its RegExp matches. The reason of every rule that allowed
+// a difference is added to `matched`.
+export function layoutDifferences(id, expected, actual, allowlist = {}, matched = new Set()) {
   const before = new Map(expected.map((record) => [record.path, record]))
   const after = new Map(actual.map((record) => [record.path, record]))
   const differences = []
@@ -257,10 +297,11 @@ export function layoutDifferences(id, expected, actual, allowlist = {}) {
     else if (left === undefined) change = 'added'
     else if (left.sha256 !== right.sha256 || left.mode !== right.mode) change = 'changed'
     else continue
-    const allowed = Object.values(allowlist).some(
-      (rule) => rule.change === change && rule.match.test(`${id} ${path}`),
+    const allowing = Object.entries(allowlist).filter(
+      ([, rule]) => rule.change === change && rule.match.test(`${id} ${path}`),
     )
-    if (!allowed) {
+    for (const [reason] of allowing) matched.add(reason)
+    if (allowing.length === 0) {
       const detail = change === 'changed'
         ? ` (${left.mode} ${left.sha256.slice(0, 12)} -> ${right.mode} ${right.sha256.slice(0, 12)})`
         : ''
@@ -278,6 +319,7 @@ export function renderBaseline(layouts) {
   const firstHolder = new Map()
   const lines = ['{', '  "schemaVersion": 1,', '  "layouts": {']
   ids.forEach((id, index) => {
+    if (layouts[id].length === 0) throw new Error(`customer layout ${id} is empty`)
     const records = layouts[id].map((record) => JSON.stringify({
       path: record.path,
       sha256: record.sha256,
@@ -309,6 +351,7 @@ export function readBaseline(path = baselinePath) {
   const layouts = {}
   for (const [id, value] of Object.entries(baseline.layouts)) {
     if (Array.isArray(value)) {
+      if (value.length === 0) throw new Error(`customer layout ${id} is empty in the baseline`)
       layouts[id] = value
       continue
     }
