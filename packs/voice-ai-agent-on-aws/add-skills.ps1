@@ -49,6 +49,11 @@ $NameValidity = New-Object 'System.Collections.Generic.List[bool]'
 $RunningOnWindows = (
   [Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
 )
+# Paths compare case-insensitively on Windows only, as the file system does.
+$PathComparison = [System.StringComparison]::Ordinal
+if ($RunningOnWindows) {
+  $PathComparison = [System.StringComparison]::OrdinalIgnoreCase
+}
 
 function Add-ErrorMessage {
   param([string]$Message)
@@ -511,7 +516,7 @@ for ($skillIndex = 0; $skillIndex -lt $Skills.Count; $skillIndex++) {
     $rootCandidate = Join-Path $canonicalRepoRoot ($rootRelative -replace '/', [IO.Path]::DirectorySeparatorChar)
     # -SkillsSrc may name an old root itself; a directory is not ambiguous with itself.
     if ($skillsRootHit -and
-        $rootCandidate.Equals($selectedSource, [System.StringComparison]::OrdinalIgnoreCase)) {
+        $rootCandidate.Equals($selectedSource, $PathComparison)) {
       continue
     }
     $null = Test-DirectoryChain $canonicalRepoRoot $rootRelative "$($root.Kind) source"

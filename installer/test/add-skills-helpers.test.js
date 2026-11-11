@@ -1341,6 +1341,17 @@ describe('Bash and PowerShell helper error parity', { timeout: 60_000 }, () => {
       },
     },
     {
+      label: 'a case-distinct --skills-src beside skills/ramp',
+      supported: fixtureCapabilities.caseDistinctNames,
+      arrange(repo) {
+        writeSkill(repo, 'Skills/Ramp/ramp-only', 63)
+        return {
+          skills: ['ramp-only'],
+          extra: ['--skills-src', join(repo, 'Skills', 'Ramp')],
+        }
+      },
+    },
+    {
       label: 'an upper-case skill name',
       arrange() {
         return { skills: ['Upper-Case'], extra: [] }
@@ -1361,7 +1372,11 @@ describe('Bash and PowerShell helper error parity', { timeout: 60_000 }, () => {
   ]
 
   for (const scenario of scenarios) {
-    it.runIf(process.platform !== 'win32' && Boolean(parityEngine))(
+    it.runIf(
+      process.platform !== 'win32' &&
+        Boolean(parityEngine) &&
+        scenario.supported !== false,
+    )(
       `prints the same errors for ${scenario.label}`,
       () => {
         const fixture = createRepository()
