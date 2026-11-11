@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "skill-v2.schema.json",
+  "title": "RAMP skill metadata v2",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "name",
+    "origin",
+    "classification"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "kind": {
+      "const": "ramp-skill"
+    },
+    "name": {
+      "$ref": "#/$defs/identifier"
+    },
+    "origin": {
+      "enum": [
+        "ramp",
+        "upstream",
+        "local"
+      ]
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\\+([0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*))?$"
+    },
+    "license": {
+      "$ref": "#/$defs/license"
+    },
+    "maturity": {
+      "enum": [
+        "experimental",
+        "preview",
+        "stable",
+        "deprecated"
+      ]
+    },
+    "ownerPack": {
+      "$ref": "#/$defs/identifier"
+    },
+    "basedOn": {
+      "type": "object",
+      "required": [
+        "source",
+        "commit",
+        "path"
+      ],
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/identifier"
+        },
+        "commit": {
+          "$ref": "#/$defs/commit"
+        },
+        "path": {
+          "$ref": "#/$defs/portablePath"
+        }
+      },
+      "additionalProperties": false
+    },
+    "classification": {
+      "description": "Every value must be an id of the matching list in taxonomy.yaml; the loader enforces this.",
+      "type": "object",
+      "properties": {
+        "useCases": {
+          "$ref": "#/$defs/vocabularyList"
+        },
+        "awsServices": {
+          "$ref": "#/$defs/vocabularyList"
+        },
+        "technologies": {
+          "$ref": "#/$defs/vocabularyList"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "origin"
+        ],
+        "properties": {
+          "origin": {
+            "const": "ramp"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "version",
+          "license"
+        ]
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "origin"
+        ],
+        "properties": {
+          "origin": {
+            "const": "local"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "version",
+          "license"
+        ],
+        "properties": {
+          "basedOn": false
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "origin"
+        ],
+        "properties": {
+          "origin": {
+            "const": "upstream"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "version": false,
+          "license": false,
+          "ownerPack": false,
+          "basedOn": false
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "license": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9.+-]*(?:\\s+(?:AND|OR|WITH)\\s+[A-Za-z0-9][A-Za-z0-9.+-]*)*$"
+    },
+    "portablePath": {
+      "type": "string",
+      "pattern": "^(?!/)(?![A-Za-z]:)(?:(?!(?:\\.|\\.\\.)(?:/|$))[^/\\\\\\u0000\\t\\r\\n]+)(?:/(?!(?:\\.|\\.\\.)(?:/|$))[^/\\\\\\u0000\\t\\r\\n]+)*$"
+    },
+    "vocabularyList": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/identifier"
+      },
+      "uniqueItems": true
+    }
+  }
+}

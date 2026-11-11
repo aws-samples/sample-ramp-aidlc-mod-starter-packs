@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "taxonomy-v1.schema.json",
+  "title": "RAMP skill and pack taxonomy v1",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "useCases",
+    "awsServices",
+    "technologies"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "useCases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "description",
+          "outcome",
+          "order"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/identifier"
+          },
+          "label": {
+            "$ref": "#/$defs/text"
+          },
+          "description": {
+            "$ref": "#/$defs/text"
+          },
+          "outcome": {
+            "enum": [
+              "transform",
+              "reimagine",
+              "automate",
+              "foundation"
+            ]
+          },
+          "order": {
+            "$ref": "#/$defs/order"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "awsServices": {
+      "$ref": "#/$defs/facet"
+    },
+    "technologies": {
+      "$ref": "#/$defs/facet"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "text": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "order": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "facet": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "description",
+          "order"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/identifier"
+          },
+          "label": {
+            "$ref": "#/$defs/text"
+          },
+          "description": {
+            "$ref": "#/$defs/text"
+          },
+          "order": {
+            "$ref": "#/$defs/order"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

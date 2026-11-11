@@ -1,0 +1,225 @@
+# RAMP controlled vocabulary for skill and pack navigation.
+# Schema: taxonomy-v1.schema.json. Every classification value in a skill.yaml
+# and every pack use case must be an id listed here. Adding a value is a
+# reviewed change to this file; the lint rejects any value not listed.
+# Lists are displayed by ascending order, then by id.
+schemaVersion: 1
+useCases:
+  - id: application-modernization
+    label: Modernize an existing application
+    description: Legacy decomposition, framework upgrade, .NET, API platform and COTS rewrite.
+    outcome: transform
+    order: 10
+  - id: cloud-native-development
+    label: Build a cloud-native application
+    description: Serverless, containers, event-driven, web and mobile back ends.
+    outcome: reimagine
+    order: 20
+  - id: generative-ai-and-agents
+    label: Build generative AI and agents
+    description: Bedrock, voice agents and agentic workflows.
+    outcome: reimagine
+    order: 30
+  - id: quality-engineering
+    label: Automate testing
+    description: Web, mobile, regression and property-based testing.
+    outcome: automate
+    order: 40
+  - id: security-remediation
+    label: Remediate vulnerabilities
+    description: Triage, dependency fixes and merge-request delivery.
+    outcome: automate
+    order: 50
+  - id: operations-and-incident-response
+    label: Operate and respond to incidents
+    description: Observability, incident triage and operational review.
+    outcome: automate
+    order: 60
+  - id: infrastructure-as-code
+    label: Define infrastructure as code
+    description: Terraform, CDK, CloudFormation and SAM.
+    outcome: foundation
+    order: 70
+  - id: cloud-foundations
+    label: Set up AWS access and foundations
+    description: IAM, sign-in and general AWS development.
+    outcome: foundation
+    order: 80
+awsServices:
+  - id: lambda
+    label: AWS Lambda
+    description: Run code without provisioning or managing servers.
+    order: 10
+  - id: step-functions
+    label: AWS Step Functions
+    description: Orchestrate services and functions as visual workflows.
+    order: 20
+  - id: api-gateway
+    label: Amazon API Gateway
+    description: Create, publish and secure REST, HTTP and WebSocket APIs.
+    order: 30
+  - id: ecs
+    label: Amazon Elastic Container Service (Amazon ECS)
+    description: Run and scale containerized applications.
+    order: 40
+  - id: fargate
+    label: AWS Fargate
+    description: Serverless compute for containers.
+    order: 50
+  - id: ecr
+    label: Amazon Elastic Container Registry (Amazon ECR)
+    description: Store, share and deploy container images.
+    order: 60
+  - id: ec2
+    label: Amazon Elastic Compute Cloud (Amazon EC2)
+    description: Virtual servers in the cloud.
+    order: 70
+  - id: aurora
+    label: Amazon Aurora
+    description: Managed MySQL- and PostgreSQL-compatible relational database.
+    order: 80
+  - id: aurora-dsql
+    label: Amazon Aurora DSQL
+    description: Serverless distributed SQL database.
+    order: 90
+  - id: dynamodb
+    label: Amazon DynamoDB
+    description: Serverless NoSQL key-value and document database.
+    order: 100
+  - id: elasticache
+    label: Amazon ElastiCache
+    description: Managed in-memory cache compatible with Valkey, Redis OSS and Memcached.
+    order: 110
+  - id: s3
+    label: Amazon Simple Storage Service (Amazon S3)
+    description: Object storage.
+    order: 120
+  - id: eventbridge
+    label: Amazon EventBridge
+    description: Serverless event bus and scheduler.
+    order: 130
+  - id: sqs
+    label: Amazon Simple Queue Service (Amazon SQS)
+    description: Managed message queues.
+    order: 140
+  - id: sns
+    label: Amazon Simple Notification Service (Amazon SNS)
+    description: Managed publish and subscribe messaging.
+    order: 150
+  - id: kinesis
+    label: Amazon Kinesis
+    description: Collect and process real-time data streams.
+    order: 160
+  - id: bedrock
+    label: Amazon Bedrock
+    description: Build generative AI applications with foundation models.
+    order: 170
+  - id: iam
+    label: AWS Identity and Access Management (IAM)
+    description: Manage access to AWS services and resources.
+    order: 180
+  - id: cognito
+    label: Amazon Cognito
+    description: User sign-up, sign-in and access control for applications.
+    order: 190
+  - id: cloudwatch
+    label: Amazon CloudWatch
+    description: Metrics, logs, alarms and dashboards.
+    order: 200
+  - id: x-ray
+    label: AWS X-Ray
+    description: Distributed tracing for applications.
+    order: 210
+  - id: cloudformation
+    label: AWS CloudFormation
+    description: Provision infrastructure from templates.
+    order: 220
+  - id: cdk
+    label: AWS Cloud Development Kit (AWS CDK)
+    description: Define infrastructure in general-purpose programming languages.
+    order: 230
+  - id: sam
+    label: AWS Serverless Application Model (AWS SAM)
+    description: Build and deploy serverless applications.
+    order: 240
+  - id: systems-manager
+    label: AWS Systems Manager
+    description: Operate resources, including Parameter Store configuration.
+    order: 250
+  - id: secrets-manager
+    label: AWS Secrets Manager
+    description: Store, rotate and retrieve secrets.
+    order: 260
+  - id: device-farm
+    label: AWS Device Farm
+    description: Test web and mobile apps on real devices and browsers.
+    order: 270
+  - id: transform
+    label: AWS Transform
+    description: Agentic AI service for migration and modernization.
+    order: 280
+technologies:
+  - id: terraform
+    label: Terraform
+    description: HashiCorp infrastructure as code tool.
+    order: 10
+  - id: opentofu
+    label: OpenTofu
+    description: Open-source infrastructure as code tool forked from Terraform.
+    order: 20
+  - id: ansible
+    label: Ansible
+    description: Agentless configuration management and automation.
+    order: 30
+  - id: pulumi
+    label: Pulumi
+    description: Infrastructure as code in general-purpose programming languages.
+    order: 40
+  - id: dotnet
+    label: .NET
+    description: Microsoft .NET and .NET Framework applications.
+    order: 50
+  - id: java
+    label: Java
+    description: Java applications and the JVM ecosystem.
+    order: 60
+  - id: kotlin
+    label: Kotlin
+    description: Kotlin applications, including Android.
+    order: 70
+  - id: android
+    label: Android
+    description: Android mobile applications.
+    order: 80
+  - id: ios
+    label: iOS
+    description: iOS mobile applications.
+    order: 90
+  - id: nodejs
+    label: Node.js
+    description: JavaScript and TypeScript on the Node.js runtime.
+    order: 100
+  - id: mysql
+    label: MySQL
+    description: MySQL relational database engine.
+    order: 110
+  - id: postgresql
+    label: PostgreSQL
+    description: PostgreSQL relational database engine.
+    order: 120
+  - id: opentelemetry
+    label: OpenTelemetry
+    description: Vendor-neutral traces, metrics and logs instrumentation.
+    order: 130
+  - id: gitlab
+    label: GitLab
+    description: GitLab repositories, merge requests and CI/CD.
+    order: 140
+  - id: nova-sonic
+    label: Amazon Nova Sonic
+    description: Speech-to-speech foundation model for voice applications.
+    order: 150
+  - id: strands-agents
+    label: Strands Agents
+    description: Open-source SDK for building AI agents.
+    order: 160
