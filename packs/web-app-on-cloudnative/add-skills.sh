@@ -400,6 +400,18 @@ validate_skill_tree() {
   return 0
 }
 
+# Messages name a path under the repository relative to its root, with forward
+# slashes, and any other path as resolved.
+display_path() {
+  display_input="$1"
+  DISPLAY_PATH="$display_input"
+  if [ -n "$repo_root" ]; then
+    case "$display_input" in
+      "$repo_root"/*) DISPLAY_PATH="${display_input#"$repo_root"/}" ;;
+    esac
+  fi
+}
+
 for skill in "${SKILLS[@]}"; do
   if [ "$skill" = "ramp" ] || [ "$skill" = "README.md" ] || [ "$skill" = "taxonomy" ]; then
     add_error "skill name $skill is reserved: ramp, README.md and taxonomy cannot be skill names"
@@ -453,12 +465,15 @@ for skill_index in "${!SKILLS[@]}"; do
     root_candidate="$repo_root/$root_relative"
     check_directory_chain "$repo_root" "$root_relative" "$root_kind source" || true
     if lexists "$root_candidate"; then
+      display_path "$root_candidate"
+      root_display="$DISPLAY_PATH"
       if [ "$skills_root_hit" -eq 1 ]; then
-        add_error "skill $skill is ambiguous: found in $selected_source and $root_candidate; keep only one copy"
+        display_path "$selected_source"
+        add_error "skill $skill is ambiguous: found in $DISPLAY_PATH and $root_display; keep only one copy"
       elif [ -z "$selected_source" ]; then
         selected_source="$root_candidate"
         selected_kind="$root_kind"
-        WARNINGS[${#WARNINGS[@]}]="skill $skill resolved from $root_relative; move it to skills/$skill/"
+        WARNINGS[${#WARNINGS[@]}]="skill $skill resolved from $root_display; move it to skills/$skill/"
       fi
     fi
     root_index=$((root_index + 1))
@@ -600,7 +615,7 @@ fi
 
 # Compatibility-window deprecation warnings go to stderr only.
 for warning_message in "${WARNINGS[@]}"; do
-  echo "$warning_message" >&2
+  echo "warning: $warning_message" >&2
 done
 
 if [ "${#ERRORS[@]}" -gt 0 ]; then

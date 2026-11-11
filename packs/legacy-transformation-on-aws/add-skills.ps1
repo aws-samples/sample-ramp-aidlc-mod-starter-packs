@@ -446,6 +446,24 @@ if ($null -ne $canonicalRepoRoot) {
   }
 }
 
+# Messages name a path under the repository relative to its root, with forward
+# slashes, and any other path as resolved.
+function Format-DisplayPath {
+  param([string]$LiteralPath)
+  if ($null -ne $canonicalRepoRoot) {
+    $prefix = $canonicalRepoRoot.TrimEnd(
+      [char[]]@(
+        [char][IO.Path]::DirectorySeparatorChar,
+        [char][IO.Path]::AltDirectorySeparatorChar
+      )
+    ) + [IO.Path]::DirectorySeparatorChar
+    if ($LiteralPath.StartsWith($prefix, [System.StringComparison]::Ordinal)) {
+      return $LiteralPath.Substring($prefix.Length).Replace('\', '/')
+    }
+  }
+  return $LiteralPath
+}
+
 $namePattern = '^[a-z0-9]+(-[a-z0-9]+)*$'
 $reservedNames = @('ramp', 'README.md', 'taxonomy')
 $seenNames = @{}
@@ -497,13 +515,14 @@ for ($skillIndex = 0; $skillIndex -lt $Skills.Count; $skillIndex++) {
     $null = Test-DirectoryChain $canonicalRepoRoot $rootRelative "$($root.Kind) source"
     $rootCandidate = Join-Path $canonicalRepoRoot ($rootRelative -replace '/', [IO.Path]::DirectorySeparatorChar)
     if ($null -ne (Get-LexicalItem $rootCandidate)) {
+      $rootDisplay = Format-DisplayPath $rootCandidate
       if ($skillsRootHit) {
-        Add-ErrorMessage "skill $skill is ambiguous: found in $selectedSource and $rootCandidate; keep only one copy"
+        Add-ErrorMessage "skill $skill is ambiguous: found in $(Format-DisplayPath $selectedSource) and $rootDisplay; keep only one copy"
       }
       elseif ($null -eq $selectedSource) {
         $selectedSource = $rootCandidate
         $selectedKind = $root.Kind
-        $Warnings.Add("skill $skill resolved from $rootRelative; move it to skills/$skill/") | Out-Null
+        $Warnings.Add("skill $skill resolved from $rootDisplay; move it to skills/$skill/") | Out-Null
       }
     }
   }
@@ -667,7 +686,7 @@ if ($null -ne $canonicalTarget) {
 
 # Compatibility-window deprecation warnings go to stderr only.
 foreach ($warning in $Warnings) {
-  [Console]::Error.WriteLine($warning)
+  [Console]::Error.WriteLine("warning: $warning")
 }
 
 if ($script:Errors.Count -gt 0) {

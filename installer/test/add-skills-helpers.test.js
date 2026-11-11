@@ -13,7 +13,7 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join, relative, sep } from 'node:path'
+import { dirname, isAbsolute, join, relative, sep } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   renderAddSkills,
@@ -34,25 +34,16 @@ const requiredPowerShells = (process.env.RAMP_REQUIRE_POWERSHELL ?? '')
   .filter(Boolean)
 
 const deprecationWarning = (slug, oldPath) =>
-  `skill ${slug} resolved from ${oldPath}; move it to skills/${slug}/`
+  `warning: skill ${slug} resolved from ${oldPath}; move it to skills/${slug}/`
 const stderrLines = (stderr) => stderr.split(/\r?\n/).filter(Boolean)
 
 const reservedMessage = (slug) =>
   `skill name ${slug} is reserved: ramp, README.md and taxonomy cannot be skill names`
 
-// The ambiguity guard names both paths; the helpers print them absolute, with
-// the platform separator.
-function guardPattern(slug, first, second) {
-  const tail = (path) => path.split('/').map(escapeRegExp).join('[\\/]')
-  return new RegExp(
-    `skill ${escapeRegExp(slug)} is ambiguous: found in .+[\\/]${tail(first)} ` +
-      `and .+[\\/]${tail(second)}; keep only one copy`,
-  )
-}
-
-function escapeRegExp(text) {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
+// The ambiguity guard names both paths, relative to the repository root with
+// forward slashes when they lie under it.
+const guardMessage = (slug, first, second) =>
+  `skill ${slug} is ambiguous: found in ${first} and ${second}; keep only one copy`
 
 const roots = []
 const portable = (path) => path.split(sep).join('/')
@@ -568,8 +559,8 @@ function registerRuntimeContract({
 
         expect(result.error).toBeUndefined()
         expect(result.status).not.toBe(0)
-        expect(result.stderr).toMatch(
-          guardPattern('duplicate', 'skills/duplicate', `${oldRoot}/duplicate`),
+        expect(stderrLines(result.stderr)).toContain(
+          `  - ${guardMessage('duplicate', 'skills/duplicate', `${oldRoot}/duplicate`)}`,
         )
         expect(readFileSync(sentinel, 'utf8')).toBe('preserve\n')
         expect(existsSync(join(target, '.kiro'))).toBe(false)
@@ -595,9 +586,13 @@ function registerRuntimeContract({
         ])
 
         expect(result.status).not.toBe(0)
-        expect(result.stderr).toMatch(
-          guardPattern('ramp-only', 'source/ramp-only', 'skills/ramp/ramp-only'),
-        )
+        // A --skills-src directory outside the repository keeps its full path.
+        const guard = stderrLines(result.stderr)
+          .map((line) => /^ {2}- skill ramp-only is ambiguous: found in (.+) and skills\/ramp\/ramp-only; keep only one copy$/.exec(line))
+          .find(Boolean)
+        expect(guard, result.stderr).toBeDefined()
+        expect(isAbsolute(guard[1])).toBe(true)
+        expect(portable(guard[1])).toMatch(/\/source\/ramp-only$/)
         expect(existsSync(join(target, '.kiro'))).toBe(false)
       },
     )
