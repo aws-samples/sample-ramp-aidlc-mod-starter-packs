@@ -225,8 +225,8 @@ describe('buildCatalog', () => {
       schemaVersion: 2,
       outcome: 'automate',
       maturity: 'preview',
-      targets: ['kiro', 'claude-code', 'copilot', 'cursor'],
-      qualifiedTargets: ['kiro', 'claude-code'],
+      targets: ['kiro', 'claude-code', 'copilot', 'cursor', 'codex'],
+      qualifiedTargets: ['kiro', 'claude-code', 'copilot', 'cursor', 'codex'],
     })
     expect(legacy).toMatchObject({ schemaVersion: 2, outcome: 'transform', maturity: 'preview' })
     expect(unmigrated).toMatchObject({ schemaVersion: 1, maturity: null, qualifiedTargets: [] })

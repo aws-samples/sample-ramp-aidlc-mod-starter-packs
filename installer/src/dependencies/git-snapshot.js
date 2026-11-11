@@ -5,7 +5,6 @@ import {
   mkdirSync,
   realpathSync,
 } from 'node:fs'
-import { devNull } from 'node:os'
 import {
   basename,
   dirname,
@@ -20,9 +19,12 @@ import {
 } from './checksum.js'
 
 const COMMIT = /^[0-9a-f]{40}$/
+// Git reads no global config. The literal, not os.devNull: Git for Windows
+// opens '/dev/null' as NUL but cannot open os.devNull's '\\.\nul'.
+export const NO_GLOBAL_GIT_CONFIG = '/dev/null'
 const GIT_ENV = {
   GCM_INTERACTIVE: 'Never',
-  GIT_CONFIG_GLOBAL: devNull,
+  GIT_CONFIG_GLOBAL: NO_GLOBAL_GIT_CONFIG,
   GIT_CONFIG_NOSYSTEM: '1',
   GIT_NO_LAZY_FETCH: '1',
   GIT_NO_REPLACE_OBJECTS: '1',

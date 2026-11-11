@@ -65,6 +65,29 @@ describe('build-packs workflow helper coverage', () => {
     }
   })
 
+  it('runs the QA harness coverage test on both runner families after the cache sync and verify', () => {
+    for (const os of ['ubuntu-latest', 'windows-latest']) {
+      expect(entry(os).tests.split(' ')).toContain('test/qa-harness-coverage.test.js')
+    }
+    const steps = helpers.steps
+    const cache = stepIndex(steps, (step, run) =>
+      step.shell === 'bash' && run.includes('RAMP_SKILLS_CACHE=$RUNNER_TEMP/') && run.includes('$GITHUB_ENV'))
+    const install = stepIndex(steps, (_step, run) => run === 'npm ci --prefix installer')
+    const sync = stepIndex(steps, (step, run) =>
+      step.shell === 'bash' &&
+      run.includes('skills sync') &&
+      run.includes('--locked') &&
+      run.includes('--cache "$RAMP_SKILLS_CACHE"'))
+    const verify = stepIndex(steps, (step, run) =>
+      step.shell === 'bash' && run.includes('skills verify') && run.includes('--cache "$RAMP_SKILLS_CACHE"'))
+    const test = stepIndex(steps, (_step, run) => /\bnpm test\b/.test(run))
+    const ordered = [cache, install, sync, verify, test]
+    expect(ordered.every((index) => index >= 0)).toBe(true)
+    for (let index = 1; index < ordered.length; index += 1) {
+      expect(ordered[index]).toBeGreaterThan(ordered[index - 1])
+    }
+  })
+
   it('requires Windows PowerShell 5.1 and pwsh instead of letting them skip', () => {
     expect(entry('windows-latest').powershell.split(',')).toEqual(['powershell.exe', 'pwsh'])
     expect(entry('ubuntu-latest').powershell).toBe('pwsh')
