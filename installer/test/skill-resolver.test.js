@@ -1,5 +1,6 @@
 import {
   chmodSync,
+  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -1105,6 +1106,25 @@ describe('createSkillResolver skills/ root', () => {
     resolveFor(resolverFor(state), state, name)
     expect(warnings()).toEqual([
       `warning: skill ${name} resolved from ${oldPath}; move it to skills/${name}/`,
+    ])
+  })
+
+  it('names old-root paths relative to the source tree when the contracts live elsewhere', () => {
+    const state = fixture()
+    metadata(writeTree(join(state.rampDir, 'warn-release-skill')), { name: 'warn-release-skill' })
+    // Release resolves against a temporary root that holds only dependencies/.
+    const contractRoot = mkdtempSync(join(tmpdir(), 'ramp-resolver-contracts-'))
+    roots.push(contractRoot)
+    cpSync(join(state.repoRoot, 'dependencies'), join(contractRoot, 'dependencies'), {
+      recursive: true,
+    })
+    const resolver = resolverFor(state, {
+      repoRoot: contractRoot,
+      skillsDir: join(state.repoRoot, 'skills'),
+    })
+    resolveFor(resolver, state, 'warn-release-skill')
+    expect(warnings()).toEqual([
+      'warning: skill warn-release-skill resolved from skills/ramp/warn-release-skill; move it to skills/warn-release-skill/',
     ])
   })
 

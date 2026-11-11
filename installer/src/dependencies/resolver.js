@@ -1,5 +1,5 @@
 import { lstatSync, readFileSync } from 'node:fs'
-import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { parse } from 'yaml'
 import {
   comparePortablePaths,
@@ -421,9 +421,13 @@ export function createSkillResolver(options = {}) {
   })
   const lock = loadSkillLock(repoRoot)
 
+  // Paths print relative to the source tree that holds skills/. Release
+  // resolves against a temporary root holding only the dependency contracts,
+  // so anchoring on repoRoot would print absolute machine paths there.
+  const sourceRoot = dirname(skillsDir)
   function displayPath(path) {
-    return isWithin(repoRoot, path)
-      ? relative(repoRoot, path).split(sep).join('/')
+    return isWithin(sourceRoot, path)
+      ? relative(sourceRoot, path).split(sep).join('/')
       : path
   }
 
