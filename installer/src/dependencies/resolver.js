@@ -1,5 +1,6 @@
 import { lstatSync, readFileSync } from 'node:fs'
-import { basename, isAbsolute, join, relative, resolve } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { parse } from 'yaml'
 import {
   comparePortablePaths,
   hashFileRecords,
@@ -8,9 +9,22 @@ import {
 import {
   loadRampSkillMetadata,
   loadSkillLock,
+  skillMetadataView,
 } from './manifests.js'
 
 const IDENTIFIER = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+// skills/ holds only skill directories plus README.md, so these names can never
+// be skills, and a leftover skills/ramp/ is never read as one.
+export const RESERVED_SKILL_SLUGS = new Set(['ramp', 'README.md', 'taxonomy'])
+const printedWarnings = new Set()
+
+// Prints each distinct warning once per process: a command that resolves the
+// same skill for many packs (catalog, build-all) repeats nothing.
+function warnOnce(message) {
+  if (printedWarnings.has(message)) return
+  printedWarnings.add(message)
+  console.error(`warning: ${message}`)
+}
 
 function requireNonEmptyString(value, label) {
   if (typeof value !== 'string') {
@@ -113,6 +127,17 @@ function hasMetadata(directory) {
   }
   if (!status.isFile()) throw new Error(`skill.yaml must be a regular file: ${path}`)
   return true
+}
+
+// A skills/<slug>/ skill may name the one pack allowed to use it. The loader
+// checks ownerPack only against an expected value, so read the declared owner
+// first; a file that does not parse is left for the loader to report.
+function declaredOwnerPack(directory) {
+  try {
+    return parse(readFileSync(join(directory, 'skill.yaml'), 'utf8'))?.ownerPack
+  } catch {
+    return undefined
+  }
 }
 
 function requireSkillMarkdown(directory) {
@@ -348,9 +373,21 @@ function declaredProvenance(kind, metadata, hashed) {
   }
 }
 
+// Resolution order. skills/<slug>/ comes first and dispatches on the origin in
+// its skill.yaml: ramp uses the directory, upstream uses the verified cache and
+// then the in-tree mirror, and local is allowed with a warning outside strict
+// provenance. Only when skills/<slug>/ is absent do the compatibility tiers
+// apply, in their old order: pack override, skills/ramp/, the locked cache, then
+// skills-library/. A hit in one of their source-tree roots prints a deprecation
+// warning, and a slug in both skills/ and a source-tree root fails.
 export function createSkillResolver(options = {}) {
   const repoRoot = resolve(requireNonEmptyString(options.repoRoot, 'repoRoot'))
   requireDirectory(repoRoot, 'repoRoot')
+  const skillsDir = resolve(
+    options.skillsDir === undefined
+      ? join(repoRoot, 'skills')
+      : requireNonEmptyString(options.skillsDir, 'skillsDir'),
+  )
   const libraryDir = resolve(
     options.libraryDir === undefined
       ? join(repoRoot, 'skills-library')
@@ -384,6 +421,154 @@ export function createSkillResolver(options = {}) {
   })
   const lock = loadSkillLock(repoRoot)
 
+  // Paths print relative to the source tree that holds skills/. Release
+  // resolves against a temporary root holding only the dependency contracts,
+  // so anchoring on repoRoot would print absolute machine paths there. Every
+  // printed path uses forward slashes, including one outside that tree.
+  const sourceRoot = dirname(skillsDir)
+  function displayPath(path) {
+    const shown = isWithin(sourceRoot, path) ? relative(sourceRoot, path) : path
+    return shown.split(sep).join('/')
+  }
+
+  function compatibilityHit(name, directory, provenance) {
+    warnOnce(
+      `skill ${name} resolved from ${displayPath(directory)}; move it to skills/${name}/`,
+    )
+    return { directory, provenance }
+  }
+
+  function lockedCachePath(lockedSkill) {
+    return join(
+      cacheDir,
+      'sources',
+      lockedSkill.source,
+      lockedSkill.commit,
+      lockedSkill.path,
+    )
+  }
+
+  function fromLockedCache(name, lockedSkill) {
+    const cached = inspectDirectoryCandidate(
+      cacheDir,
+      lockedCachePath(lockedSkill),
+      `locked cache skill ${name}`,
+    )
+    if (!cached) return null
+    try {
+      verifyLockedSkillDirectory(cached, lockedSkill, { platform })
+    } catch (error) {
+      throw new Error(
+        `locked cache skill ${name} failed verification: ${error.message}`,
+      )
+    }
+    return {
+      directory: cached,
+      provenance: upstreamProvenance(lockedSkill),
+    }
+  }
+
+  // The locked cache is not a source-tree root, so it never trips the guard.
+  function assertUnambiguous(name, skillsCandidate, packRoot) {
+    const others = [
+      inspectDirectoryCandidate(
+        packRoot,
+        join(packRoot, 'skills', name),
+        `pack override ${name}`,
+      ),
+      inspectDirectoryCandidate(
+        candidateAnchor(repoRoot, rampDir),
+        join(rampDir, name),
+        `RAMP skill ${name}`,
+      ),
+      inspectDirectoryCandidate(
+        candidateAnchor(repoRoot, libraryDir),
+        join(libraryDir, name),
+        `skills-library skill ${name}`,
+      ),
+    ].filter(Boolean)
+    if (others.length > 0) {
+      // One line per conflicting old root, in the text the helpers print.
+      throw new Error(
+        others
+          .map(
+            (other) =>
+              `skill ${name} is ambiguous: found in ${displayPath(skillsCandidate)} and ${displayPath(other)}; keep only one copy`,
+          )
+          .join('\n'),
+      )
+    }
+  }
+
+  function fromSkillsRoot(name, directory, packId) {
+    if (!hasMetadata(directory)) {
+      throw new Error(
+        `skill ${name} in skills/ requires skill.yaml: ${displayPath(join(directory, 'skill.yaml'))}`,
+      )
+    }
+    const ownerPack = declaredOwnerPack(directory)
+    const metadata = loadRampSkillMetadata(directory, {
+      expectedName: name,
+      allowedOrigins: ['ramp', 'upstream', 'local'],
+      ...(ownerPack === undefined ? {} : { ownerPack }),
+    })
+    if (metadata.ownerPack !== undefined && metadata.ownerPack !== packId) {
+      throw new Error(
+        `skill ${name} belongs to pack ${metadata.ownerPack}; pack ${packId} cannot use it`,
+      )
+    }
+
+    const { origin } = skillMetadataView(metadata)
+    if (origin === 'upstream') {
+      const lockedSkill = lock?.skills.get(name)
+      if (!lockedSkill) {
+        throw new Error(
+          `upstream skill ${name} has no entry in dependencies/skills.lock.yaml`,
+        )
+      }
+      const cached = fromLockedCache(name, lockedSkill)
+      if (cached) return cached
+      try {
+        verifyLockedSkillDirectory(directory, lockedSkill, {
+          platform,
+          allowSidecar: true,
+        })
+      } catch (error) {
+        // The design's exact text, then the verification detail on its own line.
+        throw new Error(
+          [
+            `upstream skill ${name} differs from the lock; run ramp-pack skills sync --locked`,
+            error.message.replaceAll(directory, displayPath(directory)),
+          ].join('\n'),
+        )
+      }
+      return {
+        directory,
+        provenance: upstreamProvenance(lockedSkill),
+      }
+    }
+
+    if (origin === 'local') {
+      if (strictProvenance) {
+        throw new Error(
+          `strict provenance rejects local skill ${name}: ${displayPath(directory)}`,
+        )
+      }
+      if (!allowLegacyLocal) {
+        throw new Error(
+          `local skill ${name} is not allowed by allowLegacyLocal`,
+        )
+      }
+      warnOnce(
+        `skill ${name} has origin: local and is not locked; release bundles reject it`,
+      )
+    }
+    return {
+      directory,
+      provenance: declaredProvenance(origin, metadata, localTreeProvenance(directory)),
+    }
+  }
+
   function resolveSkill(
     name,
     {
@@ -391,10 +576,25 @@ export function createSkillResolver(options = {}) {
       packId = typeof packDir === 'string' ? basename(packDir) : undefined,
     } = {},
   ) {
+    if (RESERVED_SKILL_SLUGS.has(name)) {
+      throw new Error(
+        `skill name ${name} is reserved: ramp, README.md and taxonomy cannot be skill names`,
+      )
+    }
     requireIdentifier(name, 'skill name')
     const packRoot = resolve(requireNonEmptyString(packDir, 'packDir'))
     requireIdentifier(packId, 'packId')
     requireDirectory(packRoot, 'packDir')
+
+    const skillsCandidate = inspectDirectoryCandidate(
+      candidateAnchor(repoRoot, skillsDir),
+      join(skillsDir, name),
+      `skill ${name}`,
+    )
+    if (skillsCandidate) {
+      assertUnambiguous(name, skillsCandidate, packRoot)
+      return fromSkillsRoot(name, skillsCandidate, packId)
+    }
 
     const packCandidate = inspectDirectoryCandidate(
       packRoot,
@@ -409,26 +609,24 @@ export function createSkillResolver(options = {}) {
           expectedName: name,
           ownerPack: packId,
         })
-        return {
-          directory: packCandidate,
-          provenance: declaredProvenance('pack-override', value, hashed),
-        }
+        return compatibilityHit(
+          name,
+          packCandidate,
+          declaredProvenance('pack-override', value, hashed),
+        )
       }
       if (strictProvenance) {
         throw new Error(
           `strict provenance requires ${join(packCandidate, 'skill.yaml')} with ownerPack: ${packId}`,
         )
       }
-      return {
-        directory: packCandidate,
-        provenance: {
-          kind: 'pack-override',
-          attribution: 'legacy-unattributed',
-          name,
-          ownerPack: packId,
-          ...hashed,
-        },
-      }
+      return compatibilityHit(name, packCandidate, {
+        kind: 'pack-override',
+        attribution: 'legacy-unattributed',
+        name,
+        ownerPack: packId,
+        ...hashed,
+      })
     }
 
     const rampCandidate = inspectDirectoryCandidate(
@@ -441,40 +639,18 @@ export function createSkillResolver(options = {}) {
       const value = loadRampSkillMetadata(rampCandidate, {
         expectedName: name,
       })
-      return {
-        directory: rampCandidate,
-        provenance: declaredProvenance('ramp', value, hashed),
-      }
+      return compatibilityHit(
+        name,
+        rampCandidate,
+        declaredProvenance('ramp', value, hashed),
+      )
     }
 
     const lockedSkill = lock?.skills.get(name)
     const mirrorCandidatePath = join(libraryDir, name)
     if (lockedSkill) {
-      const cacheCandidatePath = join(
-        cacheDir,
-        'sources',
-        lockedSkill.source,
-        lockedSkill.commit,
-        lockedSkill.path,
-      )
-      const cached = inspectDirectoryCandidate(
-        cacheDir,
-        cacheCandidatePath,
-        `locked cache skill ${name}`,
-      )
-      if (cached) {
-        try {
-          verifyLockedSkillDirectory(cached, lockedSkill, { platform })
-        } catch (error) {
-          throw new Error(
-            `locked cache skill ${name} failed verification: ${error.message}`,
-          )
-        }
-        return {
-          directory: cached,
-          provenance: upstreamProvenance(lockedSkill),
-        }
-      }
+      const cached = fromLockedCache(name, lockedSkill)
+      if (cached) return cached
 
       const mirror = inspectDirectoryCandidate(
         candidateAnchor(repoRoot, libraryDir),
@@ -492,16 +668,13 @@ export function createSkillResolver(options = {}) {
             `locked compatibility mirror ${name} failed verification: ${error.message}`,
           )
         }
-        return {
-          directory: mirror,
-          provenance: upstreamProvenance(lockedSkill),
-        }
+        return compatibilityHit(name, mirror, upstreamProvenance(lockedSkill))
       }
 
       throw new Error(
         [
           `locked skill ${name} is not available locally`,
-          `cache: ${cacheCandidatePath}`,
+          `cache: ${lockedCachePath(lockedSkill)}`,
           `compatibility mirror: ${mirrorCandidatePath}`,
           `run ramp-pack skills sync --locked --cache "${cacheDir}"`,
         ].join('; '),
@@ -525,19 +698,16 @@ export function createSkillResolver(options = {}) {
         )
       }
       requireSkillMarkdown(legacy)
-      return {
-        directory: legacy,
-        provenance: {
-          kind: 'legacy-local',
-          attribution: 'legacy-unattributed',
-          name,
-          ...localTreeProvenance(legacy),
-        },
-      }
+      return compatibilityHit(name, legacy, {
+        kind: 'legacy-local',
+        attribution: 'legacy-unattributed',
+        name,
+        ...localTreeProvenance(legacy),
+      })
     }
 
     throw new Error(
-      `skill ${name} not found in pack override, RAMP skills, locked cache, or skills-library`,
+      `skill ${name} not found in skills/, pack override, RAMP skills, locked cache, or skills-library`,
     )
   }
 

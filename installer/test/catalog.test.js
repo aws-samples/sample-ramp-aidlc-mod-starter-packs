@@ -73,6 +73,15 @@ function runCli(args) {
   return spawnSync(process.execPath, [cli, 'catalog', ...args], { encoding: 'utf8' })
 }
 
+// Until every skill moves to skills/<slug>/, each old-root skill prints one
+// deprecation warning. Each must print only once; the rest is compared exactly.
+function withoutSkillWarnings(stderr) {
+  const lines = stderr.split('\n')
+  const warnings = lines.filter((line) => line.startsWith('warning: skill '))
+  expect(warnings).toEqual([...new Set(warnings)])
+  return lines.filter((line) => !line.startsWith('warning: skill ')).join('\n')
+}
+
 describe('buildCatalog', () => {
   it('models packs, skills, variants and taxonomy of the fixture repository', () => {
     const model = buildCatalog(fixtureRepo)
@@ -408,7 +417,7 @@ describe('ramp-pack catalog', () => {
       writeFileSync(target, original.replace('| [', '| [hand-edited '))
       const result = runCli(['--check', '--root', root])
       expect(result.status).toBe(1)
-      expect(result.stderr).toBe(
+      expect(withoutSkillWarnings(result.stderr)).toBe(
         `stale: ${path}\nThe catalogue is out of date; run ramp-pack catalog --write\n`,
       )
       writeFileSync(target, original)
@@ -420,7 +429,7 @@ describe('ramp-pack catalog', () => {
     mkdirSync(join(root, 'skills'), { recursive: true })
     const result = runCli(['--check', '--root', root])
     expect(result.status).toBe(1)
-    expect(result.stderr).toBe(
+    expect(withoutSkillWarnings(result.stderr)).toBe(
       [
         'missing: skills/README.md',
         'missing: workflows/README.md',
