@@ -208,11 +208,14 @@ function lintRepository(root) {
   return { errors, warnings, skills }
 }
 
+// Copies each path, or each [source, destination] pair, into a scratch
+// repository, so a skill from skills/ can be placed in a compatibility root.
 function withRepositoryCopy(skillPaths, edit) {
   const root = mkdtempSync(join(tmpdir(), 'ramp-skill-lint-'))
   try {
-    for (const path of skillPaths) {
-      cpSync(join(repoRoot, path), join(root, path), { recursive: true })
+    for (const entry of skillPaths) {
+      const [source, destination] = Array.isArray(entry) ? entry : [entry, entry]
+      cpSync(join(repoRoot, source), join(root, destination), { recursive: true })
     }
     edit(root)
     return lintRepository(root)
@@ -239,7 +242,7 @@ describe('skill taxonomy lint', () => {
   })
 
   it('fails when a skill directory has no skill.yaml', () => {
-    const path = 'skills/ramp/web-test-automation'
+    const path = 'skills/web-test-automation'
     const { errors } = withRepositoryCopy([path], (root) => {
       unlinkSync(join(root, path, 'skill.yaml'))
     })
@@ -247,7 +250,7 @@ describe('skill taxonomy lint', () => {
   })
 
   it('fails on a classification value outside the vocabulary', () => {
-    const path = 'skills/ramp/web-test-automation'
+    const path = 'skills/web-test-automation'
     const { errors } = withRepositoryCopy([path], (root) => {
       const file = join(root, path, 'skill.yaml')
       writeFileSync(
@@ -264,7 +267,7 @@ describe('skill taxonomy lint', () => {
   })
 
   it('fails on a skill without a use case, a v1 file or a mismatched SKILL.md name', () => {
-    const path = 'skills/ramp/web-test-automation'
+    const path = 'skills/web-test-automation'
     const { errors } = withRepositoryCopy([path], (root) => {
       const file = join(root, path, 'skill.yaml')
       writeFileSync(
@@ -304,7 +307,10 @@ describe('skill taxonomy lint', () => {
   it('fails when an origin does not match the skill root or the lock', () => {
     const ramp = 'skills/ramp/web-test-automation'
     const local = 'skills-library/java-upgrade'
-    const { errors } = withRepositoryCopy([ramp, local], (root) => {
+    const { errors } = withRepositoryCopy([
+      ['skills/web-test-automation', ramp],
+      ['skills/java-upgrade', local],
+    ], (root) => {
       for (const [path, from, to] of [
         [ramp, 'origin: ramp', 'origin: local'],
         [local, 'origin: local', 'origin: ramp'],
@@ -319,7 +325,11 @@ describe('skill taxonomy lint', () => {
     ])
 
     const locked = 'skills-library/aws-iam'
-    expect(withRepositoryCopy([locked, local, 'dependencies'], (root) => {
+    expect(withRepositoryCopy([
+      ['skills/aws-iam', locked],
+      ['skills/java-upgrade', local],
+      'dependencies',
+    ], (root) => {
       for (const [path, from, to] of [
         [locked, 'origin: upstream', 'origin: local\nversion: 0.0.0\nlicense: MIT-0'],
         [local, 'origin: local\nversion: 0.0.0\nlicense: MIT-0', 'origin: upstream'],

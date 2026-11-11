@@ -14,7 +14,7 @@ Pick **one** of the two ways to add this pack to your project.
 
 ### Option A — copy the committed folder (no tooling)
 
-Each pack ships committed, per-tool steering under `scaffolded-packs/<tool>/` (steering/MCP/command files only — no skills). Copy the folder for your tool into your project root — no Node required — then run `add-skills.sh` to port this pack's skills from the shared `skills-library/`:
+Each pack ships committed, per-tool steering under `scaffolded-packs/<tool>/` (steering/MCP/command files only — no skills). Copy the folder for your tool into your project root — no Node required — then run `add-skills.sh` to port this pack's skills from the shared `skills/`:
 
 | Your tool | Copy from | Into your project |
 |---|---|---|
@@ -45,7 +45,7 @@ Run the `ramp-pack` installer from the repo root; it reads the neutral source an
 node installer/bin/ramp-pack.js init agentic-ai-workflow --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
 ```
 
-Add `--dry-run` to preview, `--force` to overwrite existing files. To regenerate all four committed tool scaffolds locally, run `./scripts/regenerate.sh agentic-ai-workflow` (requires Node). The neutral source plus the shared `skills-library/` are the single source of truth — the committed `scaffolded-packs/` output is regenerated from it.
+Add `--dry-run` to preview, `--force` to overwrite existing files. To regenerate all four committed tool scaffolds locally, run `./scripts/regenerate.sh agentic-ai-workflow` (requires Node). The neutral source plus the shared `skills/` are the single source of truth — the committed `scaffolded-packs/` output is regenerated from it.
 
 ### Then
 
@@ -65,13 +65,13 @@ agentic-ai-workflow/
 ├── pack.yaml                 # Manifest: instruction roles, skill list, MCP servers, /aidlc command
 ├── instructions/             # Tool-neutral steering (source of truth)
 │   └── aidlc-workflow.md         # Decision-gated Requirements → Design → Tasks (primary)
-├── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills-library/
+├── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills/
 ├── add-skills.ps1            # Windows/PowerShell equivalent of add-skills.sh (no Node)
 └── scaffolded-packs/         # Committed, per-tool output (regenerated from source)
     └── kiro/ claude-code/ copilot/ cursor/   # steering/MCP/command only — no skills
 ```
 
-> `instructions/` and `pack.yaml` are the **neutral source** you edit. Skills are referenced **by name** from the shared `skills-library/` at the repo root (see `pack.yaml`'s `skills:` list, and the Skills table below) — a pack-local `skills/` directory appears only when a pack overrides a library skill. The committed `scaffolded-packs/<tool>/` folders hold per-tool steering only (no skills) and are regenerated from this source with the installer or `./scripts/regenerate.sh`; skills are ported separately by `add-skills.sh`. Don't hand-edit generated output.
+> `instructions/` and `pack.yaml` are the **neutral source** you edit. Skills are referenced **by name** from the shared `skills/` at the repo root (see `pack.yaml`'s `skills:` list, and the Skills table below) — a pack-local `skills/` directory appears only when a pack overrides a library skill. The committed `scaffolded-packs/<tool>/` folders hold per-tool steering only (no skills) and are regenerated from this source with the installer or `./scripts/regenerate.sh`; skills are ported separately by `add-skills.sh`. Don't hand-edit generated output.
 
 ### How each instruction maps per tool
 

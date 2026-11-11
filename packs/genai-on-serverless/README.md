@@ -14,7 +14,7 @@ Pick **one** of the two ways to add this pack to your project.
 
 ### Option A — copy the committed folder (no tooling)
 
-This pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. Copy the folder for your tool into your project root — no Node required — then run `add-skills.sh` to port this pack's skills from the shared `skills-library/`:
+This pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. Copy the folder for your tool into your project root — no Node required — then run `add-skills.sh` to port this pack's skills from the shared `skills/`:
 
 | Your tool | Copy from | Into your project |
 |---|---|---|
@@ -45,7 +45,7 @@ Run the `ramp-pack` installer from the repo root; it reads the neutral source an
 node installer/bin/ramp-pack.js init genai-on-serverless --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
 ```
 
-Add `--dry-run` to preview, `--force` to overwrite existing files. To regenerate all four tool configs locally, run `./scripts/regenerate.sh genai-on-serverless` (requires Node) — it rebuilds the committed `scaffolded-packs/` in place. The neutral source (`instructions/`, `pack.yaml`) plus the shared `skills-library/` are the single source of truth.
+Add `--dry-run` to preview, `--force` to overwrite existing files. To regenerate all four tool configs locally, run `./scripts/regenerate.sh genai-on-serverless` (requires Node) — it rebuilds the committed `scaffolded-packs/` in place. The neutral source (`instructions/`, `pack.yaml`) plus the shared `skills/` are the single source of truth.
 
 ### Then
 
@@ -66,13 +66,13 @@ genai-on-serverless/
 │   ├── aidlc-workflow.md         # Decision-gated Requirements → Design → Tasks (primary)
 │   ├── skill-activation.md       # When to activate skills + MCP (companion, always)
 │   └── reverse-engineering.md    # Phase 0 playbook (companion, brownfield-only)
-├── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills-library/
+├── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills/
 ├── add-skills.ps1            # Windows/PowerShell equivalent of add-skills.sh (no Node)
 └── scaffolded-packs/         # Committed per-tool output (regenerated from source)
     └── kiro/ claude-code/ copilot/ cursor/   # per-tool steering/MCP/command — NO skills
 ```
 
-> `instructions/` and `pack.yaml` are the **neutral source** you edit. Skills are referenced **by name** from `pack.yaml` (`skills:` list) and live in the shared [`skills-library/`](../../skills-library/) at the repo root — a pack-local `skills/` directory appears only when a pack overrides a library skill. The per-tool `scaffolded-packs/<tool>/` folders are committed (steering only) and are ported the skills via `add-skills.sh`; regenerate them with `./scripts/regenerate.sh genai-on-serverless` after editing the source — don't hand-edit the generated output.
+> `instructions/` and `pack.yaml` are the **neutral source** you edit. Skills are referenced **by name** from `pack.yaml` (`skills:` list) and live in the shared [`skills/`](../../skills/) at the repo root — a pack-local `skills/` directory appears only when a pack overrides a library skill. The per-tool `scaffolded-packs/<tool>/` folders are committed (steering only) and are ported the skills via `add-skills.sh`; regenerate them with `./scripts/regenerate.sh genai-on-serverless` after editing the source — don't hand-edit the generated output.
 
 ### How each instruction maps per tool
 

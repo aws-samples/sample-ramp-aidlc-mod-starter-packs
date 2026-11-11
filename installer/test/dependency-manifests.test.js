@@ -1,4 +1,5 @@
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -1274,13 +1275,18 @@ describe('published dependency contracts', () => {
   })
 
   it('documents portable-skill and ATX deployment separation', () => {
-    const ramp = readFileSync(join(repoRoot, 'skills', 'ramp', 'README.md'), 'utf8')
+    // The skill directory rules moved from skills/ramp/README.md into the
+    // skills namespace design when the skills moved to skills/<slug>/.
+    const ramp = readFileSync(
+      join(repoRoot, 'docs', 'design', 'skills-namespace-and-navigation.md'),
+      'utf8',
+    )
     const atx = readFileSync(join(repoRoot, 'atx', 'README.md'), 'utf8')
 
-    expect(ramp).toMatch(/skills\/ramp\/<name>/)
-    expect(ramp).toMatch(/SKILL\.md[\s\S]*skill\.yaml/)
-    expect(ramp).toMatch(/ownerPack[\s\S]*(?:forbidden|must not|no `ownerPack`)/i)
-    expect(ramp).toMatch(/pack-local override[\s\S]*ownerPack: <pack-id>/i)
+    expect(existsSync(join(repoRoot, 'skills', 'ramp', 'README.md'))).toBe(false)
+    expect(ramp).toMatch(/Each skill directory holds `SKILL\.md` and an adjacent `skill\.yaml`/)
+    expect(ramp).toMatch(/upstream content[\s\S]{0,300}skills\.sources\.yaml[\s\S]{0,80}skills\.lock\.yaml/)
+    expect(ramp).toMatch(/lives at `skills\/<slug>\/` with `ownerPack: <pack>`/)
     expect(ramp).toMatch(/never deploys an ATX/i)
     expect(atx).toMatch(/atx\/agents\/<name>/)
     expect(atx).toMatch(/source-only archive/i)

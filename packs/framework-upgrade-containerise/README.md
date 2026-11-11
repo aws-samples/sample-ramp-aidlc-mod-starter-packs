@@ -34,7 +34,7 @@ Pick **one** of the two ways to add this pack to your project.
 
 Every pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. Copy the folder for your
 tool into your project root — no Node required — then run `add-skills.sh` to port this
-pack's skills from the shared `skills-library/`:
+pack's skills from the shared `skills/`:
 
 | Your tool | Copy from | Into your project |
 |---|---|---|
@@ -66,7 +66,7 @@ node installer/bin/ramp-pack.js init framework-upgrade-containerise --tool <kiro
 
 Add `--dry-run` to preview, `--force` to overwrite. To regenerate all four tool configs locally, run
 `./scripts/regenerate.sh framework-upgrade-containerise` (requires Node), which rebuilds the committed
-scaffolds in place. The tool-neutral source plus the shared `skills-library/` are the single source of truth.
+scaffolds in place. The tool-neutral source plus the shared `skills/` are the single source of truth.
 
 ### Then
 

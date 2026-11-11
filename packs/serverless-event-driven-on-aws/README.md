@@ -24,7 +24,7 @@ Pick **one** of the two ways to add this pack to your project.
 
 ### Option A — copy the committed folder (no tooling)
 
-Every pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. Copy the folder for your tool into your project root — no Node required — then run `add-skills.sh` to port this pack's skills from the shared `skills-library/`:
+Every pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. Copy the folder for your tool into your project root — no Node required — then run `add-skills.sh` to port this pack's skills from the shared `skills/`:
 
 | Your tool | Copy from | Into your project |
 |---|---|---|
@@ -55,7 +55,7 @@ Run the `ramp-pack` installer from the repo root; it reads the neutral source an
 node installer/bin/ramp-pack.js init serverless-event-driven-on-aws --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
 ```
 
-Add `--dry-run` to preview, `--force` to overwrite existing files. To regenerate all four tool configs locally, run `./scripts/regenerate.sh serverless-event-driven-on-aws` (requires Node), which rebuilds the committed scaffolds in place. The tool-neutral source plus the shared `skills-library/` are the single source of truth.
+Add `--dry-run` to preview, `--force` to overwrite existing files. To regenerate all four tool configs locally, run `./scripts/regenerate.sh serverless-event-driven-on-aws` (requires Node), which rebuilds the committed scaffolds in place. The tool-neutral source plus the shared `skills/` are the single source of truth.
 
 ### Workspace paths
 
@@ -113,13 +113,13 @@ serverless-event-driven-on-aws/
 │   ├── practices-discovery.md      # Team context capture, run once before Phase 1 (companion, auto)
 │   ├── multi-repo-projects.md      # Repo-model gate + multi-repo flow (companion, auto)
 │   └── reverse-engineering.md      # Phase 0 playbook (companion, brownfield-only)
-├── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills-library/
+├── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills/
 ├── add-skills.ps1            # Windows/PowerShell equivalent of add-skills.sh (no Node)
 └── scaffolded-packs/             # Committed, regenerated from source
     └── kiro/ claude-code/ copilot/ cursor/   # per-tool steering/MCP/command (steering only, no skills)
 ```
 
-> `instructions/` and `pack.yaml` are the **neutral source** you edit. Skills are referenced **by name** from the shared `skills-library/` at the repo root (see the `skills:` list in `pack.yaml`) — see the Skills table below; a local `skills/` directory appears only when a pack overrides a library skill (a rare 'shadow'). The committed `scaffolded-packs/<tool>/` folders carry steering only; skills are ported in by `add-skills.sh`. Regenerate the committed scaffolds from the neutral source + skills-library with `./scripts/regenerate.sh serverless-event-driven-on-aws`; don't hand-edit generated output.
+> `instructions/` and `pack.yaml` are the **neutral source** you edit. Skills are referenced **by name** from the shared `skills/` at the repo root (see the `skills:` list in `pack.yaml`) — see the Skills table below; a local `skills/` directory appears only when a pack overrides a library skill (a rare 'shadow'). The committed `scaffolded-packs/<tool>/` folders carry steering only; skills are ported in by `add-skills.sh`. Regenerate the committed scaffolds from the neutral source + skills/ with `./scripts/regenerate.sh serverless-event-driven-on-aws`; don't hand-edit generated output.
 
 ### How each instruction maps per tool
 

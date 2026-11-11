@@ -14,7 +14,7 @@ Pick **one** of the two ways to add this pack to your project.
 
 ### Option A — copy the committed folder (no tooling)
 
-This pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. Copy the folder for your tool into your project root — no Node required — then run `add-skills.sh` to port this pack's skills from the shared `skills-library/`:
+This pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. Copy the folder for your tool into your project root — no Node required — then run `add-skills.sh` to port this pack's skills from the shared `skills/`:
 
 | Your tool | Copy from | Into your project |
 |---|---|---|
@@ -45,7 +45,7 @@ Run the `ramp-pack` installer from the repo root; it reads the neutral source an
 node installer/bin/ramp-pack.js init cots-rewrite-on-cloudnative --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
 ```
 
-Add `--dry-run` to preview, `--force` to overwrite existing files. To regenerate all four tool configs locally, run `./scripts/regenerate.sh cots-rewrite-on-cloudnative` (requires Node) — it rebuilds the committed `scaffolded-packs/` in place. The neutral source (`instructions/`, `pack.yaml`) plus the shared `skills-library/` are the single source of truth.
+Add `--dry-run` to preview, `--force` to overwrite existing files. To regenerate all four tool configs locally, run `./scripts/regenerate.sh cots-rewrite-on-cloudnative` (requires Node) — it rebuilds the committed `scaffolded-packs/` in place. The neutral source (`instructions/`, `pack.yaml`) plus the shared `skills/` are the single source of truth.
 
 ### Then
 
@@ -85,13 +85,13 @@ cots-rewrite-on-cloudnative/
 │   ├── skill-activation.md       # When to activate which skill + MCP (companion, always)
 │   ├── reverse-engineering.md    # Phase 0 playbook — source code and/or FSDs/docs (companion, auto)
 │   └── requirements-traceability.md  # Trace requirements to FSD/screen anchors + coverage gate (companion, auto)
-├── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills-library/
+├── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills/
 ├── add-skills.ps1            # Windows/PowerShell equivalent of add-skills.sh (no Node)
 └── scaffolded-packs/         # Committed per-tool output (regenerated from source)
     └── kiro/ claude-code/ copilot/ cursor/   # per-tool steering/MCP/command — NO skills
 ```
 
-> `instructions/` and `pack.yaml` are the **neutral source** you edit. Skills are referenced **by name** from `pack.yaml` (`skills:` list) and live in the shared [`skills-library/`](../../skills-library/) at the repo root — a pack-local `skills/` directory appears only when a pack overrides a library skill. The per-tool `scaffolded-packs/<tool>/` folders are committed (steering only) and are ported the skills via `add-skills.sh`; regenerate them with `./scripts/regenerate.sh cots-rewrite-on-cloudnative` after editing the source — don't hand-edit the generated output.
+> `instructions/` and `pack.yaml` are the **neutral source** you edit. Skills are referenced **by name** from `pack.yaml` (`skills:` list) and live in the shared [`skills/`](../../skills/) at the repo root — a pack-local `skills/` directory appears only when a pack overrides a library skill. The per-tool `scaffolded-packs/<tool>/` folders are committed (steering only) and are ported the skills via `add-skills.sh`; regenerate them with `./scripts/regenerate.sh cots-rewrite-on-cloudnative` after editing the source — don't hand-edit the generated output.
 
 ### How each instruction maps per tool
 
@@ -151,7 +151,7 @@ Curated, domain-specific knowledge bundles the agent activates on demand — spa
 
 ## Credits & attribution
 
-Most skills this pack references (by name from `pack.yaml`, resolved from the shared `skills-library/`) are sourced from three open-source projects licensed under **Apache License 2.0**; two automated-testing skills are authored by this repository under **MIT-0**. Full credit to their authors and maintainers:
+Most skills this pack references (by name from `pack.yaml`, resolved from the shared `skills/`) are sourced from three open-source projects licensed under **Apache License 2.0**; two automated-testing skills are authored by this repository under **MIT-0**. Full credit to their authors and maintainers:
 
 - **[aws/agent-toolkit-for-aws](https://github.com/aws/agent-toolkit-for-aws)** — `aws-core` plugin. Source of the compute, data, messaging, orchestration, IaC, identity, and operations skills: `aws-containers`, `aws-cdk`, `aws-cloudformation`, `aws-iam`, `aws-observability`, `signing-in-to-aws`, `amazon-dynamodb`, `aws-messaging-and-streaming`, and `aws-step-functions`.
 - **[awslabs/agent-plugins](https://github.com/awslabs/agent-plugins)** — Agent Plugins for AWS. Source of the serverless and database skills:
@@ -160,4 +160,4 @@ Most skills this pack references (by name from `pack.yaml`, resolved from the sh
 - **[antonbabenko/terraform-skill](https://github.com/antonbabenko/terraform-skill)** by Anton Babenko — source of the `terraform-skill` (Terraform / OpenTofu authoring, testing, CI, state, and security).
 - **RAMP AI-DLC Starter Packs** (this repository, **MIT-0**) — authored testing skills: `web-test-automation` (web E2E/UI, Playwright-first) and `dotnet-testing` (.NET / C# unit & integration testing).
 
-Skills are vendored (copied) into the shared `skills-library/` so the packs work offline and pin a known-good version. Refer to the upstream repositories for the latest versions, additional skills, and their `LICENSE` and `NOTICE` files. AI-DLC steering is adapted from [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows) (MIT-0).
+Skills are vendored (copied) into the shared `skills/` so the packs work offline and pin a known-good version. Refer to the upstream repositories for the latest versions, additional skills, and their `LICENSE` and `NOTICE` files. AI-DLC steering is adapted from [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows) (MIT-0).

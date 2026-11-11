@@ -2142,7 +2142,7 @@ describe('committed immutable skill lock', () => {
     'signing-in-to-aws',
   ]
 
-  it('pins all 15 locks and verifies the ten compatibility mirrors without cache or upstream checkouts', () => {
+  it('pins all 15 locks and verifies the ten in-tree mirrors without cache or upstream checkouts', () => {
     const lock = loadSkillLock(projectRoot, { required: true })
     expect([...lock.skills.keys()]).toEqual(expectedLockNames)
 
@@ -2163,7 +2163,7 @@ describe('committed immutable skill lock', () => {
       }
 
       expect(() => verifyLockedSkillDirectory(
-        join(projectRoot, 'skills-library', name),
+        join(projectRoot, 'skills', name),
         skill,
         { allowSidecar: true },
       )).not.toThrow()

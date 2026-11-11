@@ -1810,7 +1810,7 @@ describe('legal payloads and customer guidance', () => {
     const qaReference = readFileSync(
       join(
         projectRoot,
-        'skills/ramp/mobile-test-automation/references/appium-setup.md',
+        'skills/mobile-test-automation/references/appium-setup.md',
       ),
     )
     expect(qaReference.toString('utf8')).toContain(
@@ -1849,7 +1849,7 @@ describe('legal payloads and customer guidance', () => {
       const qaReference = readFileSync(
         join(
           projectRoot,
-          'skills/ramp/mobile-test-automation/references/appium-setup.md',
+          'skills/mobile-test-automation/references/appium-setup.md',
         ),
       )
       const result = buildBundle(state.packDir, {

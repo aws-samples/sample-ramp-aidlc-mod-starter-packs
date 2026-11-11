@@ -59,14 +59,12 @@ add-skills.ps1 -Tool kiro -Target C:\path\to\project -RepoRoot C:\path\to\ramp-r
 ```
 
 `--skills-src` / `-SkillsSrc` is a compatibility-only override for a different
-reviewed `skills-library/`; it does not replace `--repo-root` / `-RepoRoot`
+reviewed `skills/` directory; it does not replace `--repo-root` / `-RepoRoot`
 when the editable list includes RAMP-owned or pack-local skills.
 
-The no-Node helpers use these three committed source classes:
-
-- a pack-local override under `packs/<pack>/skills/`;
-- a RAMP-owned skill under `skills/ramp/`;
-- reviewed committed compatibility content under `skills-library/`.
+The no-Node helpers copy each named skill from `skills/<slug>/`. During the
+compatibility window a pack-local override under `packs/<pack>/skills/` still
+resolves when `skills/<slug>/` is absent, with a deprecation warning.
 
 The no-Node path copies reviewed repository content and does not synchronize
 or verify the immutable upstream lock/cache. For exact pinned upstream
@@ -141,10 +139,10 @@ Source ownership for authors:
   regenerate it with
   `./scripts/regenerate.sh qa-automated-testing`.
 
-Skills are referenced by name in `pack.yaml` (`skills:`). Resolution checks a
-pack-local `skills/` override first, repository-wide RAMP-owned content in
-[`skills/ramp/`](../../skills/ramp/) second, and reviewed committed
-compatibility content in [`skills-library/`](../../skills-library/) third.
+Skills are referenced by name in `pack.yaml` (`skills:`). Resolution reads
+RAMP-owned and reviewed committed compatibility content from
+[`skills/`](../../skills/). During the compatibility window a pack-local
+`skills/` override still resolves when `skills/<slug>/` is absent.
 Node-based installation can instead resolve locked upstream names from a
 synchronized, verified cache.
 
