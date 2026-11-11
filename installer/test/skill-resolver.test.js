@@ -412,13 +412,28 @@ describe('verifyLockedSkillDirectory', () => {
     const entry = lockedEntry(directory)
     upstreamSidecar(directory)
 
-    expect(verifyLockedSkillDirectory(directory, entry)).toEqual({
+    expect(verifyLockedSkillDirectory(directory, entry, { allowSidecar: true })).toEqual({
       treeSha256: entry.treeSha256,
       files: entry.files,
     })
     expect(
-      verifyLockedSkillDirectory(directory, entry, { platform: 'win32' }),
+      verifyLockedSkillDirectory(directory, entry, {
+        platform: 'win32',
+        allowSidecar: true,
+      }),
     ).toEqual({ treeSha256: entry.treeSha256, files: entry.files })
+  })
+
+  it('treats the sidecar as an extra file unless the caller allows it', () => {
+    const state = fixture()
+    const directory = writeTree(join(state.repoRoot, 'candidate'))
+    const entry = lockedEntry(directory)
+    upstreamSidecar(directory)
+    expect(() => verifyLockedSkillDirectory(directory, entry)).toThrow(
+      /aws-iam.*path set mismatch; missing: skill\.yaml;/,
+    )
+    expect(() => verifyLockedSkillDirectory(directory, entry, { allowSidecar: 'yes' }))
+      .toThrow('allowSidecar must be boolean')
   })
 
   it('still rejects an extra non-sidecar file beside the sidecar', () => {
@@ -427,7 +442,7 @@ describe('verifyLockedSkillDirectory', () => {
     const entry = lockedEntry(directory)
     upstreamSidecar(directory)
     writeFileSync(join(directory, 'NOTES.md'), 'extra')
-    expect(() => verifyLockedSkillDirectory(directory, entry)).toThrow(
+    expect(() => verifyLockedSkillDirectory(directory, entry, { allowSidecar: true })).toThrow(
       /aws-iam.*path set mismatch; missing: NOTES\.md;/,
     )
   })
@@ -438,7 +453,7 @@ describe('verifyLockedSkillDirectory', () => {
     const entry = lockedEntry(directory)
     upstreamSidecar(directory)
     writeFileSync(join(directory, 'references', 'guide.md'), 'drift')
-    expect(() => verifyLockedSkillDirectory(directory, entry)).toThrow(
+    expect(() => verifyLockedSkillDirectory(directory, entry, { allowSidecar: true })).toThrow(
       /aws-iam.*references\/guide\.md sha256 mismatch/,
     )
   })
@@ -469,7 +484,7 @@ describe('verifyLockedSkillDirectory', () => {
     const directory = writeTree(join(state.repoRoot, 'candidate'))
     const entry = lockedEntry(directory)
     arrange(directory)
-    expect(() => verifyLockedSkillDirectory(directory, entry)).toThrow(failure)
+    expect(() => verifyLockedSkillDirectory(directory, entry, { allowSidecar: true })).toThrow(failure)
   })
 
   it('verifies a locked skill.yaml as an ordinary file, not as a sidecar', () => {
@@ -478,9 +493,9 @@ describe('verifyLockedSkillDirectory', () => {
     upstreamSidecar(directory)
     const entry = lockedEntry(directory)
     expect(entry.files.map((file) => file.path)).toContain('skill.yaml')
-    expect(verifyLockedSkillDirectory(directory, entry).files).toEqual(entry.files)
+    expect(verifyLockedSkillDirectory(directory, entry, { allowSidecar: true }).files).toEqual(entry.files)
     unlinkSync(join(directory, 'skill.yaml'))
-    expect(() => verifyLockedSkillDirectory(directory, entry)).toThrow(
+    expect(() => verifyLockedSkillDirectory(directory, entry, { allowSidecar: true })).toThrow(
       /aws-iam.*path set mismatch; missing: <none>; extra: skill\.yaml/,
     )
   })
@@ -722,6 +737,18 @@ describe('createSkillResolver precedence and provenance', () => {
 
     expect(fromMirror.directory).toBe(mirror)
     expect(fromMirror.provenance).toEqual(fromCache.provenance)
+  })
+
+  it('rejects an upstream sidecar planted in the locked cache', () => {
+    const state = fixture()
+    const reference = writeTree(join(state.repoRoot, 'reference'))
+    const entry = lockedEntry(reference)
+    writeLock(state.repoRoot, [['aws-iam', entry]])
+    upstreamSidecar(writeTree(cacheSkill(state.cacheDir, entry)))
+    writeTree(join(state.libraryDir, 'aws-iam'))
+    expect(() => resolveAwsIam(resolverFor(state), state)).toThrow(
+      /locked cache skill aws-iam failed verification.*path set mismatch; missing: skill\.yaml;/,
+    )
   })
 
   it('fails a corrupt cache instead of falling through to a valid mirror', () => {

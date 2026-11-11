@@ -151,9 +151,10 @@ function compareFileRecords(actual, expected, { compareExecutable = true } = {})
   return null
 }
 
-// An upstream mirror may hold RAMP metadata as a root skill.yaml sidecar with
-// origin: upstream. Lock verification ignores exactly that one file; any other
-// extra file, or a skill.yaml with another origin, still fails.
+// An in-tree upstream mirror may hold RAMP metadata as a root skill.yaml
+// sidecar with origin: upstream. With allowSidecar, lock verification ignores
+// exactly that one file; any other extra file, or a skill.yaml with another
+// origin, still fails. Cache trees come from Git and never hold a sidecar.
 function hasUpstreamSidecar(directory, name, expectedFiles) {
   if (expectedFiles.some((file) => file.path === 'skill.yaml')) return false
   if (!hasMetadata(directory)) return false
@@ -211,7 +212,7 @@ export function resolveCacheDir(options = {}) {
 export function verifyLockedSkillDirectory(
   directory,
   lockedSkill,
-  { platform = process.platform } = {},
+  { platform = process.platform, allowSidecar = false } = {},
 ) {
   requireNonEmptyString(directory, 'locked skill directory')
   if (!lockedSkill || typeof lockedSkill !== 'object' || Array.isArray(lockedSkill)) {
@@ -241,9 +242,11 @@ export function verifyLockedSkillDirectory(
     expectedFiles.map((file) => [file.path, file.executable]),
   )
 
-  let sidecar
+  requireBoolean(allowSidecar, 'allowSidecar')
+
+  let sidecar = false
   try {
-    sidecar = hasUpstreamSidecar(directory, name, expectedFiles)
+    sidecar = allowSidecar && hasUpstreamSidecar(directory, name, expectedFiles)
   } catch (error) {
     throw new Error(
       `locked skill ${name} at ${directory} has an invalid skill.yaml sidecar: ${error.message}`,
@@ -480,7 +483,10 @@ export function createSkillResolver(options = {}) {
       )
       if (mirror) {
         try {
-          verifyLockedSkillDirectory(mirror, lockedSkill, { platform })
+          verifyLockedSkillDirectory(mirror, lockedSkill, {
+            platform,
+            allowSidecar: true,
+          })
         } catch (error) {
           throw new Error(
             `locked compatibility mirror ${name} failed verification: ${error.message}`,

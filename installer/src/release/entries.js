@@ -440,6 +440,8 @@ function collectCopy(operation, recordInput, options) {
       `does not match expected ${expected.length}`,
     )
   }
+  // The provenance files and treeSha256 describe the source skill tree,
+  // skill.yaml included, while the overlay leaves skill.yaml out.
   const outputProvenance = {
     ...cloneValue(provenance),
     files: cloneValue(expected),

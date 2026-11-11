@@ -69,6 +69,7 @@ const SKILLS_ROOT = {
   cursor: '.cursor/skills',
   kiro: '.kiro/skills',
 }
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const ROUTE = '(?:init|add-skills\\.sh|add-skills\\.ps1|release)'
 const PACK = '[a-z0-9]+(?:-[a-z0-9]+)*'
 
@@ -82,7 +83,7 @@ const ALLOWLIST = Object.fromEntries([
     {
       change: 'removed',
       match: new RegExp(
-        `^${ROUTE}/${PACK}/${tool} ${root.replace('.', '\\.')}/(?:${RAMP_SKILLS.join('|')})/skill\\.yaml$`,
+        `^${ROUTE}/${PACK}/${tool} ${escapeRegExp(root)}/(?:${RAMP_SKILLS.map(escapeRegExp).join('|')})/skill\\.yaml$`,
       ),
     },
   ]),

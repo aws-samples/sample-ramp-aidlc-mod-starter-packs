@@ -22,8 +22,9 @@ export function applyPlan(plan, targetDir, { dryRun, force }) {
     if (w.kind === 'copy') {
       const metadata = join(w.content, 'skill.yaml')
       cpSync(w.content, dest, { recursive: true, filter: (source) => source !== metadata })
+    } else {
+      writeFileSync(dest, w.content)
     }
-    else writeFileSync(dest, w.content)
   }
   return written
 }
