@@ -10,14 +10,14 @@
     "aws-mcp-server": {
       "command": "uvx",
       "args": [
-        "mcp-proxy-for-aws@latest",
+        "mcp-proxy-for-aws==1.8.0",
         "https://aws-mcp.us-east-1.api.aws/mcp"
       ]
     },
     "aurora-dsql": {
       "command": "uvx",
       "args": [
-        "awslabs.aurora-dsql-mcp-server@latest"
+        "awslabs.aurora-dsql-mcp-server==1.1.5"
       ],
       "env": {
         "FASTMCP_LOG_LEVEL": "ERROR"

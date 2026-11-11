@@ -1,94 +1,25 @@
 ---
 name: aws-lambda-durable-functions
-description: >
-  Build resilient, long-running, multi-step applications with AWS Lambda durable functions with automatic state persistence, retry logic, and orchestration for long-running executions. Covers the critical replay model, step operations, wait/callback patterns, error handling with saga pattern, testing with LocalDurableTestRunner. Triggers on phrases like: lambda durable functions, workflow orchestration, state machines, retry/checkpoint patterns, long-running stateful Lambda functions, saga pattern, human-in-the-loop callbacks, and reliable serverless applications.
+description: Builds resilient, long-running, multi-step applications with AWS Lambda durable functions with automatic state persistence, retry logic, and orchestration for long-running executions. Covers the critical replay model, step operations, wait/callback patterns, error handling with saga pattern, testing with LocalDurableTestRunner. Triggers on phrases like lambda durable functions, durable execution, workflow orchestration, state machines, retry/checkpoint patterns, long-running stateful Lambda functions, saga pattern, human-in-the-loop callbacks, reliable serverless applications, context.step, context.wait, context.invoke, context.runInChildContext, withDurableExecution, DurableContext, UnrecoverableInvocationError, durable-execution-sdk, qualified ARN invocation, and durable handler replay.
+version: 1
 ---
 
 # AWS Lambda durable functions
 
 Build resilient multi-step applications and AI workflows that can execute for up to 1 year while maintaining reliable progress despite interruptions.
 
-## Onboarding
+**Works best with** the [AWS MCP server](https://docs.aws.amazon.com/aws-mcp/) but is not required. All AWS interactions in this skill use standard AWS CLI commands that work in any environment with configured AWS credentials.
 
-### Step 1: Validate Prerequisites
+## Critical Rules
 
-Before using AWS Lambda durable functions, verify:
+Read these before writing any code. Each one is a constraint that will silently break a function if violated.
 
-1. **AWS CLI** is installed (2.33.22 or higher) and configured:
-
-   ```bash
-   aws --version
-   aws sts get-caller-identity
-   ```
-
-2. **Runtime environment** is ready:
-   - For TypeScript/JavaScript: Node.js 22+ (`node --version`)
-   - For Python: Python 3.11+ (`python --version`. Note that currently only Lambda runtime environments 3.13+ come with the Durable Execution SDK pre-installed. 3.11 is the min supported Python version by the Durable SDK itself, however, you could use OCI to bring your own container image with your own Python runtime + Durable SDK.)
-
-3. **Deployment capability** exists (one of):
-   - AWS SAM CLI (`sam --version`) 1.153.1 or higher
-   - AWS CDK (`cdk --version`) v2.237.1 or higher
-   - Direct Lambda deployment access
-
-### Step 2: Select language and IaC framework
-
-### Language Selection
-
-Default: TypeScript
-
-Override syntax:
-
-- "use Python" → Generate Python code
-- "use JavaScript" → Generate JavaScript code
-
-When not specified, ALWAYS use TypeScript
-
-### IaC framework selection
-
-Default: CDK
-
-Override syntax:
-
-- "use CloudFormation" → Generate YAML templates
-- "use SAM" → Generate YAML templates
-
-When not specified, ALWAYS use CDK
-
-### Error Scenarios
-
-#### Unsupported Language
-
-- List detected language
-- State: "Durable Execution SDK is not yet available for [framework]"
-- Suggest supported languages as alternatives
-
-#### Unsupported IaC Framework
-
-- List detected framework
-- State: "[framework] might not support Lambda durable functions yet"
-- Suggest supported frameworks as alternatives
-
-### Serverless MCP Server Unavailable
-
-- Inform user: "AWS Serverless MCP not responding"
-- Ask: "Proceed without MCP support?"
-- DO NOT continue without user confirmation
-
-### Step 3: Install SDK
-
-**For TypeScript/JavaScript:**
-
-```bash
-npm install @aws/durable-execution-sdk-js
-npm install --save-dev @aws/durable-execution-sdk-js-testing
-```
-
-**For Python:**
-
-```bash
-pip install aws-durable-execution-sdk-python
-pip install aws-durable-execution-sdk-python-testing
-```
+1. **Durable execution must be enabled at function creation time — it cannot be retrofitted.** A new Lambda function must be created with durable execution turned on. Migrate the logic into the new function; do not attempt to install the SDK and wrap the handler of the existing function and expect it to work.
+2. **Durable functions must be invoked with a qualified ARN** — a specific version, an alias, or the literal `$LATEST` suffix. An unqualified function name will fail. See the *Invocation Requirements* section below for examples.
+3. **Durable operations cannot be nested.** You cannot call `context.step()`, `context.wait()`, or `context.invoke()` from inside another step's callback. Use `context.runInChildContext()` to group operations instead.
+4. **All non-deterministic code must run inside steps.** `Date.now()`, `Math.random()`, UUID generation, API calls, and database queries outside a step will produce different values on replay and corrupt execution state.
+5. **Closure mutations are lost on replay** - return values from steps
+6. **Side effects outside steps repeat** - use `context.logger` (replay-aware)
 
 ## When to Load Reference Files
 
@@ -132,13 +63,6 @@ def handler(event: dict, context: DurableContext) -> dict:
     return result
 ```
 
-### Critical Rules
-
-1. **All non-deterministic code MUST be in steps** (Date.now, Math.random, API calls)
-2. **Cannot nest durable operations** - use `runInChildContext` to group operations
-3. **Closure mutations are lost on replay** - return values from steps
-4. **Side effects outside steps repeat** - use `context.logger` (replay-aware)
-
 ### Python API Differences
 
 The Python SDK differs from TypeScript in several key areas:
@@ -155,7 +79,7 @@ Durable functions **require qualified ARNs** (version, alias, or `$LATEST`):
 ```bash
 # Valid
 aws lambda invoke --function-name my-function:1 output.json
-aws lambda invoke --function-name my-function:prod output.json
+aws lambda invoke --function-name my-function:live output.json
 
 # Invalid - will fail
 aws lambda invoke --function-name my-function output.json
@@ -190,11 +114,14 @@ When implementing or modifying tests for durable functions, ALWAYS verify:
 3. Replay behavior is tested with multiple invocations
 4. Use `LocalDurableTestRunner` for local testing
 
-### MCP Server Configuration
+## Security Considerations
 
-**Write access is enabled by default.** The plugin ships with `--allow-write` in `.mcp.json`, so the MCP server can create projects, generate IaC, and deploy on behalf of the user.
-
-Access to sensitive data (like Lambda and API Gateway logs) is **not** enabled by default. To grant it, add `--allow-sensitive-data-access` to `.mcp.json`.
+- **Checkpoint data encryption**: Execution state is persisted automatically. Enable KMS encryption on associated CloudWatch Log Groups to protect checkpointed data at rest.
+- **Sensitive data in step results**: Step return values are checkpointed and persisted. Do not return secrets, raw credentials, or PII from steps — store sensitive data in Secrets Manager or SSM Parameter Store and return references instead.
+- **Input validation**: Validate and sanitize event payloads at the handler entry point before passing data to steps.
+- **Credential management**: Retrieve secrets from AWS Secrets Manager or SSM Parameter Store within steps.
+- **Callback payload validation**: Data received via `waitForCallback` originates from external systems — validate and sanitize before processing.
+- **Logging**: Avoid `DEBUG` log level in non-development environments as it may expose step results and execution state. Enable CloudWatch Logs encryption with KMS.
 
 ## Resources
 

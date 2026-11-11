@@ -134,7 +134,7 @@ from aws_durable_execution_sdk_python.retries import RetryDecision
 
 def custom_retry(error: Exception, attempt: int) -> RetryDecision:
     if isinstance(error, ValidationError):
-        return RetryDecision(should_retry=False)
+        return RetryDecision.no_retry()
     
     if attempt < 3:
         return RetryDecision(
@@ -142,7 +142,7 @@ def custom_retry(error: Exception, attempt: int) -> RetryDecision:
             delay=Duration.from_seconds(2 ** attempt)
         )
     
-    return RetryDecision(should_retry=False)
+    return RetryDecision.no_retry()
 
 result = context.step(
     risky_operation(),
@@ -155,13 +155,21 @@ result = context.step(
 **TypeScript:**
 
 ```typescript
+class NetworkError extends Error {
+  name = 'NetworkError';
+}
+
+class TimeoutError extends Error {
+  name = 'TimeoutError';
+}
+
 const result = await context.step(
   'selective-retry',
   async () => operation(),
   {
     retryStrategy: createRetryStrategy({
       maxAttempts: 3,
-      retryableErrorTypes: ['NetworkError', 'TimeoutError']
+      retryableErrorTypes: [NetworkError, TimeoutError]
     })
   }
 );
@@ -178,42 +186,52 @@ retry_config = RetryStrategyConfig(
 
 ## Step Semantics
 
-### AT_LEAST_ONCE (Default)
+### AtLeastOncePerRetry (default)
 
-Step executes at least once, may execute multiple times on failure/retry.
+Step executes at least once on each retry attempt. If the step succeeds but the checkpoint fails (e.g. due to a sandbox crash), the step will re-execute on replay. Use for idempotent operations that can tolerate duplicate execution.
 
 **TypeScript:**
 
 ```typescript
+import { StepSemantics } from '@aws/durable-execution-sdk-js';
+
 const result = await context.step(
   'idempotent-operation',
   async () => idempotentAPI(),
-  { semantics: 'AT_LEAST_ONCE' }
+  { semantics: StepSemantics.AtLeastOncePerRetry }
 );
 ```
 
-### AT_MOST_ONCE
+### AtMostOncePerRetry
 
-Step executes at most once, never retries. Use for non-idempotent operations.
+Step executes at most once per retry attempt. If a crash happens between the pre-step checkpoint and step completion, the step is skipped on replay rather than re-executed. The step can still run across multiple retry attempts. To guarantee at-most-once overall, pair with `retryStrategy: () => ({ shouldRetry: false })`.
 
 **TypeScript:**
 
 ```typescript
+import { StepSemantics } from '@aws/durable-execution-sdk-js';
+
 const result = await context.step(
   'charge-payment',
   async () => chargeCard(amount),
-  { semantics: 'AT_MOST_ONCE' }
+  {
+    semantics: StepSemantics.AtMostOncePerRetry,
+    retryStrategy: () => ({ shouldRetry: false })
+  }
 );
 ```
 
 **Python:**
 
 ```python
-from aws_durable_execution_sdk_python.config import StepSemantics
+from aws_durable_execution_sdk_python.config import StepSemantics, StepConfig
 
 result = context.step(
     charge_card(amount),
-    config=StepConfig(step_semantics=StepSemantics.AT_MOST_ONCE_PER_RETRY)
+    config=StepConfig(
+        step_semantics=StepSemantics.AT_MOST_ONCE_PER_RETRY,
+        retry_strategy=lambda error, attempt: RetryDecision.no_retry()
+    )
 )
 ```
 
@@ -227,18 +245,22 @@ For complex types, provide custom serialization:
 import { createClassSerdesWithDates } from '@aws/durable-execution-sdk-js';
 
 class User {
-  constructor(
-    public id: string,
-    public name: string,
-    public createdAt: Date
-  ) {}
+  id: string = '';
+  name: string = '';
+  createdAt: Date = new Date();
 }
 
 const userSerdes = createClassSerdesWithDates(User, ['createdAt']);
 
 const user = await context.step(
   'fetch-user',
-  async () => new User('123', 'Alice', new Date()),
+  async () => {
+    const user = new User();
+    user.id = '123';
+    user.name = 'Alice';
+    user.createdAt = new Date();
+    return user;
+  },
   { serdes: userSerdes }
 );
 ```
@@ -344,4 +366,4 @@ except Exception as error:
 4. **Use appropriate retry strategies** based on operation type
 5. **Handle errors explicitly** - don't let them propagate unexpectedly
 6. **Use custom serialization** for complex types
-7. **Choose correct semantics** (AT_LEAST_ONCE vs AT_MOST_ONCE)
+7. **Choose correct semantics** (`AtLeastOncePerRetry` vs `AtMostOncePerRetry`)
