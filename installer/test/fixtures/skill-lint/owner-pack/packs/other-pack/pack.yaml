@@ -1,0 +1,5 @@
+schemaVersion: 1
+kind: ramp-pack
+name: other-pack
+skills:
+  - owned-skill

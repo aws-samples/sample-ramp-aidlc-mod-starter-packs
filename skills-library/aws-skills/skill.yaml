@@ -1,0 +1,10 @@
+schemaVersion: 2
+kind: ramp-skill
+name: aws-skills
+origin: local
+version: 0.0.0
+license: NOASSERTION # SKILL.md declares no licence
+classification:
+  useCases: [infrastructure-as-code, cloud-foundations]
+  awsServices: [cloudformation, cdk]
+  technologies: [terraform]

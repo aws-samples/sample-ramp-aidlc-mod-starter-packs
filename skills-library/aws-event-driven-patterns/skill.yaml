@@ -1,0 +1,10 @@
+schemaVersion: 2
+kind: ramp-skill
+name: aws-event-driven-patterns
+origin: local
+version: 0.0.0
+license: MIT-0
+classification:
+  useCases: [cloud-native-development]
+  awsServices: [eventbridge, sqs, sns, kinesis]
+  technologies: []

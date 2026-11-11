@@ -1,0 +1,10 @@
+schemaVersion: 2
+kind: ramp-skill
+name: agentic-optimizer
+origin: local
+version: 0.0.0
+license: NOASSERTION # SKILL.md declares no licence
+classification:
+  useCases: [generative-ai-and-agents]
+  awsServices: [bedrock]
+  technologies: [strands-agents]

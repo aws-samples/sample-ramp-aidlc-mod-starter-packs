@@ -1,0 +1,8 @@
+schemaVersion: 2
+kind: ramp-skill
+name: aws-lambda-microvms
+origin: upstream
+classification:
+  useCases: [cloud-native-development, quality-engineering]
+  awsServices: [lambda]
+  technologies: []
