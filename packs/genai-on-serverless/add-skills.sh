@@ -79,6 +79,7 @@ case "$tool" in
 esac
 
 ERRORS=()
+WARNINGS=()
 SELECTED_SOURCES=()
 SELECTED_KINDS=()
 NAME_VALIDITY=()
@@ -446,6 +447,7 @@ for skill_index in "${!SKILLS[@]}"; do
       elif [ -z "$selected_source" ]; then
         selected_source="$root_candidate"
         selected_kind="$root_kind"
+        WARNINGS[${#WARNINGS[@]}]="skill $skill resolved from $root_relative; move it to skills/$skill/"
       fi
     fi
     root_index=$((root_index + 1))
@@ -584,6 +586,11 @@ if [ -n "$canonical_target" ]; then
     fi
   done
 fi
+
+# Compatibility-window deprecation warnings go to stderr only.
+for warning_message in "${WARNINGS[@]}"; do
+  echo "$warning_message" >&2
+done
 
 if [ "${#ERRORS[@]}" -gt 0 ]; then
   echo "error: add-skills preflight failed:" >&2

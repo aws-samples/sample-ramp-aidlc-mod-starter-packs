@@ -33,6 +33,10 @@ const requiredPowerShells = (process.env.RAMP_REQUIRE_POWERSHELL ?? '')
   .map((name) => name.trim())
   .filter(Boolean)
 
+const deprecationWarning = (slug, oldPath) =>
+  `skill ${slug} resolved from ${oldPath}; move it to skills/${slug}/`
+const stderrLines = (stderr) => stderr.split(/\r?\n/).filter(Boolean)
+
 const reservedMessage = (slug) =>
   `skill name ${slug} is reserved: ramp, README.md and taxonomy cannot be skill names`
 
@@ -492,6 +496,32 @@ function registerRuntimeContract({
           join(fixture.repo, 'skills/ramp/ramp-only'),
         )
         expect(result.stdout).toMatch(/\+ compat-only \[skills-src\]/)
+        // A --skills-src hit is not a compatibility hit; the pack and RAMP tiers are.
+        expect(stderrLines(result.stderr)).toEqual([
+          deprecationWarning('pack-only', 'packs/demo/skills/pack-only'),
+          deprecationWarning('ramp-only', 'skills/ramp/ramp-only'),
+          deprecationWarning('collision', 'packs/demo/skills/collision'),
+        ])
+      },
+    )
+
+    it.runIf(available)(
+      'warns once per compatibility hit on stderr, leaving stdout and the exit code alone',
+      () => {
+        const fixture = createRepository()
+        const target = tempRoot('ramp-helper-target-')
+
+        const result = run(fixture[scriptKey], ['--tool', 'kiro', '--target', target])
+
+        expect(result.error).toBeUndefined()
+        expect(result.status, result.stderr).toBe(0)
+        expect(stderrLines(result.stderr)).toEqual([
+          deprecationWarning('pack-only', 'packs/demo/skills/pack-only'),
+          deprecationWarning('ramp-only', 'skills/ramp/ramp-only'),
+          deprecationWarning('compat-only', 'skills-library/compat-only'),
+          deprecationWarning('collision', 'packs/demo/skills/collision'),
+        ])
+        expect(result.stdout).not.toMatch(/resolved from/)
       },
     )
 
@@ -514,6 +544,11 @@ function registerRuntimeContract({
       expect(result.stdout).toMatch(/\+ new-only \[skills\]/)
       expect(result.stdout).toMatch(/\+ pack-only \[pack\]/)
       expect(result.stdout).toMatch(/Done\. 4 copied/)
+      expect(stderrLines(result.stderr)).toEqual([
+        deprecationWarning('pack-only', 'packs/demo/skills/pack-only'),
+        deprecationWarning('ramp-only', 'skills/ramp/ramp-only'),
+        deprecationWarning('compat-only', 'skills-library/compat-only'),
+      ])
     })
 
     it.runIf(available).each([
@@ -1239,6 +1274,13 @@ describe('Bash and PowerShell helper error parity', { timeout: 60_000 }, () => {
   }
   const scenarios = [
     {
+      label: 'the deprecation warnings of a successful install',
+      succeeds: true,
+      arrange() {
+        return { skills: ['pack-only', 'ramp-only', 'compat-only', 'collision'], extra: [] }
+      },
+    },
+    {
       label: 'the duplicate-slug fixture',
       arrange(repo) {
         writeSkill(repo, 'skills/duplicate', 51)
@@ -1310,9 +1352,15 @@ describe('Bash and PowerShell helper error parity', { timeout: 60_000 }, () => {
         const bashResult = runBash(bash, args)
         const powerShellResult = runPowerShell(parityEngine.command, powerShell, args)
 
-        expect(bashResult.status).not.toBe(0)
-        expect(powerShellResult.status).not.toBe(0)
-        expect(normalize(bashResult.stderr)).toMatch(/^error: add-skills preflight failed:\n/)
+        if (scenario.succeeds) {
+          expect(bashResult.status, bashResult.stderr).toBe(0)
+          expect(powerShellResult.status, powerShellResult.stderr).toBe(0)
+          expect(bashResult.stderr).toMatch(/resolved from/)
+        } else {
+          expect(bashResult.status).not.toBe(0)
+          expect(powerShellResult.status).not.toBe(0)
+          expect(normalize(bashResult.stderr)).toMatch(/^error: add-skills preflight failed:\n/)
+        }
         expect(normalize(powerShellResult.stderr).split('-RepoRoot <').join('--repo-root <'))
           .toBe(normalize(bashResult.stderr))
       },

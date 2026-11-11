@@ -59,6 +59,7 @@ $DestinationByTool = @{
 }
 
 $script:Errors = New-Object 'System.Collections.Generic.List[string]'
+$Warnings = New-Object 'System.Collections.Generic.List[string]'
 $SelectedSources = New-Object 'System.Collections.Generic.List[string]'
 $SelectedKinds = New-Object 'System.Collections.Generic.List[string]'
 $NameValidity = New-Object 'System.Collections.Generic.List[bool]'
@@ -503,6 +504,7 @@ for ($skillIndex = 0; $skillIndex -lt $Skills.Count; $skillIndex++) {
       elseif ($null -eq $selectedSource) {
         $selectedSource = $rootCandidate
         $selectedKind = $root.Kind
+        $Warnings.Add("skill $skill resolved from $rootRelative; move it to skills/$skill/") | Out-Null
       }
     }
   }
@@ -662,6 +664,11 @@ if ($null -ne $canonicalTarget) {
     $null = Test-DestinationPath $canonicalTarget $skillDestinationRelative "destination for '$skill'"
     Test-ExistingDestinationTree (Join-Path $destinationRoot $skill) $skill
   }
+}
+
+# Compatibility-window deprecation warnings go to stderr only.
+foreach ($warning in $Warnings) {
+  [Console]::Error.WriteLine($warning)
 }
 
 if ($script:Errors.Count -gt 0) {
