@@ -5,7 +5,7 @@ name: verify
 # verifies them offline, and then proves every committed output is current.
 on:
   push:
-    branches: [main]
+    branches: [main, revamp-starter-packs]
   pull_request:
   workflow_dispatch:
 
@@ -64,3 +64,31 @@ jobs:
           echo "Committed scaffolds and helpers are in sync with source."
       - name: Assert no repository-local skill cache
         run: test ! -e .ramp-cache
+
+  # The bundle helpers run on both runner families. Each listed PowerShell
+  # engine must be present, so a missing engine fails instead of skipping.
+  helpers:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            powershell: pwsh
+            tests: test/install-bash.test.js test/install-powershell.test.js test/windows-helper-fixtures.test.js
+          - os: windows-latest
+            powershell: powershell.exe,pwsh
+            tests: test/install-powershell.test.js test/windows-helper-fixtures.test.js
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install installer deps
+        run: npm ci --prefix installer
+      - name: Run helper scenario tests
+        env:
+          RAMP_REQUIRE_POWERSHELL: ${{ matrix.powershell }}
+        run: npm test --prefix installer -- ${{ matrix.tests }}

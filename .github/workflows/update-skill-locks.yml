@@ -1,0 +1,117 @@
+name: update-skill-locks
+
+# Proposes pinned upstream skill updates through a pull request. The first job
+# refreshes and verifies the lock with a read-only token; only the second job,
+# which runs no dependency code, may push a branch and open the PR. Nothing
+# here merges, tags, or publishes.
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: update-skill-locks
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      base: ${{ steps.base.outputs.sha }}
+      changed: ${{ steps.diff.outputs.changed }}
+    steps:
+      # The runner context is unavailable in jobs.<id>.env, so export the path here.
+      - name: Point the skill cache at runner temp
+        run: echo "RAMP_SKILLS_CACHE=$RUNNER_TEMP/ramp-skills" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Record the base commit
+        id: base
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install installer deps from the lockfile
+        run: npm ci --prefix installer
+      - name: Refresh every locked skill from its upstream source
+        run: |
+          mapfile -t names < <(node --input-type=module -e "
+            import { loadSkillLock } from './installer/src/dependencies/manifests.js'
+            for (const name of loadSkillLock('.', { required: true }).skills.keys()) console.log(name)
+          ")
+          args=()
+          for name in "${names[@]}"; do args+=(--skill "$name"); done
+          node installer/bin/ramp-pack.js skills update-lock "${args[@]}" \
+            --cache "$RAMP_SKILLS_CACHE"
+      - name: Verify the refreshed lock offline
+        run: |
+          node installer/bin/ramp-pack.js skills verify \
+            --cache "$RAMP_SKILLS_CACHE"
+      - name: Run installer test suite against the refreshed lock
+        run: npm test --prefix installer
+      - name: Detect a lock change
+        id: diff
+        run: |
+          if [ -n "$(git status --porcelain -- . ':!dependencies/skills.lock.yaml')" ]; then
+            echo "::error::update-lock changed files other than dependencies/skills.lock.yaml"
+            git status --short
+            exit 1
+          fi
+          if git diff --quiet -- dependencies/skills.lock.yaml; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Locked skills are current; no pull request needed."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Keep the refreshed lock
+        if: steps.diff.outputs.changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: skills-lock
+          path: dependencies/skills.lock.yaml
+          if-no-files-found: error
+
+  propose:
+    needs: update
+    if: needs.update.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      BRANCH: automation/skill-locks-${{ github.run_id }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.update.outputs.base }}
+      - name: Restore the verified lock
+        uses: actions/download-artifact@v4
+        with:
+          name: skills-lock
+          path: dependencies
+      - name: Commit only the lock on an automation branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c "$BRANCH"
+          git add -- dependencies/skills.lock.yaml
+          if [ -n "$(git status --porcelain -- . ':!dependencies/skills.lock.yaml')" ]; then
+            echo "::error::only dependencies/skills.lock.yaml may change"
+            exit 1
+          fi
+          git commit -m "chore: refresh pinned upstream skill locks"
+          git push origin "$BRANCH"
+      - name: Open the pull request
+        run: |
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "chore: refresh pinned upstream skill locks" \
+            --body "Automated by update-skill-locks run $GITHUB_RUN_ID. The lock was refreshed with skills update-lock, verified offline, and passed the installer test suite before this PR was opened. Review the upstream diffs; this workflow never merges."
