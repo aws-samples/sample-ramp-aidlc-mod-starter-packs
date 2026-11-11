@@ -133,8 +133,52 @@ describe('renderMcp for codex (.codex/config.toml)', () => {
     [{ id: 'k', command: 'npx', env: { DEBUG: true } }, /k\.env\.DEBUG must be a string/],
     [{ id: 'k', url: { href: 'https://x' } }, /k\.url must be a string/],
     [{ id: 'k', command: 'bad \ud800' }, /k\.command holds a lone surrogate/],
-    [{ command: 'npx' }, /key undefined must be a string/],
+    [{ id: 'k', command: 'npx', disabled: 'yes' }, /k\.disabled must be true or false/],
   ])('refuses an unsupported value shape %#', (server, message) => {
     expect(() => renderMcp({ mcp: [server] }, 'codex')).toThrow(message)
+  })
+
+  it.each([
+    [{ id: 'k' }, /MCP server k needs exactly one of url or command/],
+    [{ id: 'k', url: 'https://x', command: 'npx' }, /MCP server k needs exactly one of url or command/],
+    [{ id: 'k', url: 'https://x', args: ['a'] }, /MCP server k has a url, so it cannot take args/],
+    [{ id: 'k', url: 'https://x', env: { A: '1' } }, /MCP server k has a url, so it cannot take env/],
+    [{ id: 'k', transport: 'sse', url: 'https://x' }, /MCP server k transport sse is not supported for Codex/],
+  ])('refuses a server Codex cannot load %#', (server, message) => {
+    expect(() => renderMcp({ mcp: [server] }, 'codex')).toThrow(message)
+  })
+
+  it.each([
+    [[{ command: 'npx' }], /MCP server 0 needs a string id/],
+    [[{ id: 'a', command: 'npx' }, { id: '', command: 'npx' }], /MCP server 1 needs a string id/],
+  ])('refuses a server without an id %#', (servers, message) => {
+    expect(() => renderMcp({ mcp: servers }, 'codex')).toThrow(message)
+  })
+
+  it('refuses a duplicate server id', () => {
+    const servers = [{ id: 'k', command: 'npx' }, { id: 'k', url: 'https://x' }]
+    expect(() => renderMcp({ mcp: servers }, 'codex')).toThrow(/duplicate MCP server id: k/)
+  })
+
+  it('writes enabled = false for a disabled server and nothing for an enabled one', () => {
+    const w = renderMcp({
+      mcp: [
+        { id: 'off', command: 'uvx', args: ['pkg'], env: { A: '1' }, disabled: true },
+        { id: 'on', transport: 'http', url: 'https://x', disabled: false },
+      ],
+    }, 'codex')
+    expect(w.content).toBe(
+      '[mcp_servers.off]\n' +
+        'command = "uvx"\n' +
+        'args = ["pkg"]\n' +
+        'enabled = false\n' +
+        '\n' +
+        '[mcp_servers.off.env]\n' +
+        'A = "1"\n' +
+        '\n' +
+        '[mcp_servers.on]\n' +
+        'url = "https://x"\n',
+    )
+    expect(parseToml(w.content).mcp_servers.off.enabled).toBe(false)
   })
 })

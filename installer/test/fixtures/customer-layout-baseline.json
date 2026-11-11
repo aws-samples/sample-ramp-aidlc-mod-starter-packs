@@ -14030,7 +14030,7 @@
       {"path":".agents/skills/ecs-security/references/shared-responsibility.md","sha256":"4c162eb0e9bae332d519d7e3d91ff45d40e15234ce65a8a568ae1184c39ffa0a","mode":"0644"},
       {"path":".agents/skills/ecs-security/references/task-container-hardening.md","sha256":"0b18d7539eaa6a906b6686c86fc68919555d0a7baafe8bef015dae25536d47a0","mode":"0644"},
       {"path":".agents/skills/ecs-security/skill.yaml","sha256":"ca2d185976e19f0a0cc9d8225e03a487578fb568d9f7ba2ede50a756f99531ea","mode":"0644"},
-      {"path":".codex/config.toml","sha256":"1e92732c77f1667a75290f3539583b3486ea96ef29749df299e4fc126f1f819b","mode":"0644"},
+      {"path":".codex/config.toml","sha256":"0e965b37951036e0cd203c3353e6695ac38d9e0068117b586cd93584cfce6ce7","mode":"0644"},
       {"path":".codex/instructions/reverse-engineering.md","sha256":"76f4ae5f8132cb0efc633522aa01e11de131688f14221618a5029654475719a0","mode":"0644"},
       {"path":".codex/instructions/skill-activation.md","sha256":"0bc89cc5d8b63a38d890965b3d9738d63cc87e27fc4ca076738ae7914b8559d1","mode":"0644"},
       {"path":"AGENTS.md","sha256":"9b481250ca19ceb608b8d14dd248e4b4736fe8e8cde7157810e9b503277b2ef7","mode":"0644"}
@@ -18543,7 +18543,7 @@
       {"path":".agents/skills/web-test-automation/references/test-isolation-and-auth.md","sha256":"f9d051c0eafba8a3dc9df9d4f96a30e45d8b0ead417e61cc566ec27cd6cc6731","mode":"0644"},
       {"path":".agents/skills/web-test-automation/references/tool-selection.md","sha256":"13508e111b1ea5cbf532a08bf1a4e2a1e1198f5d5eefdf28c7fbcc8168238c21","mode":"0644"},
       {"path":".agents/skills/web-test-automation/skill.yaml","sha256":"8b08c2295b351aaa80ab38cdd2c70e47f26d65704da52a70c95ebe09534104ac","mode":"0644"},
-      {"path":".codex/config.toml","sha256":"993ba07280db3668d44a90769420db10571679d7233bc13ea1b3302a93ca8cbb","mode":"0644"},
+      {"path":".codex/config.toml","sha256":"c61c850a87584327f31da6dffe5997c13cdec82954c229cf201bd1e47bfdd73d","mode":"0644"},
       {"path":".codex/instructions/multi-repo-projects.md","sha256":"5680bea0ca1f790673e6a910ec54b29380a79afdd3bfa07f91bf975683cae3fb","mode":"0644"},
       {"path":".codex/instructions/practices-discovery.md","sha256":"b10f4bf96fb3bf93707350bc556abe02ccd675cee4ccd4a21f27590f9930a933","mode":"0644"},
       {"path":".codex/instructions/reverse-engineering.md","sha256":"a1e55853ad96bea42d675baedd4568f3b06c8028ef825120a7f9a5920ed07366","mode":"0644"},
@@ -19669,7 +19669,7 @@
       {"path":".agents/skills/vulnerability-triage/references/false-positive-justification.md","sha256":"4d199651fb6215f03e84831152bf2c59b478cb98d999ac737eff61d324cb29b2","mode":"0644"},
       {"path":".agents/skills/vulnerability-triage/references/gitlab-report-schemas.md","sha256":"c3a0a91ae009bbbd860f973e01e9a875de5088381109d26f1167fb5b42d9b471","mode":"0644"},
       {"path":".agents/skills/vulnerability-triage/references/severity-and-prioritization.md","sha256":"2b89678d5269f69080f31b9c6288e0fe774c65d0d6ccc9c4a4f88fa13f79634d","mode":"0644"},
-      {"path":".codex/config.toml","sha256":"f8f7ec223378c162c54723f6a0c1258f04b9071d7b41724024b0c71ea445ca12","mode":"0644"},
+      {"path":".codex/config.toml","sha256":"3f170c51c8f3d41e2134fb7fb5a096128f6ce924fa78669dc2a3796039d09ca9","mode":"0644"},
       {"path":".codex/instructions/reverse-engineering.md","sha256":"a1e55853ad96bea42d675baedd4568f3b06c8028ef825120a7f9a5920ed07366","mode":"0644"},
       {"path":".codex/instructions/skill-activation.md","sha256":"d63d345f23d184143fd1bac1297a7b6644e82a2d55839097bb13b303550edbc8","mode":"0644"},
       {"path":"AGENTS.md","sha256":"e8670ef1d6923f5d5147f36ce651496fe1317b1856a6ca2c416bd4f710b2f880","mode":"0644"}

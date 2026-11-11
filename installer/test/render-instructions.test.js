@@ -122,7 +122,7 @@ describe('renderInstructions', () => {
     expect(byPath(w, '.cursor/rules/skill-activation.mdc').content).toBe('---\nalwaysApply: true\n---\nSKILL BODY\n')
     // load:auto companion → agent-requested, described by its file stem
     expect(byPath(w, '.cursor/rules/reverse-engineering.mdc').content).toBe(
-      '---\ndescription: reverse-engineering\nalwaysApply: false\n---\nRE BODY\n',
+      '---\ndescription: "reverse-engineering"\nalwaysApply: false\n---\nRE BODY\n',
     )
   })
 
@@ -135,7 +135,7 @@ describe('renderInstructions', () => {
     }
     const w = renderInstructions(m, packDir, 'cursor')
     expect(byPath(w, '.cursor/rules/reverse-engineering.mdc').content).toBe(
-      '---\ndescription: Use for brownfield source\nalwaysApply: false\n---\nRE BODY\n',
+      '---\ndescription: "Use for brownfield source"\nalwaysApply: false\n---\nRE BODY\n',
     )
   })
 
@@ -161,6 +161,24 @@ describe('renderInstructions', () => {
     )
     expect(byPath(w, '.codex/instructions/skill-activation.md').content).toBe('SKILL BODY\n')
     expect(byPath(w, '.codex/instructions/reverse-engineering.md').content).toBe('RE BODY\n')
+  })
+
+  it('codex: a header description is one line with single spaces', () => {
+    const m = {
+      instructions: [
+        manifest.instructions[0],
+        { file: 'reverse-engineering.md', role: 'companion', load: 'auto', description: ' Use  for\n  brownfield\tsource\n' },
+      ],
+    }
+    expect(byPath(renderInstructions(m, packDir, 'codex'), 'AGENTS.md').content).toContain(
+      '- `.codex/instructions/reverse-engineering.md`: read when this applies: Use for brownfield source\n\n',
+    )
+  })
+
+  it('codex: a token naming the primary resolves to AGENTS.md while the primary is inline', () => {
+    writeFileSync(join(packDir, 'instructions/skill-activation.md'), 'Back to {{INSTRUCTION:aidlc-workflow.md}}.')
+    const w = renderInstructions(manifest, packDir, 'codex')
+    expect(byPath(w, '.codex/instructions/skill-activation.md').content).toBe('Back to AGENTS.md.\n')
   })
 
   it('codex: an auto companion without a description is named by its file stem', () => {
@@ -213,6 +231,32 @@ describe('renderInstructions', () => {
         '.codex/instructions/skill-activation.md',
         '.codex/instructions/reverse-engineering.md',
       ])
+    })
+
+    it('points every token naming the primary at the moved file', () => {
+      const primary = `${'x'.repeat(limit)}\nSee {{INSTRUCTION:aidlc-workflow.md}} and {{INSTRUCTION:reverse-engineering.md}}.`
+      writeFileSync(join(packDir, 'instructions/aidlc-workflow.md'), primary)
+      writeFileSync(join(packDir, 'instructions/skill-activation.md'), 'Back to {{INSTRUCTION:aidlc-workflow.md}}.')
+      const w = renderInstructions(manifest, packDir, 'codex')
+
+      expect(byPath(w, '.codex/instructions/aidlc-workflow.md').content).toBe(
+        `${'x'.repeat(limit)}\nSee .codex/instructions/aidlc-workflow.md and .codex/instructions/reverse-engineering.md.\n`,
+      )
+      expect(byPath(w, '.codex/instructions/skill-activation.md').content).toBe(
+        'Back to .codex/instructions/aidlc-workflow.md.\n',
+      )
+    })
+
+    it('refuses a header that alone is over the limit', () => {
+      const m = {
+        instructions: [
+          manifest.instructions[0],
+          { file: 'reverse-engineering.md', role: 'companion', load: 'auto', description: 'd'.repeat(limit) },
+        ],
+      }
+      expect(() => renderInstructions(m, packDir, 'codex')).toThrow(
+        /Codex AGENTS\.md header alone is \d+ bytes, over the 32768-byte limit/,
+      )
     })
 
     it('counts UTF-8 bytes, not characters', () => {

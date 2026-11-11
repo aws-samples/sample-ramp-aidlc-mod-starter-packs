@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parse as parseToml } from 'smol-toml'
+import { parse as parseYaml } from 'yaml'
 import { buildPlan } from '../src/plan.js'
 import { applyPlan } from '../src/apply.js'
 import { listPacks } from '../src/build-all.js'
@@ -78,7 +79,7 @@ describe('e2e: cots-rewrite-on-cloudnative', () => {
     const skill = readFileSync(join(target, '.cursor/rules/skill-activation.mdc'), 'utf8')
     expect(skill.startsWith('---\nalwaysApply: true\n---')).toBe(true)
     const re = readFileSync(join(target, '.cursor/rules/reverse-engineering.mdc'), 'utf8')
-    expect(re).toMatch(/^---\ndescription: Phase 0 .+\nalwaysApply: false\n---\n/)
+    expect(re).toMatch(/^---\ndescription: "Phase 0 .+"\nalwaysApply: false\n---\n/)
   })
 
   it('codex: AGENTS.md names every companion, MCP servers in .codex/config.toml, no command file', () => {
@@ -165,5 +166,38 @@ describe('codex: every pack fits Codex project instructions', () => {
     const plan = buildPlan(join(packsRoot, pack), 'codex', { includeSkills: false })
     const agents = plan.find(({ path }) => path === 'AGENTS.md')
     expect(Buffer.byteLength(agents.content, 'utf8')).toBeLessThanOrEqual(32 * 1024)
+  })
+})
+
+describe('cursor: every pack writes rule frontmatter that parses as strict YAML', () => {
+  const packsRoot = join(repoRoot, 'packs')
+  const cursorPacks = listPacks(packsRoot).filter((pack) => {
+    const manifest = loadManifest(join(packsRoot, pack))
+    return manifest.schemaVersion !== 2 || manifest.distribution.targets.includes('cursor')
+  })
+
+  it('includes the description with ": " in it', () => {
+    const manifest = loadManifest(join(packsRoot, 'cots-rewrite-on-cloudnative'))
+    const rule = manifest.instructions.find(({ file }) => file === 'requirements-traceability.md')
+    expect(rule.description).toContain(': ')
+  })
+
+  it.each(cursorPacks)('%s', (pack) => {
+    const manifest = loadManifest(join(packsRoot, pack))
+    const plan = buildPlan(join(packsRoot, pack), 'cursor', { includeSkills: false })
+    for (const instruction of manifest.instructions) {
+      const path = `.cursor/rules/${instruction.file.replace(/\.md$/, '')}.mdc`
+      const content = plan.find((write) => write.path === path).content
+      const frontmatter = content.match(/^---\n([\s\S]*?)\n---\n/)[1]
+      const parsed = parseYaml(frontmatter, { strict: true, uniqueKeys: true })
+      if (instruction.role === 'primary' || instruction.load === 'always') {
+        expect(parsed, path).toEqual({ alwaysApply: true })
+      } else {
+        expect(parsed, path).toEqual({
+          description: instruction.description ?? instruction.file.replace(/\.md$/, ''),
+          alwaysApply: false,
+        })
+      }
+    }
   })
 })

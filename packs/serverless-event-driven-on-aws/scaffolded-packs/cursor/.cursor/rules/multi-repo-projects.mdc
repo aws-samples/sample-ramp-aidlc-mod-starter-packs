@@ -1,5 +1,5 @@
 ---
-description: Repo-model decision gate + multi-repo flow — run the gate at the start (single repo / frontend + backend split / other multi-repo). Load when the system spans more than one repository, to capture system-level requirements and design once, freeze the shared API + event contracts, split into per-repo slices, and fan out. Single-repo projects skip the flow.
+description: "Repo-model decision gate + multi-repo flow — run the gate at the start (single repo / frontend + backend split / other multi-repo). Load when the system spans more than one repository, to capture system-level requirements and design once, freeze the shared API + event contracts, split into per-repo slices, and fan out. Single-repo projects skip the flow."
 alwaysApply: false
 ---
 # Multi-Repo Projects & Repo Model

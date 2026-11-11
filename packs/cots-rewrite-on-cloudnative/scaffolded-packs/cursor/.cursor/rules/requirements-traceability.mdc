@@ -1,5 +1,5 @@
 ---
-description: Requirements traceability & fidelity for document/FSD-driven work. Use whenever generating or reviewing requirements from FSDs, functional specs, screenshots, or a migration/rewrite of an existing app (e.g. OutSystems): ground every requirement in an FSD/screen anchor, produce a Traceability Matrix with bidirectional coverage, and tag NEW / NEEDS-CLARIFICATION instead of inventing or dropping behavior. Applies during Phase 1 requirements.md generation and its approval gate. Skip for pure greenfield with no source documents.
+description: "Requirements traceability & fidelity for document/FSD-driven work. Use whenever generating or reviewing requirements from FSDs, functional specs, screenshots, or a migration/rewrite of an existing app (e.g. OutSystems): ground every requirement in an FSD/screen anchor, produce a Traceability Matrix with bidirectional coverage, and tag NEW / NEEDS-CLARIFICATION instead of inventing or dropping behavior. Applies during Phase 1 requirements.md generation and its approval gate. Skip for pure greenfield with no source documents."
 alwaysApply: false
 ---
 # Requirements Traceability & Fidelity

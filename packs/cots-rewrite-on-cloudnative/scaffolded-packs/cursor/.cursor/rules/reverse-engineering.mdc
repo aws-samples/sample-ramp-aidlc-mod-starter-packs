@@ -1,5 +1,5 @@
 ---
-description: Phase 0 Reverse Engineering / Input Analysis playbook — use when existing source code is present, or when the user provides functional/design documents (FSDs, platform exports such as OutSystems), or when modernizing, migrating, extending, or reverse-engineering an existing system.
+description: "Phase 0 Reverse Engineering / Input Analysis playbook — use when existing source code is present, or when the user provides functional/design documents (FSDs, platform exports such as OutSystems), or when modernizing, migrating, extending, or reverse-engineering an existing system."
 alwaysApply: false
 ---
 # Reverse Engineering

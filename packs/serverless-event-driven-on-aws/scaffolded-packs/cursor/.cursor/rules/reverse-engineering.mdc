@@ -1,5 +1,5 @@
 ---
-description: Phase 0 reverse-engineering playbook — use when existing or brownfield source code is present, or when productionising an existing POC.
+description: "Phase 0 reverse-engineering playbook — use when existing or brownfield source code is present, or when productionising an existing POC."
 alwaysApply: false
 ---
 # Reverse Engineering
