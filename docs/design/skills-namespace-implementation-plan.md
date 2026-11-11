@@ -15,7 +15,7 @@ The design was approved with the recommended answer to each open decision:
 | Id | Answer |
 |---|---|
 | D1 | `skill.yaml` stops being copied into customer projects for every skill. Release records it as a metadata input. |
-| D2 | The 5 locked mirrors that differ from the lock are re-synced to the lock in T1, unless the diff review in T1 shows a deliberate local edit. Such a skill is reported in the PR and kept drifted until T11. |
+| D2 | The 5 locked mirrors that differ from the lock are re-synced to the lock in T1, unless the diff review in T1 shows a deliberate local edit. Such a skill is reported in the PR, kept drifted until T11, then adopted in T17. |
 | D3 | `common/instructions/` moves to `workflows/base/`. |
 | D4 | The 31 `origin: local` skills stay unreleasable; adopting or locking them is a later track. |
 | D5 | The compatibility window closes only after the first published release built from the new layout, by separate approval (T16 is filed held). |
@@ -24,8 +24,9 @@ The design was approved with the recommended answer to each open decision:
 ## Invariants every task keeps
 
 1. **Customer layout.** From T4 on, the customer-layout equivalence test
-   passes in every task. The only allowlisted change is T7's removal of
-   `skill.yaml` from the 9 RAMP skills.
+   passes in every task. The only allowlisted changes are T7's removal of
+   `skill.yaml` from the 9 RAMP skills and, if T17 runs, the release bytes of
+   each adopted skill.
 2. **Release determinism.** `scripts/verify-release-determinism.mjs` builds
    every qualified target twice with identical bytes, in every task that
    touches `installer/`, `skills*/`, `workflow*/`, `common/` or `packs/`.
@@ -33,7 +34,8 @@ The design was approved with the recommended answer to each open decision:
    `<pack>--<target>--<profile|standalone>`, the `install-files.tsv` format
    and `install.sh` / `install.ps1` behaviour do not change. The install test
    suites run unmodified, apart from path fixtures.
-4. **Lock.** `dependencies/skills.lock.yaml` changes in no task.
+4. **Lock.** `dependencies/skills.lock.yaml` changes in no task except the
+   conditional T17, which removes the entries of adopted skills.
 5. **Generated files.** `scripts/regenerate.sh` leaves no diff under
    `packs/*/scaffolded-packs` or `packs/*/add-skills.{sh,ps1}`. Generated
    helpers are regenerated, never hand-edited.
@@ -42,10 +44,10 @@ The design was approved with the recommended answer to each open decision:
 
 ## How each task runs
 
-1. The task's bead is claimed. A worktree is created from the current
-   `origin/revamp-starter-packs` on branch `seat/<task>-<slug>`.
+1. The task is claimed. A worktree is created from the current
+   `origin/revamp-starter-packs` on a feature branch for that task.
 2. The task is implemented to its section below, in commits authored by
-   Fabrianne Effendi.
+   the maintainer.
 3. Before every commit: the four focused suites (`install-manifest`,
    `install-bash`, `install-powershell`, `release-bundle`) and the task's own
    tests, with `umask 022` so file-mode tests see 0644 and 0755.
@@ -65,26 +67,32 @@ The design was approved with the recommended answer to each open decision:
 
 ## Dependency graph and waves
 
+Each line reads: every task on the left lands before any task on the right
+starts.
+
 ```text
-T1 ─┐
-T3 ─┴─> T4 ─────────────┐
-T2 ─┬─> T5 ─────────────┼──────────────────────────────> T14 ─> T15 ─> [T16 held]
-    ├─> T6 (also T3) ───┼──────────────> T13 ──────────────^
-    └───────────────> T7 ─┬─> T8 ──┐          ^
-                          ├─> T9 ──┼─> T11 ─> T12
-                          └─> T10 ─┘
+T1, T3 ────────────────────────> T4
+T2 ────────────────────────────> T5
+T2, T4 ────────────────────────> T6, T7
+T7 ────────────────────────────> T8, T9, T10
+T4, T8, T9, T10 ───────────────> T11
+T11 ───────────────────────────> T12, [T17 if needed]
+T6, T12 ───────────────────────> T13
+T5, T6, T8, T11, T13, [T17] ───> T14
+T14 ───────────────────────────> T15
+first release, approval ───────> [T16 held]
 ```
 
 | Wave | Tasks (parallel) | Starts when |
 |---|---|---|
 | 1 | T1, T2, T3 | now |
-| 2 | T4, T5, T6 | T4: T1 and T3 landed. T5: T2 landed. T6: T2 and T3 landed. |
-| 3 | T7 | T2 and T4 landed |
+| 2 | T4, T5 | T4: T1 and T3 landed. T5: T2 landed. |
+| 3 | T6, T7 | T2 and T4 landed |
 | 4 | T8, T9, T10 | T7 landed |
 | 5 | T11 | T4, T8, T9 and T10 landed |
-| 6 | T12 | T11 landed |
+| 6 | T12, T17 (if needed) | T11 landed |
 | 7 | T13 | T6 and T12 landed |
-| 8 | T14 | T5, T6, T8, T11 and T13 landed |
+| 8 | T14 | T5, T6, T8, T11, T13 and, if it runs, T17 landed |
 | 9 | T15 | T14 landed |
 | held | T16 | first published release from the new layout, and approval |
 
@@ -196,6 +204,8 @@ file changes.
 - `installer/test/support/customer-layout.js` (new)
 - `installer/test/customer-layout.test.js` (new)
 - `installer/test/fixtures/customer-layout-baseline.json` (new)
+- `.github/workflows/build-packs.yml` (a full-matrix step in the `verify` job)
+- `installer/test/release-workflows.test.js` (asserts that step)
 
 **Steps:**
 1. Write `support/customer-layout.js`. It computes, for one input, the sorted
@@ -204,21 +214,22 @@ file changes.
      entries with the prefix stripped, plus `install.sh` and `install.ps1`;
    - the `ramp-pack init` plan for every pack and target tool, in a temporary
      directory;
-   - the Bash helper for every pack and target tool, in a temporary directory.
-   The PowerShell helper is covered by the existing parity tests, which assert
-   it copies the same tree as Bash.
-2. `capture-customer-layout.mjs` writes the baseline JSON. It is run only when
-   a task's plan allows a customer change, and that task lists the change in
-   its PR.
+   - the Bash helper and the PowerShell helper (run with `pwsh`) for every
+     pack and target tool, in a temporary directory. The baseline keeps one
+     list per helper.
+2. `capture-customer-layout.mjs` writes the baseline JSON. It is run once, in
+   this task. Later allowed changes go into the test's allowlist, so the
+   baseline always shows the layout before the migration.
 3. `customer-layout.test.js` recomputes every layout and compares it with the
    baseline. On failure it prints the first differing paths. An allowlist
    object in the test file starts empty.
 
 **Tests:** the new test. Red proof: deleting one file from any skill used by
 a pack, or changing one byte, fails it. Runtime must stay within the CI
-budget. If the full matrix is too slow for `npm test`, the test samples one
-target tool per pack, and the full matrix runs in the `verify` workflow as a
-separate step.
+budget. The full matrix runs as its own step of the `verify` job in
+`build-packs.yml`, with `RAMP_REQUIRE_POWERSHELL=pwsh` so a missing engine
+fails instead of skipping. If the full matrix is too slow for `npm test`,
+`npm test` samples one target tool per pack.
 
 **Customer bytes:** none.
 
@@ -242,19 +253,20 @@ checks the three outputs. Nothing generated is committed yet.
    variants (frontmatter) and taxonomy. Read `catalog.useCases` and variant
    ids if present; tolerate their absence until T6 and T13 land.
 2. Render Markdown deterministically: sort by taxonomy order, then id. Use no
-   timestamps.
-3. `ramp-pack catalog --write [--root <dir>]` writes `skills/README.md`,
-   `workflows/README.md` and the README block between
-   `<!-- RAMP:CATALOG packs START -->` and `END`, when those files or markers
-   exist. `--check` exits 1 and lists every stale output.
+   timestamps. Each pack row links to `packs/<pack>/README.md`.
+3. `ramp-pack catalog --write [--root <dir>]` always writes `skills/README.md`
+   and `workflows/README.md`, creating them when absent. It writes the README
+   block between `<!-- RAMP:CATALOG packs START -->` and `END` only when those
+   markers exist. `--check` exits 1 and lists every stale or missing output.
 
 **Tests:** a fixture repository rendered to expected Markdown. Two runs give
 identical bytes. `--check` is red after hand-editing an output.
 
 **Customer bytes:** none.
 
-**Done when:** the command and its tests land, and running it against the real
-repository succeeds without writing any file (no markers or outputs exist yet).
+**Done when:** the command and its tests land. Against a copy of the real
+repository, `--write` creates the two catalogue files and leaves `README.md`
+untouched, because it has no markers yet. Nothing generated is committed.
 
 ### T6: Pack use cases (design Appendix B)
 
@@ -290,6 +302,8 @@ it as an input.
 
 **Touch set:**
 - `installer/src/dependencies/resolver.js` (lock-verification functions only)
+- `installer/src/dependencies/sync.js` (`update-lock` refuses an upstream
+  `skill.yaml`)
 - `installer/src/skills.js` (copy plan excludes `skill.yaml`)
 - `installer/src/release/entries.js` (exclude from the overlay; record as a
   metadata input)
@@ -297,9 +311,8 @@ it as an input.
   `skill.yaml`)
 - `packs/*/add-skills.{sh,ps1}` (regenerated)
 - `installer/test/customer-layout.test.js` (allowlist: 9 removed files)
-- `installer/test/fixtures/customer-layout-baseline.json` (re-captured)
-- the resolver, release-bundle and add-skills-helpers tests touching these
-  paths
+- the resolver, skill-sync, release-bundle and add-skills-helpers tests
+  touching these paths
 
 **Steps:**
 1. In lock verification, ignore exactly one root `skill.yaml` when its
@@ -308,17 +321,22 @@ it as an input.
    and the release overlay.
 3. Release records the `skill.yaml` of each consumed skill as a metadata input
    in `consumedInputs`, with a distinct role.
-4. Re-capture the baseline. The diff must be exactly the 9
-   `skills/<ramp-skill>/skill.yaml` removals for each tool path and pack.
+4. Add the 9 `skills/<ramp-skill>/skill.yaml` removals, for each tool path
+   and pack, to the equivalence test's allowlist. The T4 baseline is not
+   re-captured.
+5. `skills update-lock` fails with a clear message when an upstream skill
+   ships its own root `skill.yaml`, instead of overwriting RAMP metadata.
 
 **Tests:** an extra non-sidecar file still fails verification, and a sidecar
 alone passes. The Bash and PowerShell helpers skip `skill.yaml`. Release
-records the metadata input. The determinism script passes.
+records the metadata input. An upstream fixture with a root `skill.yaml`
+makes `update-lock` fail and leaves the lock unchanged. The determinism
+script passes.
 
 **Customer bytes:** `skill.yaml` disappears from installed RAMP skills.
 
-**Done when:** the baseline diff in the PR is exactly the allowlisted
-removals.
+**Done when:** the equivalence test passes against the T4 baseline with
+exactly the allowlisted removals, and the PR lists them.
 
 ### T8: `skill.yaml` v2 for every skill (phase P1c)
 
@@ -329,6 +347,7 @@ and a repository lint enforces it.
 - `skills-library/*/skill.yaml` (46 new)
 - `skills/ramp/*/skill.yaml` (9 rewritten from v1 to v2)
 - `installer/test/skill-taxonomy-lint.test.js` (new)
+- `installer/test/fixtures/skill-lint/**` (new)
 
 **Steps:**
 1. Write each file from Appendix A. `origin` is `upstream` for the 15 locked
@@ -340,9 +359,19 @@ and a repository lint enforces it.
    each resolution in the PR.
 3. Add the lint test. It walks every skill directory, loads `taxonomy.yaml`,
    and requires a v2 file, vocabulary-only values and at least one use case.
+   Requiring a use case here, earlier than the design's P5, is a deliberate
+   deviation: this task classifies every skill at once, so the rule holds from
+   the start.
+4. The lint also rejects a skill directory holding only `skill.yaml`, and any
+   pack whose `skills:` list names a skill another pack owns (`ownerPack`).
+5. The lint warns, without failing, when Markdown under `packs/` or `docs/`
+   uses a term the design's "Terms" table replaces. Generated scaffolds and
+   `docs/design/` are skipped.
 
 **Tests:** the lint test. Red proof: deleting one `skill.yaml`, or adding an
-unknown value, fails it. The T4 equivalence test passes unchanged, because T7
+unknown value, fails it. Fixtures prove that a directory holding only
+`skill.yaml` fails, that a non-owner pack naming an `ownerPack` skill fails,
+and that "workflow overlay" in a fixture document produces one warning. The T4 equivalence test passes unchanged, because T7
 stops the files from shipping.
 
 **Customer bytes:** none.
@@ -373,13 +402,16 @@ clean-input list are updated.
 2. Add the ambiguity guard over the source-tree roots, excluding the cache.
 3. Add the deprecation warning for each compatibility hit.
 4. Reserve the slugs `ramp`, `README.md` and `taxonomy`.
-5. Add `dependencies/resolver.js`, `skills.js` and `instructions/compose.js`
+5. A skill with `ownerPack` resolves for its owner pack only. Strict release
+   refuses any other pack that references it, and names the owner.
+6. Add `dependencies/resolver.js`, `skills.js` and `instructions/compose.js`
    to `RELEASE_GENERATOR_FILES`.
-6. Make the clean-input list the union of old and new roots from the design.
+7. Make the clean-input list the union of old and new roots from the design.
 
 **Tests:** guard fixtures fail with both paths named. A `skills/` hit beats
 nothing, because duplicates fail instead. Origin behaviour has one fixture
-per value. The warning text is asserted. Reserved slugs are refused. The
+per value. The warning text is asserted. Reserved slugs are refused. A
+non-owner pack referencing an `ownerPack` skill fails release. The
 determinism script passes. The T4 equivalence test passes. Red proof: the
 duplicate-slug fixture.
 
@@ -398,6 +430,8 @@ ambiguity guard, `--skills-src` semantics and repository check.
 - `installer/test/add-skills-helpers.test.js`
 - `installer/test/windows-helper-fixtures.test.js`, if fixtures need the new
   root
+- `.github/workflows/build-packs.yml` (Windows entry of the `helpers` job)
+- `installer/test/release-workflows.test.js` (asserts that entry)
 
 **Steps:**
 1. Add the order: `skills/<slug>/`, then the pack, `skills/ramp/` and
@@ -408,11 +442,18 @@ ambiguity guard, `--skills-src` semantics and repository check.
    both engines.
 4. The repository check requires `skills/`, and treats `skills/ramp/` and
    `skills-library/` as optional.
-5. Regenerate the 14 pack helpers.
+5. Refuse the reserved slugs `ramp`, `README.md` and `taxonomy`, with the same
+   message text in both engines.
+6. Regenerate the 14 pack helpers.
+7. Add `test/add-skills-helpers.test.js` to the Windows entry of the `helpers`
+   job in `build-packs.yml`; today only the Linux runs execute it. The file
+   honours `RAMP_REQUIRE_POWERSHELL`, so a missing engine fails instead of
+   skipping. Cases that cannot run on Windows skip there with a stated reason.
 
 **Tests:** Bash and PowerShell parity for each rule, including the PowerShell
 error text matching Bash. The helper CI matrix includes Windows PowerShell
-5.1. Red proof: the duplicate-slug fixture in both engines.
+5.1. Reserved slugs are refused in both engines. Red proof: the
+duplicate-slug fixture in both engines.
 
 **Customer bytes:** none.
 
@@ -545,6 +586,7 @@ pack table. `AGENT_HANDOFF.md` moves to `docs/maintainers/`.
 - `CONTRIBUTING.md` (one authoring link)
 - `installer/test/checkpoint3a-contract.test.js` (README wording rule only,
   if affected)
+- `installer/test/readme-links.test.js` (new)
 
 **Steps:**
 1. Rewrite the README to the design outline. Add the catalogue markers and
@@ -554,14 +596,16 @@ pack table. `AGENT_HANDOFF.md` moves to `docs/maintainers/`.
 3. Add an upgrade note: earlier `init` and helper installs keep a stale
    `skill.yaml` that the customer may delete.
 
-**Tests:** `catalog --check` is green. Every relative link in `README.md`
-resolves to an existing file (a small test or script in the PR). The full
-suite passes.
+**Tests:** `catalog --check` is green. `readme-links.test.js` checks that
+every relative link in `README.md` resolves to an existing file, and every
+`#anchor` to a heading. The full suite passes.
 
 **Customer bytes:** none.
 
-**Done when:** a newcomer can go from the README to a pack, its install path
-and its skills in three links, and every link resolves.
+**Done when:** the link test proves three links from `README.md`: each row of
+the pack table links to `packs/<pack>/README.md`; "Start here" links to the
+`#install-a-pack` section; and "Browse skills" links to `skills/README.md`,
+which names the packs that use each skill.
 
 ### T16: Close the compatibility window (phase P6), held
 
@@ -576,11 +620,48 @@ clean-input list to the new roots. Add the grep guard test.
 **Done when:** the grep guard passes, and the equivalence test, the
 determinism script and the helper matrix are green.
 
+### T17: Adopt the kept-drifted mirrors (design D2), conditional
+
+**Needed only if** T1 keeps any skill drifted. Otherwise it is closed with no
+change. It is the one task exempt from invariant 4.
+
+**Goal:** each kept-drifted skill drops its lock entry and becomes
+`origin: ramp`, as design D2 describes for after the skills move.
+
+**Touch set:**
+- `dependencies/skills.lock.yaml` (the adopted entries only)
+- `dependencies/skills.sources.yaml`, only if a source has no locked skill left
+- `skills/<slug>/skill.yaml` of each adopted skill
+- `installer/test/pilot-skill-provenance.test.js`
+- `.github/workflows/build-packs.yml`, only if the pilot expectation step changes
+- `installer/test/customer-layout.test.js` (allowlist, if a release bundle
+  changes)
+
+**Steps:**
+1. Rewrite each adopted `skill.yaml` to `origin: ramp`, with `version`, the
+   lock licence as `license`, and `basedOn` taken from the lock entry.
+2. Remove the lock entry.
+3. Drop the skill from the pilot test and `EXPECTED_UNSYNCHRONIZED_FAILURES`,
+   keeping a red-on-drift assertion for the skills still locked.
+
+**Tests:** `skills sync --locked` and `skills verify`; the pilot test in both
+cache modes; the T8 lint; the equivalence test; the determinism script; the
+full suite. Red proof: the adopted skill with `origin: upstream` and no lock
+entry fails resolution.
+
+**Customer bytes:** `ramp-pack init` and helper installs are unchanged, since
+they already copy the in-tree directory. Release ZIPs that include an adopted
+skill now carry its in-tree bytes instead of the locked bytes. The PR lists
+each such change, and the equivalence test allowlists it.
+
+**Done when:** no adopted skill has a lock entry, each passes the lint as
+`origin: ramp`, and every check above is green.
+
 ## Rollback
 
 Each task is one merge commit on `revamp-starter-packs`. Revert in reverse
 landing order with `git revert -m 1 <merge>` through a pull request. Reverting
-T11, T12 or T13 after T14 also regenerates the catalogue in the same revert,
+T11, T12, T13 or T17 after T14 also regenerates the catalogue in the same revert,
 so the CI check stays green. Customers need no action at any point (design,
 "Rollback").
 
