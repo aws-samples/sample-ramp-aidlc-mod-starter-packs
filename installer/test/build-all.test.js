@@ -7,6 +7,7 @@ import {
   writeFileSync,
   existsSync,
   readFileSync,
+  readdirSync,
   statSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -56,7 +57,7 @@ describe('buildAll (Model C: lean scaffolds + generated skill helpers)', () => {
     const body = readFileSync(script, 'utf8')
     expect(body).toContain('PACK_NAME="demo"')
     expect(body).toMatch(/SKILLS=\(\n\s+aws-lambda\n\s+api-gateway\n\)/)
-    expect(body).toContain('--tool <kiro|claude-code|copilot|cursor>')
+    expect(body).toContain('--tool <kiro|claude-code|copilot|cursor|codex>')
 
     const powerShell = join(out, 'demo/add-skills.ps1')
     expect(existsSync(powerShell)).toBe(true)
@@ -121,6 +122,51 @@ describe('buildAll (Model C: lean scaffolds + generated skill helpers)', () => {
     expect(existsSync(join(out, 'demo/add-skills.sh'))).toBe(false)
     expect(existsSync(join(out, 'demo/add-skills.ps1'))).toBe(false)
     expect(existsSync(cacheDir)).toBe(false)
+  })
+
+  it('renders every registered tool, codex included, for a v1 pack', () => {
+    const out = mkdtempSync(join(tmpdir(), 'out-'))
+    const results = buildAll({ packsRoot, outDir: out, includeSkills: false, emitSkillScript: false })
+
+    expect(results.map(({ tool }) => tool)).toEqual(['kiro', 'claude-code', 'copilot', 'cursor', 'codex'])
+    expect(readFileSync(join(out, 'demo/codex/AGENTS.md'), 'utf8')).toBe('Spec specs State aidlc-docs\n')
+  })
+
+  it('renders only the declared targets of a v2 pack', () => {
+    const p = join(packsRoot, 'demo')
+    writeFileSync(join(p, 'instructions/main.md'), 'MAIN')
+    writeFileSync(
+      join(p, 'pack.yaml'),
+      [
+        'schemaVersion: 2',
+        'kind: ramp-pack',
+        'name: demo',
+        'title: Demo',
+        'description: d',
+        'version: 1.0.0',
+        'catalog:',
+        '  outcome: automate',
+        '  domain: demo',
+        '  executionModel: assisted-builder',
+        '  maturity: preview',
+        'workflow:',
+        '  provider: local-instructions-v1',
+        '  overlays: []',
+        'instructions:',
+        '  - file: main.md',
+        '    role: primary',
+        'distribution:',
+        '  targets: [kiro, cursor]',
+        '  qualifiedTargets: [kiro]',
+        '  profiles: []',
+        '',
+      ].join('\n'),
+    )
+    const out = mkdtempSync(join(tmpdir(), 'out-'))
+    buildAll({ packsRoot, outDir: out, includeSkills: false, emitSkillScript: false })
+
+    expect(readdirSync(join(out, 'demo')).sort()).toEqual(['cursor', 'kiro'])
+    expect(existsSync(join(out, 'demo/codex'))).toBe(false)
   })
 
   it('keeps default multi-target builds as independent standalone projections', () => {

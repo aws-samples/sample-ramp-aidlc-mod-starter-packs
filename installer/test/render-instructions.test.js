@@ -115,10 +115,157 @@ describe('renderInstructions', () => {
     expect(re.content).not.toContain('applyTo') // still conditional, not always-on
   })
 
-  it('cursor: mdc per instruction with alwaysApply reflecting primary', () => {
+  it('cursor: mdc per instruction with alwaysApply reflecting each load', () => {
     const w = renderInstructions(manifest, packDir, 'cursor')
     expect(byPath(w, '.cursor/rules/aidlc-workflow.mdc').content).toBe('---\nalwaysApply: true\n---\nWORKFLOW BODY\n')
-    expect(byPath(w, '.cursor/rules/reverse-engineering.mdc').content).toBe('---\nalwaysApply: false\n---\nRE BODY\n')
+    // load:always companion → applied to every request
+    expect(byPath(w, '.cursor/rules/skill-activation.mdc').content).toBe('---\nalwaysApply: true\n---\nSKILL BODY\n')
+    // load:auto companion → agent-requested, described by its file stem
+    expect(byPath(w, '.cursor/rules/reverse-engineering.mdc').content).toBe(
+      '---\ndescription: "reverse-engineering"\nalwaysApply: false\n---\nRE BODY\n',
+    )
+  })
+
+  it('cursor: auto companion uses the manifest description when provided', () => {
+    const m = {
+      instructions: [
+        { file: 'aidlc-workflow.md', role: 'primary', load: 'always' },
+        { file: 'reverse-engineering.md', role: 'companion', load: 'auto', description: 'Use for brownfield source' },
+      ],
+    }
+    const w = renderInstructions(m, packDir, 'cursor')
+    expect(byPath(w, '.cursor/rules/reverse-engineering.mdc').content).toBe(
+      '---\ndescription: "Use for brownfield source"\nalwaysApply: false\n---\nRE BODY\n',
+    )
+  })
+
+  it('codex: AGENTS.md opens with a header naming each companion and when to read it', () => {
+    const m = {
+      instructions: [
+        ...manifest.instructions.slice(0, 2),
+        { file: 'reverse-engineering.md', role: 'companion', load: 'auto', description: 'Use for brownfield source' },
+      ],
+    }
+    const w = renderInstructions(m, packDir, 'codex')
+    expect(w.map((write) => write.path)).toEqual([
+      'AGENTS.md',
+      '.codex/instructions/skill-activation.md',
+      '.codex/instructions/reverse-engineering.md',
+    ])
+    expect(byPath(w, 'AGENTS.md').content).toBe(
+      'Codex loads only this file. Read each instruction file below and follow it:\n' +
+        '- `.codex/instructions/skill-activation.md`: read at session start.\n' +
+        '- `.codex/instructions/reverse-engineering.md`: read when this applies: Use for brownfield source\n' +
+        '\n' +
+        'WORKFLOW BODY\n',
+    )
+    expect(byPath(w, '.codex/instructions/skill-activation.md').content).toBe('SKILL BODY\n')
+    expect(byPath(w, '.codex/instructions/reverse-engineering.md').content).toBe('RE BODY\n')
+  })
+
+  it('codex: a header description is one line with single spaces', () => {
+    const m = {
+      instructions: [
+        manifest.instructions[0],
+        { file: 'reverse-engineering.md', role: 'companion', load: 'auto', description: ' Use  for\n  brownfield\tsource\n' },
+      ],
+    }
+    expect(byPath(renderInstructions(m, packDir, 'codex'), 'AGENTS.md').content).toContain(
+      '- `.codex/instructions/reverse-engineering.md`: read when this applies: Use for brownfield source\n\n',
+    )
+  })
+
+  it('codex: a token naming the primary resolves to AGENTS.md while the primary is inline', () => {
+    writeFileSync(join(packDir, 'instructions/skill-activation.md'), 'Back to {{INSTRUCTION:aidlc-workflow.md}}.')
+    const w = renderInstructions(manifest, packDir, 'codex')
+    expect(byPath(w, '.codex/instructions/skill-activation.md').content).toBe('Back to AGENTS.md.\n')
+  })
+
+  it('codex: an auto companion without a description is named by its file stem', () => {
+    const w = renderInstructions(manifest, packDir, 'codex')
+    expect(byPath(w, 'AGENTS.md').content).toContain(
+      '- `.codex/instructions/reverse-engineering.md`: read when this applies: reverse-engineering\n',
+    )
+  })
+
+  it('codex: AGENTS.md is the bare primary when there are no companions', () => {
+    const m = { instructions: [manifest.instructions[0]] }
+    expect(renderInstructions(m, packDir, 'codex')).toEqual([
+      { path: 'AGENTS.md', content: 'WORKFLOW BODY\n', kind: 'text' },
+    ])
+  })
+
+  describe('codex: a primary over the 32 KiB project-instructions limit', () => {
+    const limit = 32 * 1024
+    const header =
+      'Codex loads only this file. Read each instruction file below and follow it:\n' +
+      '- `.codex/instructions/skill-activation.md`: read at session start.\n' +
+      '- `.codex/instructions/reverse-engineering.md`: read when this applies: reverse-engineering\n'
+
+    it('keeps a primary that fills AGENTS.md exactly to the limit in AGENTS.md', () => {
+      const primary = 'x'.repeat(limit - Buffer.byteLength(`${header}\n`) - 1)
+      writeFileSync(join(packDir, 'instructions/aidlc-workflow.md'), primary)
+      const w = renderInstructions(manifest, packDir, 'codex')
+      expect(Buffer.byteLength(byPath(w, 'AGENTS.md').content)).toBe(limit)
+      expect(byPath(w, '.codex/instructions/aidlc-workflow.md')).toBeUndefined()
+    })
+
+    it('moves the primary beside the companions and keeps only the header in AGENTS.md', () => {
+      const primary = 'x'.repeat(limit - Buffer.byteLength(`${header}\n`))
+      writeFileSync(join(packDir, 'instructions/aidlc-workflow.md'), primary)
+      const w = renderInstructions(manifest, packDir, 'codex')
+      const agents = byPath(w, 'AGENTS.md').content
+
+      expect(Buffer.byteLength(agents)).toBeLessThanOrEqual(limit)
+      expect(agents).toBe(
+        'Codex loads only this file. Read each instruction file below and follow it:\n' +
+          '- `.codex/instructions/aidlc-workflow.md`: read first, at session start.\n' +
+          '- `.codex/instructions/skill-activation.md`: read at session start.\n' +
+          '- `.codex/instructions/reverse-engineering.md`: read when this applies: reverse-engineering\n',
+      )
+      // the moved primary keeps the bytes it would have had inline
+      expect(byPath(w, '.codex/instructions/aidlc-workflow.md').content).toBe(`${primary}\n`)
+      expect(w.map((write) => write.path)).toEqual([
+        'AGENTS.md',
+        '.codex/instructions/aidlc-workflow.md',
+        '.codex/instructions/skill-activation.md',
+        '.codex/instructions/reverse-engineering.md',
+      ])
+    })
+
+    it('points every token naming the primary at the moved file', () => {
+      const primary = `${'x'.repeat(limit)}\nSee {{INSTRUCTION:aidlc-workflow.md}} and {{INSTRUCTION:reverse-engineering.md}}.`
+      writeFileSync(join(packDir, 'instructions/aidlc-workflow.md'), primary)
+      writeFileSync(join(packDir, 'instructions/skill-activation.md'), 'Back to {{INSTRUCTION:aidlc-workflow.md}}.')
+      const w = renderInstructions(manifest, packDir, 'codex')
+
+      expect(byPath(w, '.codex/instructions/aidlc-workflow.md').content).toBe(
+        `${'x'.repeat(limit)}\nSee .codex/instructions/aidlc-workflow.md and .codex/instructions/reverse-engineering.md.\n`,
+      )
+      expect(byPath(w, '.codex/instructions/skill-activation.md').content).toBe(
+        'Back to .codex/instructions/aidlc-workflow.md.\n',
+      )
+    })
+
+    it('refuses a header that alone is over the limit', () => {
+      const m = {
+        instructions: [
+          manifest.instructions[0],
+          { file: 'reverse-engineering.md', role: 'companion', load: 'auto', description: 'd'.repeat(limit) },
+        ],
+      }
+      expect(() => renderInstructions(m, packDir, 'codex')).toThrow(
+        /Codex AGENTS\.md header alone is \d+ bytes, over the 32768-byte limit/,
+      )
+    })
+
+    it('counts UTF-8 bytes, not characters', () => {
+      // 'é' is two bytes: the characters fit, the bytes do not
+      const primary = 'é'.repeat(limit / 2)
+      writeFileSync(join(packDir, 'instructions/aidlc-workflow.md'), primary)
+      const w = renderInstructions(manifest, packDir, 'codex')
+      expect(byPath(w, '.codex/instructions/aidlc-workflow.md').content).toBe(`${primary}\n`)
+    })
   })
 
   it('substitutes the {{SPEC_DIR}} token per tool (.kiro/specs for kiro, specs elsewhere)', () => {
@@ -188,6 +335,7 @@ describe('renderInstructions', () => {
       '.github/instructions/reverse-engineering.instructions.md',
     ],
     ['cursor', '.cursor/rules/aidlc-workflow.mdc', '.cursor/rules/reverse-engineering.mdc'],
+    ['codex', 'AGENTS.md', '.codex/instructions/reverse-engineering.md'],
   ])('renders native instruction tokens for %s', (tool, primaryPath, companionPath) => {
     writeFileSync(
       join(packDir, 'instructions/aidlc-workflow.md'),

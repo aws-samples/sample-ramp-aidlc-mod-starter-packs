@@ -1,4 +1,5 @@
 ---
+description: "Brownfield Targeted (default) or Full reverse engineering; reuses existing ATX/assessment analysis as whole-system context and still traces the objective at a granular level. Use for feature, journey, module, endpoint, data-area, bounded-context, or system-wide modernization and analysis prompts."
 alwaysApply: false
 ---
 # Adaptive Reverse Engineering

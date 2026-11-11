@@ -82,13 +82,16 @@ export function treeLayout(root) {
   return sortLayout(records)
 }
 
-// Every layout id, in code-point order. `sample` keeps one target tool per
-// pack, rotating through the tools so every tool is still exercised.
+// Every layout id, in code-point order. A schemaVersion 2 pack renders its
+// declared targets, any other pack every registered tool. `sample` keeps one
+// target tool per pack, rotating through the tools so every tool is still
+// exercised.
 export function layoutSpecs({ root = repoRoot, sample = false } = {}) {
-  const tools = listAdapterIds()
+  const registered = listAdapterIds()
   const specs = []
   listPacks(join(root, 'packs')).forEach((pack, index) => {
     const manifest = loadManifest(join(root, 'packs', pack))
+    const tools = manifest.schemaVersion === 2 ? manifest.distribution.targets : registered
     const packTools = sample ? [tools[index % tools.length]] : tools
     for (const tool of packTools) {
       specs.push({ id: `init/${pack}/${tool}`, route: 'init', pack, tool })
@@ -311,27 +314,27 @@ export function layoutDifferences(id, expected, actual, allowlist = {}, matched 
   return differences
 }
 
-// One record per line keeps the committed baseline reviewable in a diff. A
-// layout whose list equals an earlier layout's (in id order) is stored as
-// { "sameAs": "<that id>" }; the reference always names a stored list.
-export function renderBaseline(layouts) {
-  const ids = Object.keys(layouts).sort(comparePaths)
-  const firstHolder = new Map()
+function recordLines(layout) {
+  return layout.map((record) => JSON.stringify({
+    path: record.path,
+    sha256: record.sha256,
+    mode: record.mode,
+  }))
+}
+
+// One record per line keeps the committed baseline reviewable in a diff. Each
+// entry is a list or a { "sameAs": "<id>" } reference to a stored list.
+function serializeBaseline(entries) {
+  const ids = Object.keys(entries).sort(comparePaths)
   const lines = ['{', '  "schemaVersion": 1,', '  "layouts": {']
   ids.forEach((id, index) => {
-    if (layouts[id].length === 0) throw new Error(`customer layout ${id} is empty`)
-    const records = layouts[id].map((record) => JSON.stringify({
-      path: record.path,
-      sha256: record.sha256,
-      mode: record.mode,
-    }))
-    const key = records.join('\n')
     const comma = index < ids.length - 1 ? ',' : ''
-    if (firstHolder.has(key)) {
-      lines.push(`    ${JSON.stringify(id)}: ${JSON.stringify({ sameAs: firstHolder.get(key) })}${comma}`)
+    const entry = entries[id]
+    if (!Array.isArray(entry)) {
+      lines.push(`    ${JSON.stringify(id)}: ${JSON.stringify({ sameAs: entry.sameAs })}${comma}`)
       return
     }
-    firstHolder.set(key, id)
+    const records = recordLines(entry)
     lines.push(`    ${JSON.stringify(id)}: [`)
     records.forEach((value, position) => {
       lines.push(`      ${value}${position < records.length - 1 ? ',' : ''}`)
@@ -340,6 +343,58 @@ export function renderBaseline(layouts) {
   })
   lines.push('  }', '}', '')
   return lines.join('\n')
+}
+
+// A layout whose list equals an earlier layout's (in id order) is stored as
+// { "sameAs": "<that id>" }; the reference always names a stored list.
+export function renderBaseline(layouts) {
+  const firstHolder = new Map()
+  const entries = {}
+  for (const id of Object.keys(layouts).sort(comparePaths)) {
+    if (layouts[id].length === 0) throw new Error(`customer layout ${id} is empty`)
+    const key = recordLines(layouts[id]).join('\n')
+    if (firstHolder.has(key)) {
+      entries[id] = { sameAs: firstHolder.get(key) }
+      continue
+    }
+    firstHolder.set(key, id)
+    entries[id] = layouts[id]
+  }
+  return serializeBaseline(entries)
+}
+
+// Adds layouts for new ids to a committed baseline (its text) without
+// rewriting any stored entry: every existing id keeps its list or reference,
+// and a new layout whose list is already stored refers to that list's
+// existing holder, even when the new id sorts first. An id that is already in
+// the baseline is refused.
+export function addToBaseline(text, layouts) {
+  const baseline = JSON.parse(text)
+  if (baseline.schemaVersion !== 1) {
+    throw new Error(`unsupported customer layout baseline schemaVersion: ${baseline.schemaVersion}`)
+  }
+  const entries = { ...baseline.layouts }
+  const holders = new Map()
+  for (const id of Object.keys(entries).sort(comparePaths)) {
+    const entry = entries[id]
+    if (!Array.isArray(entry)) continue
+    const key = recordLines(entry).join('\n')
+    if (!holders.has(key)) holders.set(key, id)
+  }
+  for (const id of Object.keys(layouts).sort(comparePaths)) {
+    if (Object.hasOwn(entries, id)) {
+      throw new Error(`customer layout ${id} is already in the baseline; --add never changes an existing entry`)
+    }
+    if (layouts[id].length === 0) throw new Error(`customer layout ${id} is empty`)
+    const key = recordLines(layouts[id]).join('\n')
+    if (holders.has(key)) {
+      entries[id] = { sameAs: holders.get(key) }
+      continue
+    }
+    holders.set(key, id)
+    entries[id] = layouts[id]
+  }
+  return serializeBaseline(entries)
 }
 
 // Returns every layout as its full list, with sameAs references resolved.

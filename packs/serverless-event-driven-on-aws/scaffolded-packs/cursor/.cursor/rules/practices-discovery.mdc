@@ -1,4 +1,5 @@
 ---
+description: "Team-practices capture — run once at the start of a workflow (before Phase 1) to record the team's tech stack, testing posture (current vs. target), coding conventions, branching model, and compliance constraints in the resolved team-practices state file. Load when starting a new workflow, on first session, or when capturing/revisiting team conventions."
 alwaysApply: false
 ---
 # Practices Discovery — Team Context Capture

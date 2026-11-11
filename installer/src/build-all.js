@@ -38,13 +38,15 @@ export function listPacks(packsRoot) {
 // - inPlace=true: write to <repo>/packs/<pack>/scaffolded-packs/<tool>/ and
 //   both helpers at the pack root (the committed layout)
 // - inPlace=false: write tool folders and both helpers below <outDir>/<pack>/
+// - tools: the tools to render; by default the declared targets of a
+//   schemaVersion 2 pack and every registered tool for any other pack
 export function buildAll({
   packsRoot,
   repoRoot = resolve(packsRoot, '..'),
   cacheDir,
   outDir,
   pack,
-  tools = TOOLS,
+  tools,
   includeSkills = false,
   emitSkillScript = true,
   inPlace = false,
@@ -68,16 +70,17 @@ export function buildAll({
     const packDir = join(packsRoot, p)
     if (!existsSync(join(packDir, 'pack.yaml'))) throw new Error(`not a pack (no pack.yaml): ${p}`)
     const manifest = loadManifest(packDir)
-    resolveWorkspace(manifest, { tools })
+    const packTools = tools ?? (manifest.schemaVersion === 2 ? manifest.distribution.targets : TOOLS)
+    resolveWorkspace(manifest, { tools: packTools })
     const usesSharedResolution =
       profile !== undefined ||
       workspaceMode !== undefined ||
       specRoot !== undefined ||
       stateRoot !== undefined
     const sharedWorkspace = usesSharedResolution
-      ? resolveWorkspace(manifest, { tools, profile, workspaceMode, specRoot, stateRoot })
+      ? resolveWorkspace(manifest, { tools: packTools, profile, workspaceMode, specRoot, stateRoot })
       : null
-    const plans = tools.map((tool) => ({
+    const plans = packTools.map((tool) => ({
       tool,
       plan: buildPlan(packDir, tool, {
         includeSkills,

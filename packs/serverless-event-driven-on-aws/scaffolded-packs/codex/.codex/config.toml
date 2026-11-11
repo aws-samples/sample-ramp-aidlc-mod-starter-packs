@@ -1,0 +1,12 @@
+[mcp_servers.aws-knowledge-mcp-server]
+command = "npx"
+args = ["mcp-remote", "https://knowledge-mcp.global.api.aws"]
+
+[mcp_servers."awslabs.aws-iac-mcp-server"]
+command = "uvx"
+args = ["awslabs.aws-iac-mcp-server@latest"]
+enabled = false
+
+[mcp_servers."awslabs.aws-iac-mcp-server".env]
+AWS_PROFILE = "your-named-profile"
+FASTMCP_LOG_LEVEL = "ERROR"

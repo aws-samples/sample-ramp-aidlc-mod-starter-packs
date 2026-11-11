@@ -10,7 +10,7 @@ library. Every source and destination is preflighted before target mutation.
 [CmdletBinding()]
 param(
   [Parameter(Mandatory = $true)]
-  [ValidateSet('kiro', 'claude-code', 'copilot', 'cursor')]
+  [ValidateSet('kiro', 'claude-code', 'copilot', 'cursor', 'codex')]
   [string]$Tool,
 
   [string]$Target = '.',
@@ -50,6 +50,7 @@ $DestinationByTool = @{
   'claude-code' = '.claude/skills'
   'copilot' = '.github/skills'
   'cursor' = '.cursor/skills'
+  'codex' = '.agents/skills'
 }
 
 $script:Errors = New-Object 'System.Collections.Generic.List[string]'

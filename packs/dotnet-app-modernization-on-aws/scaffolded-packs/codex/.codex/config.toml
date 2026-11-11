@@ -1,0 +1,15 @@
+[mcp_servers.aws-knowledge-mcp-server]
+command = "npx"
+args = ["mcp-remote", "https://knowledge-mcp.global.api.aws"]
+
+[mcp_servers.aws-mcp-server]
+command = "uvx"
+args = ["mcp-proxy-for-aws@latest", "https://aws-mcp.us-east-1.api.aws/mcp"]
+enabled = false
+
+[mcp_servers.aurora-dsql]
+command = "uvx"
+args = ["awslabs.aurora-dsql-mcp-server@latest"]
+
+[mcp_servers.aurora-dsql.env]
+FASTMCP_LOG_LEVEL = "ERROR"

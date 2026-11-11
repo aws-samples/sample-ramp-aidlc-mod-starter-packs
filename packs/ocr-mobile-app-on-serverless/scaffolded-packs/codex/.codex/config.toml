@@ -1,0 +1,13 @@
+[mcp_servers.aws-knowledge]
+command = "uvx"
+args = ["awslabs.aws-knowledge-mcp-server@latest"]
+
+[mcp_servers.aws-knowledge.env]
+FASTMCP_LOG_LEVEL = "ERROR"
+
+[mcp_servers.aws-docs]
+command = "uvx"
+args = ["awslabs.aws-documentation-mcp-server@latest"]
+
+[mcp_servers.aws-docs.env]
+FASTMCP_LOG_LEVEL = "ERROR"

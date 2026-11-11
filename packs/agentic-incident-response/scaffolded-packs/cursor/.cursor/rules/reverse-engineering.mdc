@@ -1,4 +1,5 @@
 ---
+description: "Phase 0 reverse-engineering playbook — use when existing or brownfield source code is present, or when the incident-analysis capability must be grounded in an existing system's codebase (e.g., building the flow-to-component map from the monitored application's source)."
 alwaysApply: false
 ---
 # Reverse Engineering

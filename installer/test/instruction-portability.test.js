@@ -183,7 +183,7 @@ const count = (text, needle) => text.split(needle).length - 1
 const portable = (path) => path.split(sep).join('/')
 const ownedToken = /\{\{(?:SPEC_DIR|STATE_DIR|INSTRUCTION:[^}]+)\}\}/
 const fixedWorkflowRoot =
-  /aidlc-docs|aidlc-specs|\.kiro\/specs|\.kiro\/steering|\.claude\/specs|\.cursor\/specs|\.github\/specs|aidlc-decisions-workflow\.md/
+  /aidlc-docs|aidlc-specs|\.kiro\/specs|\.kiro\/steering|\.claude\/specs|\.cursor\/specs|\.github\/specs|\.codex\/specs|aidlc-decisions-workflow\.md/
 
 function nativeInstructionPath(manifest, tool, file) {
   const instruction = manifest.instructions.find((item) => item.file === file)
@@ -451,7 +451,7 @@ describe.each(multiRepoPackNames)(
         for (const write of writes) {
           expect(write.content).not.toMatch(ownedToken)
           expect(write.content).not.toMatch(
-            /aidlc-docs|aidlc-specs|\.kiro\/specs|\.claude\/specs|\.cursor\/specs|\.github\/specs/,
+            /aidlc-docs|aidlc-specs|\.kiro\/specs|\.claude\/specs|\.cursor\/specs|\.github\/specs|\.codex\/specs/,
           )
 
           for (const otherTool of tools) {
@@ -561,7 +561,7 @@ describe.each(multiRepoPackNames)(
           expect(content).not.toContain('.kiro/specs')
         }
         expect(content).not.toMatch(
-          /\.claude\/specs|\.cursor\/specs|\.github\/specs/,
+          /\.claude\/specs|\.cursor\/specs|\.github\/specs|\.codex\/specs/,
         )
         expectNativeReferences(content, expectation, manifest, tool)
       }

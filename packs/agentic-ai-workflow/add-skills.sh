@@ -26,7 +26,7 @@ SKILLS=(
 # -----------------------------------------------------------------------------
 
 usage() {
-  echo "usage: $0 --tool <kiro|claude-code|copilot|cursor> [--target <dir>] [--repo-root <ramp-repository-root>] [--skills-src <compatibility-library-root>]" >&2
+  echo "usage: $0 --tool <kiro|claude-code|copilot|cursor|codex> [--target <dir>] [--repo-root <ramp-repository-root>] [--skills-src <compatibility-library-root>]" >&2
 }
 
 tool=""
@@ -69,6 +69,7 @@ case "$tool" in
   claude-code) dest_sub=".claude/skills" ;;
   copilot) dest_sub=".github/skills" ;;
   cursor) dest_sub=".cursor/skills" ;;
+  codex) dest_sub=".agents/skills" ;;
   *)
     usage
     exit 1
