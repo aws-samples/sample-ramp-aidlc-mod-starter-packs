@@ -10,6 +10,7 @@ import { listAdapterIds } from '../src/adapters/index.js'
 import { loadManifest } from '../src/manifest.js'
 import { resolveWorkspace } from '../src/workspace.js'
 import { createSkillResolver } from '../src/dependencies/resolver.js'
+import { releasePack } from '../src/release/index.js'
 import {
   syncLockedSkills,
   updateSkillLocks,
@@ -168,6 +169,52 @@ program
     }
   })
 
+// release: build deterministic per-target ZIPs into ignored dist/. Never publishes.
+program
+  .command('release <pack>')
+  .option('--target <tool>', `single qualified target: ${TOOLS.join(', ')}`)
+  .option('--all-targets', 'every target in distribution.qualifiedTargets', false)
+  .option('--profile <name>', 'named workspace profile from the pack manifest')
+  .option('--spec-root <path>', 'shared relative spec directory')
+  .option('--state-root <path>', 'shared relative workflow state directory')
+  .option('--out <dir>', 'output directory (default: <repo>/dist)')
+  .option('--cache <dir>', 'skill cache root; overrides RAMP_SKILLS_CACHE')
+  .option('--source-commit <sha>', 'source commit (default: git rev-parse HEAD)')
+  .option('--build-time <ISO-8601>', 'build time (default: SOURCE_DATE_EPOCH or commit time)')
+  .action(async (pack, opts) => {
+    try {
+      const packDir = join(packsRoot, pack)
+      if (!existsSync(join(packDir, 'pack.yaml'))) {
+        throw new Error(`Pack not found: ${pack} (no ${pack}/pack.yaml under ${packsRoot})`)
+      }
+      if ((opts.target !== undefined) === opts.allTargets) {
+        throw new Error('select exactly one of --target or --all-targets')
+      }
+      let targets = [opts.target]
+      if (opts.allTargets) {
+        targets = loadManifest(packDir).distribution?.qualifiedTargets ?? []
+        if (targets.length === 0) throw new Error(`pack ${pack} has no qualified targets`)
+      }
+      for (const target of targets) {
+        const result = await releasePack(packDir, {
+          target,
+          profile: opts.profile,
+          specRoot: opts.specRoot,
+          stateRoot: opts.stateRoot,
+          outDir: opts.out !== undefined ? resolve(process.cwd(), opts.out) : undefined,
+          repoRoot,
+          cacheDir: opts.cache,
+          sourceCommit: opts.sourceCommit,
+          buildTime: opts.buildTime,
+        })
+        for (const warning of result.warnings) console.error(`warning: ${warning}`)
+        console.log(`${result.sha256}  ${result.archivePath}`)
+      }
+    } catch (error) {
+      failCli(error)
+    }
+  })
+
 const skills = program.command('skills')
 skills.description('verify, synchronize, and update immutable upstream skills')
 
@@ -264,4 +311,4 @@ skills
     }
   })
 
-program.parse()
+await program.parseAsync()
