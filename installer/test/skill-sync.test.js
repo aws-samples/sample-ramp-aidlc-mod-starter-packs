@@ -14,6 +14,7 @@ import {
   unlinkSync,
   writeFileSync,
 } from 'node:fs'
+import { createRequire, syncBuiltinESMExports } from 'node:module'
 import { tmpdir } from 'node:os'
 import { delimiter, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -2178,5 +2179,52 @@ describe('committed immutable skill lock', () => {
       .filter((skill) => skill.files.some((file) => file.path === 'skill.yaml'))
       .map((skill) => skill.name)
     expect(shipping).toEqual([])
+  })
+})
+
+// Git for Windows opens the literal '/dev/null' as NUL but cannot open
+// os.devNull's '\\.\nul' as a config file, so `skills sync` failed on Windows.
+describe('Git environment', () => {
+  it('points GIT_CONFIG_GLOBAL at the literal /dev/null, never os.devNull', async () => {
+    const source = sourceRepository()
+    const repoRoot = realpathSync(rampRoot(source))
+    const cacheDir = join(repoRoot, 'cache')
+    const proxyRoot = installLocalGitProxy(source.repository, join(repoRoot, 'git-proxy.log'))
+    const priorPath = process.env.PATH
+    const require = createRequire(import.meta.url)
+    const os = require('node:os')
+    const childProcess = require('node:child_process')
+    const devNull = Object.getOwnPropertyDescriptor(os, 'devNull')
+    const spawnGit = childProcess.spawnSync
+    // module name -> GIT_CONFIG_GLOBAL values of its Git processes
+    const seen = new Map()
+    childProcess.spawnSync = function recordingSpawn(command, args, options) {
+      if (command === 'git') {
+        const caller = new Error().stack.match(/src\/dependencies\/([a-z-]+)\.js/)?.[1]
+        seen.set(caller, [...new Set([...(seen.get(caller) ?? []), options?.env?.GIT_CONFIG_GLOBAL])])
+      }
+      return spawnGit.call(this, command, args, options)
+    }
+    // Load both modules afresh with the Windows value of os.devNull.
+    Object.defineProperty(os, 'devNull', { ...devNull, value: '\\\\.\\nul' })
+    syncBuiltinESMExports()
+    vi.resetModules()
+    // The proxy serves the registry URL from the local source, so sync runs
+    // the network acquisition (init --bare, fetch) that failed on Windows.
+    process.env.PATH = `${proxyRoot}${delimiter}${priorPath}`
+    try {
+      const fresh = await import('../src/dependencies/sync.js')
+      fresh.syncLockedSkills({ repoRoot, cacheDir, allowNetwork: true })
+    } finally {
+      process.env.PATH = priorPath
+      Object.defineProperty(os, 'devNull', devNull)
+      childProcess.spawnSync = spawnGit
+      syncBuiltinESMExports()
+      vi.resetModules()
+    }
+    expect(Object.fromEntries(seen)).toEqual({
+      'git-snapshot': ['/dev/null'],
+      sync: ['/dev/null'],
+    })
   })
 })
