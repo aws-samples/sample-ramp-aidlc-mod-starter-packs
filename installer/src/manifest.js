@@ -37,7 +37,7 @@ const WORKFLOW_FIELDS = new Set(['provider', 'overlays'])
 const INSTRUCTION_FIELDS = new Set(['file', 'role', 'load', 'description'])
 const DISTRIBUTION_FIELDS = new Set(['targets', 'qualifiedTargets', 'profiles'])
 const PROFILE_FIELDS = new Set(['name', 'targets', 'workspaceMode', 'specRoot', 'stateRoot'])
-const runtimeRepoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
+const moduleRepoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
 function requireObject(value, label) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -137,7 +137,7 @@ function validateUseCases(value) {
   if (useCases.length === 0) throw new Error('pack.yaml catalog.useCases must not be empty')
   for (const useCase of useCases) requireString(useCase, 'catalog.useCases item')
   assertUnique(useCases, 'use case')
-  const vocabulary = loadTaxonomy(runtimeRepoRoot).useCases
+  const vocabulary = loadTaxonomy(moduleRepoRoot).useCases
   for (const useCase of useCases) {
     if (!vocabulary.has(useCase)) {
       throw new Error(`pack.yaml catalog.useCases value is not in schemas/taxonomy.yaml: ${useCase}`)
@@ -150,6 +150,7 @@ function validateUseCases(value) {
 function validateV1Catalog(raw) {
   const catalog = requireObject(raw, 'catalog')
   assertOnlyKeys(catalog, V1_CATALOG_FIELDS, 'catalog')
+  if (catalog.useCases === undefined) throw new Error('pack.yaml catalog must declare useCases')
   return { useCases: validateUseCases(catalog.useCases) }
 }
 

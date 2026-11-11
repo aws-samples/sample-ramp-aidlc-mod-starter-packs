@@ -122,9 +122,16 @@ describe('catalog.useCases', () => {
     expect(() => loadManifest(packWith(v1('catalog:\n  maturity: preview'))))
       .toThrow('pack.yaml catalog has unknown field: maturity')
     expect(() => loadManifest(packWith(v1('catalog: {}'))))
-      .toThrow('pack.yaml catalog.useCases must be an array')
+      .toThrow('pack.yaml catalog must declare useCases')
     expect(() => loadManifest(packWith(v1('catalog: quality-engineering'))))
       .toThrow('pack.yaml catalog must be an object')
+  })
+
+  it('refuses a use case that is not a non-empty string', () => {
+    for (const item of ['1', "''", 'null']) {
+      expect(() => loadManifest(packWith(v2(`  useCases: [${item}]`))))
+        .toThrow('pack.yaml catalog.useCases item must be a non-empty string')
+    }
   })
 
   it('refuses an empty, duplicated or non-list use case declaration', () => {
@@ -137,16 +144,20 @@ describe('catalog.useCases', () => {
   })
 
   it('publishes catalog.useCases as an optional vocabulary list in the JSON schema', () => {
-    const schema = JSON.parse(
-      readFileSync(new URL('../../schemas/pack-v2.schema.json', import.meta.url), 'utf8'),
+    const readSchema = (name) => JSON.parse(
+      readFileSync(new URL(`../../schemas/${name}`, import.meta.url), 'utf8'),
     )
+    const schema = readSchema('pack-v2.schema.json')
+    const skillSchema = readSchema('skill-v2.schema.json')
     const catalog = schema.properties.catalog
     expect(catalog.required).not.toContain('useCases')
     expect(catalog.properties.useCases).toMatchObject({
       type: 'array',
       minItems: 1,
       uniqueItems: true,
-      items: { $ref: '#/$defs/identifier' },
+      items: { $ref: '#/$defs/vocabularyId' },
     })
+    // The same lower-kebab ids as skill-v2 classification values.
+    expect(schema.$defs.vocabularyId).toEqual(skillSchema.$defs.identifier)
   })
 })
