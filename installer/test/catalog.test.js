@@ -5,8 +5,10 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -42,6 +44,13 @@ vi.mock('../src/manifest.js', async (importOriginal) => {
       return { ...manifest, catalog: { ...(manifest.catalog ?? {}), useCases } }
     },
   }
+})
+
+// A later adapter (codex lands in T18) must not appear for v1 packs, which
+// fall back to the four scaffolded tools.
+vi.mock('../src/adapters/index.js', async (importOriginal) => {
+  const actual = await importOriginal()
+  return { ...actual, listAdapterIds: () => [...actual.listAdapterIds(), 'later-tool'] }
 })
 
 afterEach(() => {
@@ -107,6 +116,10 @@ describe('buildCatalog', () => {
       ['epsilon-unused', 'skills-library/epsilon-unused', 'local'],
       ['eta-ramp', 'skills/ramp/eta-ramp', 'ramp'],
       ['gamma-ramp', 'skills/ramp/gamma-ramp', 'ramp'],
+      // Unused skills in the resolver's shared roots, including one no pack
+      // resolves from, are listed too.
+      ['iota-target', 'skills/iota-target', 'local'],
+      ['theta-ramp', 'skills/ramp/theta-ramp', 'ramp'],
     ])
     const byName = new Map(model.skills.map((skill) => [skill.name, skill]))
     expect(byName.get('beta-upstream')).toMatchObject({
@@ -119,11 +132,15 @@ describe('buildCatalog', () => {
         path: 'skills/beta-upstream',
       },
     })
-    // A v1 skill.yaml reads as origin ramp with an empty classification.
-    expect(byName.get('eta-ramp')).toMatchObject({
-      origin: 'ramp',
-      classification: { useCases: [], awsServices: [], technologies: [] },
-    })
+    // A v1 skill.yaml reads as origin ramp with an empty classification. No
+    // pack uses theta-ramp, so only skillMetadataView supplies its origin.
+    for (const name of ['eta-ramp', 'theta-ramp']) {
+      expect(byName.get(name)).toMatchObject({
+        origin: 'ramp',
+        classification: { useCases: [], awsServices: [], technologies: [] },
+      })
+    }
+    expect(byName.get('theta-ramp').packs).toEqual([])
     // Values come back in taxonomy order, not declaration order.
     expect(byName.get('gamma-ramp').classification).toEqual({
       useCases: ['modernize', 'build-things'],
@@ -190,6 +207,14 @@ describe('buildCatalog', () => {
     )
   })
 
+  it('names a locked skill without an in-tree mirror instead of the temporary cache', () => {
+    const root = copyFixture()
+    rmSync(join(root, 'skills-library', 'beta-upstream'), { recursive: true })
+    expect(() => buildCatalog(root)).toThrow(
+      'locked skill beta-upstream (pack alpha-pack) has no in-tree mirror; the catalogue reads the in-tree mirror, never the skill cache',
+    )
+  })
+
   it('classifies the two migrated pilot packs of the real repository', () => {
     const model = buildCatalog(repoRoot)
     const qa = model.packs.find((pack) => pack.name === 'qa-automated-testing')
@@ -252,6 +277,18 @@ describe('firstSentence', () => {
 })
 
 describe('replacePacksBlock', () => {
+  it('keeps the line ending style of the README', () => {
+    const start = '<!-- RAMP:CATALOG packs START -->'
+    const end = '<!-- RAMP:CATALOG packs END -->'
+    const crlf = `# Title\r\n\r\n${start}\r\nold\r\n${end}\r\nAfter.\r\n`
+    expect(replacePacksBlock(crlf, 'one\ntwo\n')).toBe(
+      `# Title\r\n\r\n${start}\r\none\r\ntwo\r\n${end}\r\nAfter.\r\n`,
+    )
+    const lf = `# Title\n${start}\nold\n${end}\n`
+    expect(replacePacksBlock(lf, 'one\ntwo\n')).toBe(`# Title\n${start}\none\ntwo\n${end}\n`)
+  })
+
+
   it('returns null without markers and refuses malformed markers', () => {
     expect(replacePacksBlock('# No markers\n', 'x\n')).toBeNull()
     expect(() => replacePacksBlock('<!-- RAMP:CATALOG packs START -->\n', 'x\n')).toThrow(
@@ -309,6 +346,43 @@ describe('writeCatalog and checkCatalog', () => {
     ])
     expect(readFileSync(join(root, 'README.md'), 'utf8')).toBe(readme)
     expect(checkCatalog(root).problems).toEqual([])
+  })
+})
+
+describe('writeCatalog symbolic links', () => {
+  function outside() {
+    const root = mkdtempSync(join(tmpdir(), 'ramp-catalog-outside-'))
+    roots.push(root)
+    return root
+  }
+
+  it('refuses an output that is a symbolic link and leaves its target untouched', () => {
+    const root = copyFixture()
+    const target = join(outside(), 'victim.md')
+    writeFileSync(target, 'keep me\n')
+    mkdirSync(join(root, 'skills'), { recursive: true })
+    symlinkSync(target, join(root, 'skills', 'README.md'))
+
+    expect(() => writeCatalog(root)).toThrow(
+      'catalog output skills/README.md must not pass through a symbolic link',
+    )
+    expect(() => checkCatalog(root)).toThrow('must not pass through a symbolic link')
+    expect(readFileSync(target, 'utf8')).toBe('keep me\n')
+  })
+
+  it('refuses an output whose parent directory is a symbolic link', () => {
+    const root = copyFixture()
+    const target = outside()
+    // Move the real workflows/ out and link it back, so its variants still load.
+    cpSync(join(root, 'workflows'), target, { recursive: true })
+    rmSync(join(root, 'workflows'), { recursive: true })
+    symlinkSync(target, join(root, 'workflows'), 'dir')
+
+    expect(() => writeCatalog(root)).toThrow(
+      'catalog output workflows/README.md must not pass through a symbolic link',
+    )
+    expect(readdirSync(target)).toEqual(['variants'])
+    expect(existsSync(join(root, 'skills', 'README.md'))).toBe(false)
   })
 })
 

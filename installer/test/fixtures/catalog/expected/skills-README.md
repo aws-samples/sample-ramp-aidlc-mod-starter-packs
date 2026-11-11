@@ -2,7 +2,7 @@
 
 # Skills
 
-This page lists the 5 skills in this repository. A skill is a
+This page lists the 7 skills in this repository. A skill is a
 folder with a `SKILL.md` file that an agent tool loads when a task needs it.
 Each pack installs the skills it lists in its `pack.yaml`.
 
@@ -41,6 +41,8 @@ Fixture use case shown second by order.
 | [beta-upstream](../skills-library/beta-upstream/SKILL.md) | Builds Lambda functions from an upstream source. | upstream ([fixture-source@1234567](https://github.com/example/fixture-skills/tree/1234567890abcdef1234567890abcdef12345678/skills/beta-upstream)) | not declared | [alpha-pack](../packs/alpha-pack/README.md), [zeta-pack](../packs/zeta-pack/README.md) |
 | [delta-local](../skills-library/delta-local/SKILL.md) | Use when upgrading Java (target the newest, e.g. Java 21) safely vs. rewriting. | local | not declared | [zeta-pack](../packs/zeta-pack/README.md) |
 | [eta-ramp](ramp/eta-ramp/SKILL.md) | Reviews eta deployments. | ramp | not declared | [zeta-pack](../packs/zeta-pack/README.md) |
+| [iota-target](iota-target/SKILL.md) | Lives in the target skills root, which no fixture pack resolves from yet. | local | not declared | none |
+| [theta-ramp](ramp/theta-ramp/SKILL.md) | Audits theta clusters that no fixture pack installs. | ramp | not declared | none |
 
 ## By AWS service
 
@@ -65,3 +67,5 @@ Fixture use case shown second by order.
 | [epsilon-unused](../skills-library/epsilon-unused/SKILL.md) | Migrates .NET settings that no fixture pack installs yet. | local | experimental | none |
 | [eta-ramp](ramp/eta-ramp/SKILL.md) | Reviews eta deployments. | ramp | not declared | [zeta-pack](../packs/zeta-pack/README.md) |
 | [gamma-ramp](ramp/gamma-ramp/SKILL.md) | Plans ECS services \| fast. | ramp | preview | [alpha-pack](../packs/alpha-pack/README.md) |
+| [iota-target](iota-target/SKILL.md) | Lives in the target skills root, which no fixture pack resolves from yet. | local | not declared | none |
+| [theta-ramp](ramp/theta-ramp/SKILL.md) | Audits theta clusters that no fixture pack installs. | ramp | not declared | none |
