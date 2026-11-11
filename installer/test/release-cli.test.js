@@ -452,6 +452,22 @@ describe('releasePack', () => {
     expect(existsSync(join(state.repository, 'dist'))).toBe(false)
   })
 
+  it.each([
+    'skills/README.md',
+    'skills-library/README.md',
+    'workflows/README.md',
+    'workflow-overlays/README.md',
+  ])('refuses to derive provenance while %s under an old or new release root is modified', async (path) => {
+    const state = makeRepository()
+    write(state.repository, path, 'tracked\n')
+    state.sourceCommit = commitAll(state.repository, 'track root file')
+    write(state.repository, path, 'modified\n')
+    await expect(releasePack(state.packDir, options(state, {
+      env: { SOURCE_DATE_EPOCH: '1767225600' },
+    }))).rejects.toThrow(`tracked changes under release inputs: ${path}`)
+    expect(existsSync(join(state.repository, 'dist'))).toBe(false)
+  })
+
   it('allows untracked planning files outside the consumed inputs', async () => {
     const state = makeRepository()
     write(state.repository, 'docs/research/notes.md', 'draft\n')

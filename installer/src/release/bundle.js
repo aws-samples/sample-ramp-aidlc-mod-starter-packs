@@ -243,6 +243,7 @@ function loadCapturedDependencyEnvironment({
     }
     const resolver = createSkillResolver({
       repoRoot: contractRoot,
+      skillsDir: join(repoRoot, 'skills'),
       rampDir: join(repoRoot, 'skills', 'ramp'),
       libraryDir: join(repoRoot, 'skills-library'),
       cacheDir,

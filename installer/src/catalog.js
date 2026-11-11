@@ -19,7 +19,10 @@ import {
   skillMetadataFindings,
   skillMetadataView,
 } from './dependencies/manifests.js'
-import { createSkillResolver } from './dependencies/resolver.js'
+import {
+  createSkillResolver,
+  RESERVED_SKILL_SLUGS,
+} from './dependencies/resolver.js'
 import { loadManifest } from './manifest.js'
 import { loadTaxonomy } from './taxonomy.js'
 
@@ -35,8 +38,6 @@ export const PACKS_BLOCK_END = '<!-- RAMP:CATALOG packs END -->'
 // second. Both are read, so the catalogue keeps working across the move.
 const WORKFLOW_BASE_DIRS = ['workflows/base', 'common/instructions']
 const WORKFLOW_VARIANT_DIRS = ['workflows/variants', 'workflow-overlays']
-// Directory names in skills/ that are never skills.
-const RESERVED_SKILL_SLUGS = new Set(['ramp', 'README.md', 'taxonomy'])
 // The resolver's shared source-tree roots (target root first, then its
 // compatibility defaults). They are scanned for skills no pack declares.
 const SHARED_SKILL_ROOTS = ['skills', 'skills/ramp', 'skills-library']

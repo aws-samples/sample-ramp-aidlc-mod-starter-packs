@@ -1,5 +1,6 @@
 import {
   chmodSync,
+  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -11,7 +12,7 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { hashSkillTree } from '../src/dependencies/checksum.js'
 import { writeSkillLock } from '../src/dependencies/manifests.js'
 import {
@@ -856,5 +857,290 @@ describe('createSkillResolver precedence and provenance', () => {
       'utf8',
     )
     expect(source).not.toMatch(/node:child_process|from ['"]https?:|globalThis\.fetch/)
+  })
+})
+
+function skillMetadataV2(
+  directory,
+  { name = 'aws-iam', origin = 'ramp', ownerPack } = {},
+) {
+  writeFileSync(
+    join(directory, 'skill.yaml'),
+    [
+      'schemaVersion: 2',
+      'kind: ramp-skill',
+      `name: ${name}`,
+      `origin: ${origin}`,
+      ...(origin === 'upstream' ? [] : ['version: 1.2.3', 'license: MIT-0']),
+      ...(ownerPack === undefined ? [] : [`ownerPack: ${ownerPack}`]),
+      'classification:',
+      '  useCases: []',
+      '',
+    ].join('\n'),
+  )
+}
+
+function resolveFor(resolver, state, name, packId = 'demo-pack') {
+  return resolver.resolveSkill(name, { packDir: state.packDir, packId })
+}
+
+function failureOf(action) {
+  try {
+    action()
+  } catch (error) {
+    return error.message
+  }
+  throw new Error('expected the action to fail')
+}
+
+describe('createSkillResolver skills/ root', () => {
+  let printed
+
+  beforeEach(() => {
+    printed = vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    printed.mockRestore()
+  })
+
+  function warnings() {
+    return printed.mock.calls.map(([message]) => message)
+  }
+
+  function skillsSkill(state, name = 'aws-iam') {
+    return writeTree(join(state.repoRoot, 'skills', name), [
+      { path: 'SKILL.md', bytes: `# ${name}\n`, executable: false },
+    ])
+  }
+
+  it('resolves origin ramp from skills/<slug>/ with declared provenance', () => {
+    const state = fixture()
+    const directory = skillsSkill(state)
+    skillMetadataV2(directory)
+    const resolved = resolveAwsIam(resolverFor(state), state)
+    expect(resolved.directory).toBe(directory)
+    expect(resolved.provenance).toMatchObject({
+      kind: 'ramp',
+      attribution: 'declared',
+      name: 'aws-iam',
+      version: '1.2.3',
+      license: 'MIT-0',
+      treeSha256: hashSkillTree(directory).treeSha256,
+    })
+    expect(warnings()).toEqual([])
+  })
+
+  it('reads a schemaVersion 1 skill.yaml in skills/ as origin ramp', () => {
+    const state = fixture()
+    const directory = skillsSkill(state)
+    metadata(directory)
+    const resolved = resolveAwsIam(resolverFor(state, { strictProvenance: true }), state)
+    expect(resolved.directory).toBe(directory)
+    expect(resolved.provenance).toMatchObject({ kind: 'ramp', attribution: 'declared' })
+  })
+
+  it('resolves origin upstream from the verified cache before the in-tree mirror', () => {
+    const state = fixture()
+    const mirror = writeTree(join(state.repoRoot, 'skills', 'aws-iam'))
+    const entry = lockedEntry(mirror)
+    skillMetadataV2(mirror, { origin: 'upstream' })
+    writeLock(state.repoRoot, [['aws-iam', entry]])
+    const cached = writeTree(cacheSkill(state.cacheDir, entry))
+    const resolved = resolveAwsIam(resolverFor(state), state)
+    expect(resolved.directory).toBe(cached)
+    expect(resolved.provenance).toMatchObject({ kind: 'upstream', attribution: 'locked' })
+    expect(warnings()).toEqual([])
+  })
+
+  it('resolves origin upstream from the in-tree mirror without a cache, with the cache provenance', () => {
+    const state = fixture()
+    const mirror = writeTree(join(state.repoRoot, 'skills', 'aws-iam'))
+    const entry = lockedEntry(mirror)
+    skillMetadataV2(mirror, { origin: 'upstream' })
+    writeLock(state.repoRoot, [['aws-iam', entry]])
+    const resolver = resolverFor(state, { strictProvenance: true, allowLegacyLocal: false })
+    const fromMirror = resolveAwsIam(resolver, state)
+    expect(fromMirror.directory).toBe(mirror)
+
+    writeTree(cacheSkill(state.cacheDir, entry))
+    expect(fromMirror.provenance).toEqual(resolveAwsIam(resolver, state).provenance)
+    expect(warnings()).toEqual([])
+  })
+
+  it('fails an upstream mirror that differs from the lock with the sync remediation', () => {
+    const state = fixture()
+    const mirror = writeTree(join(state.repoRoot, 'skills', 'aws-iam'))
+    const entry = lockedEntry(mirror)
+    skillMetadataV2(mirror, { origin: 'upstream' })
+    writeLock(state.repoRoot, [['aws-iam', entry]])
+    writeFileSync(join(mirror, 'references', 'guide.md'), 'drift')
+    expect(failureOf(() => resolveAwsIam(resolverFor(state), state))).toBe(
+      [
+        'upstream skill aws-iam differs from the lock; run ramp-pack skills sync --locked',
+        'locked skill aws-iam at skills/aws-iam file references/guide.md sha256 mismatch',
+      ].join('\n'),
+    )
+  })
+
+  it('fails origin upstream without a lock entry', () => {
+    const state = fixture()
+    const mirror = skillsSkill(state)
+    skillMetadataV2(mirror, { origin: 'upstream' })
+    expect(() => resolveAwsIam(resolverFor(state), state)).toThrow(
+      'upstream skill aws-iam has no entry in dependencies/skills.lock.yaml',
+    )
+  })
+
+  it('allows origin local with a warning and rejects it under strict provenance', () => {
+    const state = fixture()
+    const directory = skillsSkill(state, 'origin-local-skill')
+    skillMetadataV2(directory, { name: 'origin-local-skill', origin: 'local' })
+    const resolved = resolveFor(resolverFor(state), state, 'origin-local-skill')
+    expect(resolved.directory).toBe(directory)
+    expect(resolved.provenance).toMatchObject({
+      kind: 'local',
+      attribution: 'declared',
+      name: 'origin-local-skill',
+    })
+    expect(warnings()).toEqual([
+      'warning: skill origin-local-skill has origin: local and is not locked; release bundles reject it',
+    ])
+
+    expect(() => resolveFor(
+      resolverFor(state, { strictProvenance: true, allowLegacyLocal: false }),
+      state,
+      'origin-local-skill',
+    )).toThrow('strict provenance rejects local skill origin-local-skill: skills/origin-local-skill')
+    expect(() => resolveFor(
+      resolverFor(state, { allowLegacyLocal: false }),
+      state,
+      'origin-local-skill',
+    )).toThrow('local skill origin-local-skill is not allowed by allowLegacyLocal')
+  })
+
+  it('requires skill.yaml in skills/<slug>/', () => {
+    const state = fixture()
+    skillsSkill(state)
+    expect(failureOf(() => resolveAwsIam(resolverFor(state), state))).toBe(
+      'skill aws-iam in skills/ requires skill.yaml: skills/aws-iam/skill.yaml',
+    )
+  })
+
+  it.each([
+    ['packs/demo-pack/skills/aws-iam', (state) => {
+      metadata(writeTree(join(state.packDir, 'skills', 'aws-iam')), { ownerPack: 'demo-pack' })
+    }],
+    ['skills/ramp/aws-iam', (state) => {
+      metadata(writeTree(join(state.rampDir, 'aws-iam')))
+    }],
+    ['skills-library/aws-iam', (state) => {
+      writeTree(join(state.libraryDir, 'aws-iam'))
+    }],
+  ])('fails a slug in both skills/ and %s, naming both paths', (oldPath, arrange) => {
+    const state = fixture()
+    skillMetadataV2(skillsSkill(state))
+    arrange(state)
+    expect(failureOf(() => resolveAwsIam(resolverFor(state), state))).toBe(
+      `skill aws-iam is ambiguous: found in skills/aws-iam and ${oldPath}; keep only one copy`,
+    )
+  })
+
+  it('prints one line per old copy when a slug is in several old roots', () => {
+    const state = fixture()
+    skillMetadataV2(skillsSkill(state))
+    metadata(writeTree(join(state.rampDir, 'aws-iam')))
+    writeTree(join(state.libraryDir, 'aws-iam'))
+    expect(failureOf(() => resolveAwsIam(resolverFor(state), state))).toBe(
+      [
+        'skill aws-iam is ambiguous: found in skills/aws-iam and skills/ramp/aws-iam; keep only one copy',
+        'skill aws-iam is ambiguous: found in skills/aws-iam and skills-library/aws-iam; keep only one copy',
+      ].join('\n'),
+    )
+  })
+
+  it('does not let the locked cache trip the ambiguity guard', () => {
+    const state = fixture()
+    const mirror = writeTree(join(state.repoRoot, 'skills', 'aws-iam'))
+    const entry = lockedEntry(mirror)
+    skillMetadataV2(mirror, { origin: 'upstream' })
+    writeLock(state.repoRoot, [['aws-iam', entry]])
+    const cached = writeTree(cacheSkill(state.cacheDir, entry))
+    expect(resolveAwsIam(resolverFor(state), state).directory).toBe(cached)
+  })
+
+  it.each(['ramp', 'README.md', 'taxonomy'])('refuses the reserved slug %s', (name) => {
+    const state = fixture()
+    metadata(writeTree(join(state.rampDir, 'ramp')), { name: 'ramp' })
+    expect(() => resolveFor(resolverFor(state), state, name)).toThrow(
+      `skill name ${name} is reserved: ramp, README.md and taxonomy cannot be skill names`,
+    )
+  })
+
+  it('resolves an ownerPack skill for its owner pack only', () => {
+    const state = fixture()
+    const directory = skillsSkill(state)
+    skillMetadataV2(directory, { ownerPack: 'demo-pack' })
+    const resolved = resolveAwsIam(resolverFor(state), state)
+    expect(resolved.directory).toBe(directory)
+    expect(resolved.provenance).toMatchObject({ kind: 'ramp', ownerPack: 'demo-pack' })
+
+    for (const options of [{}, { strictProvenance: true, allowLegacyLocal: false }]) {
+      expect(() => resolveFor(resolverFor(state, options), state, 'aws-iam', 'other-pack'))
+        .toThrow('skill aws-iam belongs to pack demo-pack; pack other-pack cannot use it')
+    }
+  })
+
+  it.each([
+    ['a pack override', 'warn-pack-skill', 'packs/demo-pack/skills/warn-pack-skill', (state, name) => {
+      metadata(writeTree(join(state.packDir, 'skills', name)), { name, ownerPack: 'demo-pack' })
+    }],
+    ['skills/ramp/', 'warn-ramp-skill', 'skills/ramp/warn-ramp-skill', (state, name) => {
+      metadata(writeTree(join(state.rampDir, name)), { name })
+    }],
+    ['a locked skills-library mirror', 'warn-mirror-skill', 'skills-library/warn-mirror-skill', (state, name) => {
+      const mirror = writeTree(join(state.libraryDir, name))
+      writeLock(state.repoRoot, [[name, lockedEntry(mirror, { name })]])
+    }],
+    ['a legacy skills-library skill', 'warn-legacy-skill', 'skills-library/warn-legacy-skill', (state, name) => {
+      writeTree(join(state.libraryDir, name))
+    }],
+  ])('warns once when %s resolves a skill', (_label, name, oldPath, arrange) => {
+    const state = fixture()
+    arrange(state, name)
+    resolveFor(resolverFor(state), state, name)
+    resolveFor(resolverFor(state), state, name)
+    expect(warnings()).toEqual([
+      `warning: skill ${name} resolved from ${oldPath}; move it to skills/${name}/`,
+    ])
+  })
+
+  it('names old-root paths relative to the source tree when the contracts live elsewhere', () => {
+    const state = fixture()
+    metadata(writeTree(join(state.rampDir, 'warn-release-skill')), { name: 'warn-release-skill' })
+    // Release resolves against a temporary root that holds only dependencies/.
+    const contractRoot = mkdtempSync(join(tmpdir(), 'ramp-resolver-contracts-'))
+    roots.push(contractRoot)
+    cpSync(join(state.repoRoot, 'dependencies'), join(contractRoot, 'dependencies'), {
+      recursive: true,
+    })
+    const resolver = resolverFor(state, {
+      repoRoot: contractRoot,
+      skillsDir: join(state.repoRoot, 'skills'),
+    })
+    resolveFor(resolver, state, 'warn-release-skill')
+    expect(warnings()).toEqual([
+      'warning: skill warn-release-skill resolved from skills/ramp/warn-release-skill; move it to skills/warn-release-skill/',
+    ])
+  })
+
+  it('prints no deprecation warning for a locked cache hit', () => {
+    const state = fixture()
+    const mirror = writeTree(join(state.libraryDir, 'warn-cache-skill'))
+    const entry = lockedEntry(mirror, { name: 'warn-cache-skill' })
+    writeLock(state.repoRoot, [['warn-cache-skill', entry]])
+    writeTree(cacheSkill(state.cacheDir, entry))
+    resolveFor(resolverFor(state), state, 'warn-cache-skill')
+    expect(warnings()).toEqual([])
   })
 })

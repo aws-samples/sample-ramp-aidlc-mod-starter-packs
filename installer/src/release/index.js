@@ -81,7 +81,17 @@ function git(repoRoot, args) {
 // differs from it; untracked planning files elsewhere never block a build.
 function assertCleanReleaseInputs(repoRoot, packDir) {
   const pack = relative(repoRoot, resolve(packDir)).split(sep).join('/')
-  const inputs = [pack, 'common', 'workflow-overlays', 'skills/ramp', 'dependencies', 'installer']
+  // The union of the old and new roots for the compatibility window.
+  const inputs = [
+    pack,
+    'common',
+    'workflow-overlays',
+    'workflows',
+    'skills',
+    'skills-library',
+    'dependencies',
+    'installer',
+  ]
   const changed = git(repoRoot, ['diff', '--name-only', 'HEAD', '--', ...inputs])
   if (changed !== '') {
     const paths = changed.split('\n').join(', ')
