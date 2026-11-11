@@ -553,9 +553,13 @@ function requireRegularFile(path, label) {
   }
 }
 
+// Reads skill.yaml beside SKILL.md. schemaVersion 1 keeps its exact contract.
+// For schemaVersion 2 only the origins in allowedOrigins are accepted: the RAMP
+// skill and pack-override paths resolve declared RAMP provenance, so they keep
+// the default ['ramp'] until resolution is origin-based.
 export function loadRampSkillMetadata(
   skillDir,
-  { expectedName, ownerPack } = {},
+  { expectedName, ownerPack, allowedOrigins = ['ramp'] } = {},
 ) {
   const root = resolve(skillDir)
   const skillPath = join(root, 'SKILL.md')
@@ -565,7 +569,11 @@ export function loadRampSkillMetadata(
 
   const value = parseYamlFile(metadataPath, 'skill.yaml')
   if (value.schemaVersion === 2) {
-    return normalizeSkillMetadataV2(value, { expectedName, ownerPack })
+    return normalizeSkillMetadataV2(value, {
+      expectedName,
+      ownerPack,
+      allowedOrigins,
+    })
   }
   return normalizeSkillMetadataV1(value, { expectedName, ownerPack })
 }
@@ -800,15 +808,38 @@ function skillMetadataV2Findings(value, { expectedName } = {}) {
   return findings.filter(Boolean)
 }
 
-function normalizeSkillMetadataV2(value, { expectedName, ownerPack } = {}) {
+function requireAllowedOrigins(allowedOrigins) {
+  if (
+    !Array.isArray(allowedOrigins) ||
+    allowedOrigins.length === 0 ||
+    allowedOrigins.some((origin) => !SKILL_ORIGINS.includes(origin))
+  ) {
+    throw new Error(`allowedOrigins must be a non-empty array of: ${SKILL_ORIGINS.join(', ')}`)
+  }
+  return allowedOrigins
+}
+
+function normalizeSkillMetadataV2(
+  value,
+  { expectedName, ownerPack, allowedOrigins },
+) {
+  requireAllowedOrigins(allowedOrigins)
   const findings = skillMetadataV2Findings(value, { expectedName })
   if (findings.length > 0) throw new Error(findings[0])
+  if (!allowedOrigins.includes(value.origin)) {
+    throw new Error(
+      `skill.yaml origin ${value.origin} is not accepted here (accepted: ${allowedOrigins.join(', ')})`,
+    )
+  }
 
-  // A pack-local override must still name its pack, exactly as in v1. In the
-  // shared namespace ownerPack is an optional declaration on ramp and local
-  // skills.
-  let normalizedOwnerPack = value.ownerPack
-  if (ownerPack !== undefined) {
+  // Ownership follows the v1 rule: a pack-local override must name its pack
+  // exactly, and any other caller refuses ownerPack.
+  let normalizedOwnerPack
+  if (ownerPack === undefined) {
+    if (value.ownerPack !== undefined) {
+      throw new Error('skill.yaml ownerPack is forbidden for RAMP-owned skills')
+    }
+  } else {
     requireIdentifier(ownerPack, 'expected ownerPack')
     normalizedOwnerPack = requireIdentifier(
       value.ownerPack,
@@ -859,4 +890,18 @@ export function skillMetadataFindings(value, { expectedName } = {}) {
     return [error.message]
   }
   return []
+}
+
+// Presents skill metadata in the schemaVersion 2 shape without changing the
+// input. A v1 file is read as origin: ramp with an empty classification during
+// the compatibility window; any other value is returned unchanged.
+export function skillMetadataView(metadata) {
+  if (!isPlainObject(metadata) || metadata.schemaVersion !== 1) return metadata
+  return {
+    ...metadata,
+    origin: 'ramp',
+    classification: Object.fromEntries(
+      CLASSIFICATION_FACETS.map((facet) => [facet, []]),
+    ),
+  }
 }

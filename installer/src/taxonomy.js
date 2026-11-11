@@ -4,6 +4,7 @@ import { parse } from 'yaml'
 import {
   CLASSIFICATION_FACETS,
   skillMetadataFindings,
+  skillMetadataView,
 } from './dependencies/manifests.js'
 
 const IDENTIFIER = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -117,7 +118,8 @@ export function loadTaxonomy(repoRoot) {
 
 // Lints one parsed skill.yaml against the vocabulary and returns every finding
 // as a message; an empty array means the metadata is valid. It never throws on
-// a problem in the metadata.
+// a problem in the metadata, only when no loaded taxonomy is passed. A v1 file
+// is linted through skillMetadataView, as origin: ramp with no classification.
 //
 // - requireUseCases: classification.useCases needs at least one value.
 // - expectedName: the skill directory name the metadata must declare.
@@ -127,29 +129,39 @@ export function lintSkillMetadata(
   taxonomy,
   { requireUseCases = false, expectedName, lock } = {},
 ) {
+  if (
+    !taxonomy ||
+    !CLASSIFICATION_FACETS.every((facet) => taxonomy[facet] instanceof Map)
+  ) {
+    throw new Error('lintSkillMetadata requires the taxonomy returned by loadTaxonomy')
+  }
   const findings = skillMetadataFindings(metadata, { expectedName })
   if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    return findings
+  }
+  if (metadata.schemaVersion !== 1 && metadata.schemaVersion !== 2) {
     return findings
   }
   if (metadata.schemaVersion === 1) {
     findings.push(
       'skill.yaml schemaVersion 1 has no classification; it is read as origin: ramp with an empty classification',
     )
-    return findings
   }
-  if (metadata.schemaVersion !== 2) return findings
 
+  const view = skillMetadataView(metadata)
   const classification =
-    metadata.classification && typeof metadata.classification === 'object'
-      ? metadata.classification
+    view.classification && typeof view.classification === 'object'
+      ? view.classification
       : {}
   for (const facet of CLASSIFICATION_FACETS) {
     const values = classification[facet]
     if (!Array.isArray(values)) continue
-    for (const value of values) {
-      if (typeof value === 'string' && !taxonomy[facet].has(value)) {
-        findings.push(`skill.yaml classification.${facet} has unknown value: ${value}`)
-      }
+    const unknown = new Set(
+      values.filter((value) =>
+        typeof value === 'string' && !taxonomy[facet].has(value)),
+    )
+    for (const value of unknown) {
+      findings.push(`skill.yaml classification.${facet} has unknown value: ${value}`)
     }
   }
   if (
@@ -160,11 +172,11 @@ export function lintSkillMetadata(
   }
   if (
     lock &&
-    metadata.origin === 'upstream' &&
-    typeof metadata.name === 'string' &&
-    !lock.skills.has(metadata.name)
+    view.origin === 'upstream' &&
+    typeof view.name === 'string' &&
+    !lock.skills.has(view.name)
   ) {
-    findings.push(`skill.yaml origin upstream requires a skills.lock.yaml entry named ${metadata.name}`)
+    findings.push(`skill.yaml origin upstream requires a skills.lock.yaml entry named ${view.name}`)
   }
   return findings
 }

@@ -172,6 +172,23 @@ describe('lintSkillMetadata', () => {
     )).toEqual(['skill.yaml classification.awsServices has unknown value: aws-lambda'])
   })
 
+  it('reports each distinct unknown value once', () => {
+    expect(lintSkillMetadata(
+      v2({ classification: { awsServices: ['lamda', 'lambda', 'lamda'] } }),
+      taxonomy,
+    )).toEqual([
+      'skill.yaml classification.awsServices has duplicate value: lamda',
+      'skill.yaml classification.awsServices has unknown value: lamda',
+    ])
+  })
+
+  it('throws a clear error when no loaded taxonomy is passed', () => {
+    const message = 'lintSkillMetadata requires the taxonomy returned by loadTaxonomy'
+    expect(() => lintSkillMetadata(v2())).toThrow(new Error(message))
+    expect(() => lintSkillMetadata(v2(), { useCases: [] })).toThrow(new Error(message))
+    expect(() => lintSkillMetadata(null, undefined)).toThrow(new Error(message))
+  })
+
   it('reports unknown use case and technology values', () => {
     expect(lintSkillMetadata(
       v2({
@@ -278,6 +295,12 @@ describe('lintSkillMetadata', () => {
       'skill.yaml version has an invalid format',
       missing,
     ])
+    expect(lintSkillMetadata(v1, taxonomy, { requireUseCases: true })).toEqual([
+      missing,
+      'skill.yaml classification.useCases needs at least one value',
+    ])
+    expect(lintSkillMetadata(v1, taxonomy, { lock: { skills: new Map() } }))
+      .toEqual([missing])
   })
 
   it('reports metadata that is not a supported skill.yaml', () => {

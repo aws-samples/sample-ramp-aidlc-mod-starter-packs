@@ -7,12 +7,14 @@ import { describe, expect, it } from 'vitest'
 import {
   loadRampSkillMetadata,
   skillMetadataFindings,
+  skillMetadataView,
 } from '../src/dependencies/manifests.js'
 import { createSkillResolver } from '../src/dependencies/resolver.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(here, '..', '..')
 const commit = 'a'.repeat(40)
+const allOrigins = ['ramp', 'upstream', 'local']
 const basedOn = {
   source: 'agent-toolkit-for-aws',
   commit,
@@ -111,7 +113,10 @@ describe('skill.yaml schemaVersion 1 stays byte-identical', () => {
 
 describe('skill.yaml schemaVersion 2', () => {
   it('loads a ramp skill with every optional field', () => {
-    expect(load(v2({ maturity: 'stable', ownerPack: 'pack-a', basedOn }))).toEqual({
+    expect(load(
+      v2({ maturity: 'stable', ownerPack: 'pack-a', basedOn }),
+      { expectedName: 'custom-skill', ownerPack: 'pack-a' },
+    )).toEqual({
       schemaVersion: 2,
       kind: 'ramp-skill',
       name: 'custom-skill',
@@ -129,8 +134,8 @@ describe('skill.yaml schemaVersion 2', () => {
     })
   })
 
-  it('loads an upstream sidecar without version or license', () => {
-    expect(load(upstream())).toEqual({
+  it('loads an upstream sidecar without version or license when upstream is allowed', () => {
+    expect(load(upstream(), { allowedOrigins: allOrigins })).toEqual({
       schemaVersion: 2,
       kind: 'ramp-skill',
       name: 'custom-skill',
@@ -144,8 +149,10 @@ describe('skill.yaml schemaVersion 2', () => {
   })
 
   it('loads a local skill and fills omitted classification lists', () => {
-    expect(load(v2({ origin: 'local', license: 'NOASSERTION', classification: {} })))
-      .toMatchObject({
+    expect(load(
+      v2({ origin: 'local', license: 'NOASSERTION', classification: {} }),
+      { allowedOrigins: ['local'] },
+    )).toMatchObject({
         origin: 'local',
         version: '1.2.3',
         license: 'NOASSERTION',
@@ -157,6 +164,33 @@ describe('skill.yaml schemaVersion 2', () => {
     for (const maturity of ['experimental', 'preview', 'stable', 'deprecated']) {
       expect(load(v2({ maturity }))).toMatchObject({ maturity })
     }
+  })
+
+  it('accepts only origin ramp by default, as the RAMP skill paths need', () => {
+    expect(() => load(upstream())).toThrow(
+      new Error('skill.yaml origin upstream is not accepted here (accepted: ramp)'),
+    )
+    expect(() => load(v2({ origin: 'local' }))).toThrow(
+      new Error('skill.yaml origin local is not accepted here (accepted: ramp)'),
+    )
+    expect(() => load(v2(), { allowedOrigins: ['upstream', 'local'] })).toThrow(
+      new Error('skill.yaml origin ramp is not accepted here (accepted: upstream, local)'),
+    )
+  })
+
+  it.each([[[]], ['ramp'], [['ramp', 'legacy-local']]])(
+    'rejects allowedOrigins %j',
+    (allowedOrigins) => {
+      expect(() => load(v2(), { allowedOrigins })).toThrow(
+        new Error('allowedOrigins must be a non-empty array of: ramp, upstream, local'),
+      )
+    },
+  )
+
+  it('keeps the v1 rule that only a pack-local override may declare ownerPack', () => {
+    expect(() => load(v2({ ownerPack: 'pack-a' }))).toThrow(
+      new Error('skill.yaml ownerPack is forbidden for RAMP-owned skills'),
+    )
   })
 
   it('requires the exact ownerPack for pack-local overrides', () => {
@@ -222,25 +256,88 @@ describe('skill.yaml schemaVersion 2', () => {
     expect(skillMetadataFindings(null)).toEqual(['skill.yaml must be an object'])
   })
 
-  it('resolves a v2 RAMP skill with the same declared provenance as its v1 form', () => {
-    function provenanceOf(metadata) {
-      return withTempRoot((root) => {
-        mkdirSync(join(root, 'packs', 'demo-pack'), { recursive: true })
-        writeSkill(join(root, 'skills', 'ramp', 'custom-skill'), metadata)
-        const resolver = createSkillResolver({
-          repoRoot: root,
-          cacheDir: join(root, 'cache'),
-        })
-        const { provenance } = resolver.resolveSkill('custom-skill', {
-          packDir: join(root, 'packs', 'demo-pack'),
-        })
-        const { treeSha256, files, ...declared } = provenance
-        return declared
-      })
-    }
+})
 
-    expect(provenanceOf(v2({ basedOn, maturity: 'stable' })))
-      .toEqual(provenanceOf(v1({ basedOn })))
+describe('schemaVersion 2 in the resolver RAMP skill paths', () => {
+  // Writes one skill in skills/ramp/ or as a pack override and resolves it.
+  function resolveWith(metadata, { override = false, strictProvenance = false } = {}) {
+    return withTempRoot((root) => {
+      const packDir = join(root, 'packs', 'demo-pack')
+      mkdirSync(packDir, { recursive: true })
+      writeSkill(
+        override
+          ? join(packDir, 'skills', 'custom-skill')
+          : join(root, 'skills', 'ramp', 'custom-skill'),
+        metadata,
+      )
+      const resolver = createSkillResolver({
+        repoRoot: root,
+        cacheDir: join(root, 'cache'),
+        strictProvenance,
+      })
+      const { provenance } = resolver.resolveSkill('custom-skill', { packDir })
+      const { treeSha256, files, ...declared } = provenance
+      return declared
+    })
+  }
+
+  it('resolves a v2 RAMP skill with the same declared provenance as its v1 form', () => {
+    expect(resolveWith(v2({ basedOn, maturity: 'stable' })))
+      .toEqual(resolveWith(v1({ basedOn })))
+    expect(resolveWith(v2({ ownerPack: 'demo-pack' }), { override: true }))
+      .toEqual(resolveWith(v1({ ownerPack: 'demo-pack' }), { override: true }))
+  })
+
+  it.each([false, true])(
+    'refuses v2 upstream and local metadata in skills/ramp (strictProvenance %s)',
+    (strictProvenance) => {
+      expect(() => resolveWith(upstream(), { strictProvenance })).toThrow(
+        new Error('skill.yaml origin upstream is not accepted here (accepted: ramp)'),
+      )
+      expect(() => resolveWith(v2({ origin: 'local' }), { strictProvenance })).toThrow(
+        new Error('skill.yaml origin local is not accepted here (accepted: ramp)'),
+      )
+    },
+  )
+
+  it('refuses v2 upstream and local metadata in a pack override', () => {
+    expect(() => resolveWith(upstream(), { override: true })).toThrow(
+      new Error('skill.yaml origin upstream is not accepted here (accepted: ramp)'),
+    )
+    expect(() =>
+      resolveWith(v2({ origin: 'local', ownerPack: 'demo-pack' }), { override: true }),
+    ).toThrow(new Error('skill.yaml origin local is not accepted here (accepted: ramp)'))
+  })
+
+  it('refuses ownerPack on a v2 skill in skills/ramp, as for v1', () => {
+    expect(() => resolveWith(v2({ ownerPack: 'demo-pack' }))).toThrow(
+      new Error('skill.yaml ownerPack is forbidden for RAMP-owned skills'),
+    )
+    expect(() => resolveWith(v1({ ownerPack: 'demo-pack' }))).toThrow(
+      new Error('skill.yaml ownerPack is forbidden for RAMP-owned skills'),
+    )
+  })
+})
+
+describe('skillMetadataView', () => {
+  it('presents a v1 result as origin ramp with an empty classification', () => {
+    const result = load(v1({ basedOn }))
+    const snapshot = structuredClone(result)
+    expect(skillMetadataView(result)).toEqual({
+      ...snapshot,
+      origin: 'ramp',
+      classification: { useCases: [], awsServices: [], technologies: [] },
+    })
+    expect(result).toEqual(snapshot)
+    expect(result).not.toHaveProperty('origin')
+  })
+
+  it('returns v2 and unsupported values unchanged', () => {
+    const result = load(v2())
+    expect(skillMetadataView(result)).toBe(result)
+    expect(skillMetadataView(null)).toBe(null)
+    const unsupported = { schemaVersion: 3 }
+    expect(skillMetadataView(unsupported)).toBe(unsupported)
   })
 })
 
@@ -306,7 +403,7 @@ describe('published skill-v2 schema', () => {
   it('accepts at runtime every origin and maturity the schema publishes', () => {
     for (const origin of schema.properties.origin.enum) {
       const metadata = origin === 'upstream' ? upstream() : v2({ origin })
-      expect(load(metadata)).toMatchObject({ origin })
+      expect(load(metadata, { allowedOrigins: allOrigins })).toMatchObject({ origin })
     }
     for (const maturity of schema.properties.maturity.enum) {
       expect(load(v2({ maturity }))).toMatchObject({ maturity })
