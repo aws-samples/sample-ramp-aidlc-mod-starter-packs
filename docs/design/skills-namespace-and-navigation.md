@@ -1,6 +1,6 @@
 # Design: one skills namespace, workflow variants, and customer navigation
 
-**Status:** Proposed design for owner review. No implementation in this change.
+**Status:** Approved design. No implementation in this change.
 **Date:** 2026-11-11
 **Scope:** Second revamp of the source repository on `revamp-starter-packs`:
 one physical `skills/<slug>/` namespace classified by customer use case and
