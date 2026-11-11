@@ -1,5 +1,10 @@
-schemaVersion: 1
+schemaVersion: 2
 kind: ramp-skill
 name: ecs-security
+origin: ramp
 version: 1.0.0
 license: MIT-0
+classification:
+  useCases: [cloud-native-development, cloud-foundations]
+  awsServices: [ecs, iam]
+  technologies: []

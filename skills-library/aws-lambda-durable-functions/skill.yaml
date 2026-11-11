@@ -1,0 +1,8 @@
+schemaVersion: 2
+kind: ramp-skill
+name: aws-lambda-durable-functions
+origin: upstream
+classification:
+  useCases: [cloud-native-development]
+  awsServices: [lambda]
+  technologies: []

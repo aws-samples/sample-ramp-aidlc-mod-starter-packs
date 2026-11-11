@@ -1,0 +1,11 @@
+schemaVersion: 2
+kind: ramp-skill
+name: lonely-skill
+origin: local
+version: 0.0.0
+license: MIT-0
+ownerPack: no-such-pack
+classification:
+  useCases: [quality-engineering]
+  awsServices: []
+  technologies: []

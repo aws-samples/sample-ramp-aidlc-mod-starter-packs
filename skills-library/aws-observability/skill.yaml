@@ -1,0 +1,8 @@
+schemaVersion: 2
+kind: ramp-skill
+name: aws-observability
+origin: upstream
+classification:
+  useCases: [operations-and-incident-response]
+  awsServices: [cloudwatch, x-ray]
+  technologies: [opentelemetry]

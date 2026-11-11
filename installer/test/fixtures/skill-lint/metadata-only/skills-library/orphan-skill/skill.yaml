@@ -1,0 +1,10 @@
+schemaVersion: 2
+kind: ramp-skill
+name: orphan-skill
+origin: local
+version: 0.0.0
+license: MIT-0
+classification:
+  useCases: [quality-engineering]
+  awsServices: []
+  technologies: []

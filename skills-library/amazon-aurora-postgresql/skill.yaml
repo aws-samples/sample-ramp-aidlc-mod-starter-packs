@@ -1,0 +1,8 @@
+schemaVersion: 2
+kind: ramp-skill
+name: amazon-aurora-postgresql
+origin: upstream
+classification:
+  useCases: [application-modernization, cloud-native-development]
+  awsServices: [aurora]
+  technologies: [postgresql]
