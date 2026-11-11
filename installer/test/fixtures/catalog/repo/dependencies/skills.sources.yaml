@@ -1,0 +1,8 @@
+schemaVersion: 1
+sources:
+  - id: fixture-source
+    repository: https://github.com/example/fixture-skills.git
+    priority: 10
+    license: Apache-2.0
+    licensePath: LICENSE
+    noticePath: NOTICE
