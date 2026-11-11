@@ -149,8 +149,11 @@ describe('e2e: cots-rewrite-on-cloudnative', () => {
         existsSync(join(target, '.kiro/skills/aws-cloudformation/SKILL.md')),
       ).toBe(true)
       expect(
-        existsSync(join(target, '.kiro/skills/web-test-automation/skill.yaml')),
+        existsSync(join(target, '.kiro/skills/web-test-automation/SKILL.md')),
       ).toBe(true)
+      expect(
+        existsSync(join(target, '.kiro/skills/web-test-automation/skill.yaml')),
+      ).toBe(false)
     },
   )
 })

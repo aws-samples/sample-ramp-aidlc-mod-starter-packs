@@ -17,7 +17,12 @@ export function applyPlan(plan, targetDir, { dryRun, force }) {
     written.push(w.path)
     if (dryRun) continue
     mkdirSync(dirname(dest), { recursive: true })
-    if (w.kind === 'copy') cpSync(w.content, dest, { recursive: true })
+    // Copy operations come only from planSkills (skills.js), one per skill.
+    // A skill's root skill.yaml is RAMP source metadata and is not installed.
+    if (w.kind === 'copy') {
+      const metadata = join(w.content, 'skill.yaml')
+      cpSync(w.content, dest, { recursive: true, filter: (source) => source !== metadata })
+    }
     else writeFileSync(dest, w.content)
   }
   return written

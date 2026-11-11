@@ -600,6 +600,8 @@ while [ "$copy_index" -lt "${#SKILLS[@]}" ]; do
   rm -rf "$final_destination"
   mkdir -p "$final_destination"
   cp -R "$source_path"/. "$final_destination"/
+  # skill.yaml is RAMP source metadata; customer projects do not receive it.
+  rm -rf "$final_destination/skill.yaml"
   echo "  + $skill [$source_kind]"
   copy_index=$((copy_index + 1))
 done

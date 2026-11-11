@@ -25,6 +25,7 @@ const REPOSITORY_KINDS = new Set([
   'repository-license',
   'pack-override-skill',
   'ramp-skill',
+  'skill-metadata',
   'dependency-manifest',
 ])
 const EXTERNAL_KINDS = new Set([

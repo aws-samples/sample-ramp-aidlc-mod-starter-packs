@@ -630,6 +630,88 @@ describe('release plan entry collection', () => {
     })))
   })
 
+  it('leaves the root skill.yaml out of the overlay and records it as a metadata input', () => {
+    const state = makeCopyFixture([
+      { path: 'SKILL.md', bytes: '# Demo\n', executable: false },
+      { path: 'nested/skill.yaml', bytes: 'nested\n', executable: false },
+      { path: 'skill.yaml', bytes: 'schemaVersion: 1\n', executable: false },
+    ])
+    const recorded = []
+    const result = collectPlanEntries(copyPlan(state.root, state.files), {
+      recordInput: (value) => recorded.push(value),
+    })
+
+    expect(paths(result)).toEqual([
+      '.kiro/skills/demo-skill/SKILL.md',
+      '.kiro/skills/demo-skill/nested/skill.yaml',
+    ])
+    const skill = { kind: 'ramp', name: 'demo-skill' }
+    expect(recorded.map(({ absolutePath, role, provenance }) =>
+      ({ absolutePath, role, provenance }))).toEqual([
+      { absolutePath: join(state.root, 'SKILL.md'), role: 'ramp-skill', provenance: skill },
+      { absolutePath: join(state.root, 'nested', 'skill.yaml'), role: 'ramp-skill', provenance: skill },
+      { absolutePath: join(state.root, 'skill.yaml'), role: 'skill-metadata', provenance: skill },
+    ])
+    expect(recorded[2].bytes).toEqual(Buffer.from('schemaVersion: 1\n'))
+  })
+
+  it('still verifies the root skill.yaml against the skill provenance', () => {
+    const state = makeCopyFixture([
+      { path: 'SKILL.md', bytes: '# Demo\n', executable: false },
+      { path: 'skill.yaml', bytes: 'schemaVersion: 1\n', executable: false },
+    ])
+    writeFileSync(join(state.root, 'skill.yaml'), 'schemaVersion: 9\n')
+    expect(() => collectPlanEntries(copyPlan(state.root, state.files))).toThrow(
+      'copy source hash or size mismatch: skill.yaml',
+    )
+  })
+
+  it('accepts an upstream sidecar outside the locked tree and records it as a metadata input', () => {
+    const state = makeCopyFixture([
+      { path: 'SKILL.md', bytes: '# Upstream\n', executable: false },
+    ])
+    write(state.root, 'skill.yaml', 'schemaVersion: 2\n')
+    const provenance = {
+      kind: 'upstream',
+      attribution: 'locked',
+      name: 'upstream-skill',
+      source: 'agent-toolkit-for-aws',
+      repository: SOURCE_REPOSITORY,
+      commit: 'b'.repeat(40),
+      path: 'skills/upstream-skill',
+      treeSha256: state.files.treeSha256,
+      files: state.files,
+      license: 'Apache-2.0',
+      licensePath: 'LICENSE',
+      licenseFile: fileRecord('LICENSE', 'Apache license\n'),
+      noticePath: 'NOTICE',
+      noticeFile: fileRecord('NOTICE', 'AWS notice\n'),
+    }
+    const recorded = []
+    const result = collectPlanEntries(copyPlan(state.root, state.files, {
+      path: '.kiro/skills/upstream-skill',
+      provenance,
+    }), { recordInput: (value) => recorded.push(value) })
+
+    expect(paths(result)).toEqual(['.kiro/skills/upstream-skill/SKILL.md'])
+    expect(recorded.map(({ kind, role, sourceKind, provenance: source }) =>
+      ({ kind, role, sourceKind, provenance: source }))).toEqual([
+      {
+        kind: 'external',
+        role: undefined,
+        sourceKind: 'upstream-skill',
+        provenance: {
+          attribution: 'locked',
+          source: 'agent-toolkit-for-aws',
+          repository: SOURCE_REPOSITORY,
+          commit: 'b'.repeat(40),
+        },
+      },
+      { kind: 'repository', role: 'skill-metadata', sourceKind: undefined, provenance: undefined },
+    ])
+    expect(recorded[1].absolutePath).toBe(join(state.root, 'skill.yaml'))
+  })
+
   it('is byte-order deterministic across source creation and plan order', () => {
     const left = makeCopyFixture([
       { path: 'z.md', bytes: 'z', executable: false },
@@ -1821,7 +1903,6 @@ describe('deterministic unpacked bundle', () => {
       'overlay/.kiro/skills/demo-skill/SKILL.md',
       'overlay/.kiro/skills/demo-skill/references/guide.md',
       'overlay/.kiro/skills/demo-skill/scripts/check.sh',
-      'overlay/.kiro/skills/demo-skill/skill.yaml',
       'overlay/.kiro/steering/aidlc-workflow.md',
       'overlay/.kiro/steering/skill-activation.md',
     ])
@@ -1919,6 +2000,15 @@ describe('deterministic unpacked bundle', () => {
         'installer/src/adapters/kiro.js',
       ]),
     )
+    expect(result.consumedInputs.find(({ path }) =>
+      path === 'skills/ramp/demo-skill/skill.yaml')).toMatchObject({
+      sourceKind: 'skill-metadata',
+      provenance: {
+        kind: 'ramp',
+        name: 'demo-skill',
+        attribution: 'repository-verified',
+      },
+    })
     expect(JSON.stringify(result)).not.toContain(state.repository)
     expect(JSON.stringify(result)).not.toContain(state.cacheDir)
 
@@ -2329,6 +2419,38 @@ describe('deterministic unpacked bundle', () => {
         sourceKind: 'upstream-skill',
       }),
     ]))
+  })
+
+  it('builds a locked mirror with an upstream sidecar and records the sidecar as a metadata input', () => {
+    const state = makeBundleRepository({
+      skills: ['upstream-skill'],
+      rampSkill: false,
+    })
+    const upstream = addUpstreamSkill(state)
+    const mirror = join(state.repository, 'skills-library', 'upstream-skill')
+    mkdirSync(dirname(mirror), { recursive: true })
+    renameSync(upstream.skillRoot, mirror)
+    write(state.repository, 'skills-library/upstream-skill/skill.yaml', [
+      'schemaVersion: 2',
+      'kind: ramp-skill',
+      'name: upstream-skill',
+      'origin: upstream',
+      'classification: {}',
+      '',
+    ].join('\n'))
+    state.sourceCommit = commitAll(state.repository, 'mirror with sidecar')
+    const result = buildBundle(state.packDir, bundleOptions(state))
+
+    expect(paths(result.entries).filter((path) =>
+      path.startsWith('overlay/.kiro/skills/upstream-skill/'))).toEqual([
+      'overlay/.kiro/skills/upstream-skill/SKILL.md',
+      'overlay/.kiro/skills/upstream-skill/scripts/check.sh',
+    ])
+    expect(result.consumedInputs.find(({ path }) =>
+      path === 'skills-library/upstream-skill/skill.yaml')).toMatchObject({
+      sourceKind: 'skill-metadata',
+      provenance: { attribution: 'repository-verified' },
+    })
   })
 
   it.each([

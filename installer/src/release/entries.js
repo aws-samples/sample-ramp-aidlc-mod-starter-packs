@@ -25,6 +25,9 @@ const MAX_DEPTH = 64
 const WINDOWS_RESERVED =
   /^(?:con|prn|aux|nul|clock\$|conin\$|conout\$|com[1-9]|lpt[1-9])(?:\..*)?$/i
 const PROHIBITED_COPY_SEGMENTS = new Set(['.git', 'node_modules', '.ds_store'])
+// RAMP source metadata at a skill root. It never enters the overlay; the
+// closure records it as a metadata input instead.
+const SKILL_METADATA = 'skill.yaml'
 
 export const RELEASE_LIMITS = Object.freeze({
   fileBytes: MAX_FILE_BYTES,
@@ -400,17 +403,37 @@ function normalizedExpectedFiles(provenance) {
   return files
 }
 
+function recordSkillMetadata(recordInput, provenance, source) {
+  recordInput({
+    kind: 'repository',
+    absolutePath: source.absolutePath,
+    role: 'skill-metadata',
+    bytes: Buffer.from(source.bytes),
+    // Repository input provenance names RAMP-declared skills only; the path of
+    // an upstream sidecar already names its skill.
+    ...(provenance.kind === 'upstream'
+      ? {}
+      : { provenance: { kind: provenance.kind, name: provenance.name } }),
+  })
+}
+
 function collectCopy(operation, recordInput, options) {
   const provenance = requireProvenance(operation.provenance)
   if (typeof operation.content !== 'string' || operation.content === '') {
     throw new Error('copy operation content must be a source directory')
   }
   const root = resolve(operation.content)
-  const actual = listTree(root, options)
+  const listed = listTree(root, options)
   if (!/^[0-9a-f]{64}$/.test(provenance.treeSha256 ?? '')) {
     throw new Error('release provenance tree checksum must be SHA-256')
   }
   const expected = normalizedExpectedFiles(provenance)
+  // An upstream mirror may hold a skill.yaml sidecar outside its locked tree.
+  const sidecar = provenance.kind === 'upstream' &&
+    !expected.some((record) => record.path === SKILL_METADATA)
+    ? listed.find((source) => source.path === SKILL_METADATA)
+    : undefined
+  const actual = listed.filter((source) => source !== sidecar)
   if (actual.length !== expected.length) {
     throw new Error(
       `copy source provenance drift: file count ${actual.length} ` +
@@ -449,6 +472,10 @@ function collectCopy(operation, recordInput, options) {
       bytes: source.bytes,
       executable: record.executable,
     })
+    if (record.path === SKILL_METADATA) {
+      if (recordInput) recordSkillMetadata(recordInput, provenance, source)
+      continue
+    }
     const outputPath = `${assertArtifactPath(operation.path, 'plan path')}/${record.path}`
     outputs.push({
       path: assertArtifactPath(outputPath, 'copy output path'),
@@ -498,6 +525,7 @@ function collectCopy(operation, recordInput, options) {
   if (hashFileRecords(hashRecords).treeSha256 !== provenance.treeSha256) {
     throw new Error(`copy source tree checksum mismatch for ${provenance.name}`)
   }
+  if (sidecar && recordInput) recordSkillMetadata(recordInput, provenance, sidecar)
   return outputs
 }
 
