@@ -2,6 +2,9 @@ name: web-app-on-cloudnative
 title: Web App on Cloud-Native
 description: Multi-tier web application (SPA + BFF + domain engine) on AWS cloud-native compute, built via the AI-DLC decision-driven workflow.
 
+catalog:
+  useCases: [cloud-native-development]
+
 instructions:
   - file: aidlc-workflow.md
     role: primary

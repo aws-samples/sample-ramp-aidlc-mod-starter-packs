@@ -1,8 +1,10 @@
 import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { parse } from 'yaml'
 import { getAdapter } from './adapters/index.js'
 import { readOrdinaryFile } from './release/entries.js'
+import { loadTaxonomy } from './taxonomy.js'
 
 const OUTCOMES = new Set(['transform', 'reimagine', 'automate', 'foundation'])
 const EXECUTION_MODELS = new Set(['assisted-builder', 'autonomous-pipeline', 'foundation'])
@@ -29,11 +31,13 @@ const ROOT_FIELDS = new Set([
   'capabilities',
   'distribution',
 ])
-const CATALOG_FIELDS = new Set(['outcome', 'domain', 'executionModel', 'maturity'])
+const CATALOG_FIELDS = new Set(['outcome', 'domain', 'executionModel', 'maturity', 'useCases'])
+const V1_CATALOG_FIELDS = new Set(['useCases'])
 const WORKFLOW_FIELDS = new Set(['provider', 'overlays'])
 const INSTRUCTION_FIELDS = new Set(['file', 'role', 'load', 'description'])
 const DISTRIBUTION_FIELDS = new Set(['targets', 'qualifiedTargets', 'profiles'])
 const PROFILE_FIELDS = new Set(['name', 'targets', 'workspaceMode', 'specRoot', 'stateRoot'])
+const runtimeRepoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
 function requireObject(value, label) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -126,6 +130,29 @@ function validateSkillList(value, label) {
   assertUnique(value, 'skill identifier')
 }
 
+// Use cases come from schemas/taxonomy.yaml of the RAMP repository this loader
+// runs from, the same vocabulary the skill metadata lint uses.
+function validateUseCases(value) {
+  const useCases = requireArray(value, 'catalog.useCases')
+  if (useCases.length === 0) throw new Error('pack.yaml catalog.useCases must not be empty')
+  for (const useCase of useCases) requireString(useCase, 'catalog.useCases item')
+  assertUnique(useCases, 'use case')
+  const vocabulary = loadTaxonomy(runtimeRepoRoot).useCases
+  for (const useCase of useCases) {
+    if (!vocabulary.has(useCase)) {
+      throw new Error(`pack.yaml catalog.useCases value is not in schemas/taxonomy.yaml: ${useCase}`)
+    }
+  }
+  return [...useCases]
+}
+
+// A v1 manifest has no catalog of its own; it may declare only its use cases.
+function validateV1Catalog(raw) {
+  const catalog = requireObject(raw, 'catalog')
+  assertOnlyKeys(catalog, V1_CATALOG_FIELDS, 'catalog')
+  return { useCases: validateUseCases(catalog.useCases) }
+}
+
 function validateV2(raw, instructions) {
   assertOnlyKeys(raw, ROOT_FIELDS, 'top level')
   assertSafeIdentifier(raw.name, 'name')
@@ -144,6 +171,8 @@ function validateV2(raw, instructions) {
   requireString(catalog.domain, 'catalog.domain')
   requireEnum(catalog.executionModel, EXECUTION_MODELS, 'catalog.executionModel')
   requireEnum(catalog.maturity, MATURITY_LEVELS, 'catalog.maturity')
+  const useCases =
+    catalog.useCases === undefined ? undefined : validateUseCases(catalog.useCases)
 
   const workflow = requireObject(raw.workflow, 'workflow')
   assertOnlyKeys(workflow, WORKFLOW_FIELDS, 'workflow')
@@ -250,6 +279,7 @@ function validateV2(raw, instructions) {
       domain: catalog.domain,
       executionModel: catalog.executionModel,
       maturity: catalog.maturity,
+      ...(useCases ? { useCases } : {}),
     },
     workflow: {
       provider: workflow.provider,
@@ -307,7 +337,9 @@ export function loadManifest(packDir, { onInput } = {}) {
     skills: m.skills ?? 'all',
   }
 
-  if (m.schemaVersion !== 2) return base
+  if (m.schemaVersion !== 2) {
+    return m.catalog === undefined ? base : { ...base, catalog: validateV1Catalog(m.catalog) }
+  }
 
   const v2 = validateV2(m, instructions)
   return {

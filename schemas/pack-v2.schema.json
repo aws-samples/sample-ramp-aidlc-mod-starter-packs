@@ -72,6 +72,15 @@
             "stable",
             "deprecated"
           ]
+        },
+        "useCases": {
+          "description": "Every value must be a useCases id in taxonomy.yaml; the loader enforces this.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
         }
       },
       "additionalProperties": false

@@ -2,6 +2,9 @@ name: voice-ai-agent-on-aws
 title: Voice AI Agent on AWS with Nova Sonic
 description: Real-time voice AI agents on AWS with Amazon Nova Sonic (speech-to-speech), built with the AI-DLC decision-driven workflow.
 
+catalog:
+  useCases: [generative-ai-and-agents]
+
 instructions:
   - file: aidlc-workflow.md
     role: primary

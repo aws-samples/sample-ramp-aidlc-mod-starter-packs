@@ -2,6 +2,9 @@ name: agentic-ai-workflow
 title: Agentic AI Workflow
 description: Reusable AI-DLC base + MCP environment for building agentic AI workflows and AWS infrastructure.
 
+catalog:
+  useCases: [generative-ai-and-agents, infrastructure-as-code]
+
 instructions:
   - file: aidlc-workflow.md
     role: primary

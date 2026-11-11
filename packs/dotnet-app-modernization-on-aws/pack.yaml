@@ -2,6 +2,9 @@ name: dotnet-app-modernization-on-aws
 title: .NET App Modernization on AWS
 description: Modernize .NET applications onto AWS — ASP.NET Framework → ASP.NET Core (via AWS Transform) → containers on Amazon ECS Fargate.
 
+catalog:
+  useCases: [application-modernization]
+
 instructions:
   - file: aidlc-workflow.md
     role: primary
