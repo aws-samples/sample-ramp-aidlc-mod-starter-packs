@@ -423,12 +423,12 @@ export function createSkillResolver(options = {}) {
 
   // Paths print relative to the source tree that holds skills/. Release
   // resolves against a temporary root holding only the dependency contracts,
-  // so anchoring on repoRoot would print absolute machine paths there.
+  // so anchoring on repoRoot would print absolute machine paths there. Every
+  // printed path uses forward slashes, including one outside that tree.
   const sourceRoot = dirname(skillsDir)
   function displayPath(path) {
-    return isWithin(sourceRoot, path)
-      ? relative(sourceRoot, path).split(sep).join('/')
-      : path
+    const shown = isWithin(sourceRoot, path) ? relative(sourceRoot, path) : path
+    return shown.split(sep).join('/')
   }
 
   function compatibilityHit(name, directory, provenance) {
