@@ -2475,9 +2475,27 @@ describe('deterministic unpacked bundle', () => {
     ).toThrow(/commit|drift|mismatch|untracked|ignored|extra|provenance|executing/i)
   })
 
+  it('records the skill resolver, skills planner and instruction composer as generator inputs', () => {
+    const state = makeBundleRepository()
+    const result = buildBundle(state.packDir, bundleOptions(state))
+    for (const path of [
+      'installer/src/dependencies/resolver.js',
+      'installer/src/skills.js',
+      'installer/src/instructions/compose.js',
+    ]) {
+      expect(result.consumedInputs.find((input) => input.path === path)).toMatchObject({
+        sourceKind: 'generator',
+        sha256: sha256(readFileSync(join(projectRoot, ...path.split('/')))),
+      })
+    }
+  })
+
   it.each([
     'installer/src/plan.js',
     'installer/src/adapters/kiro.js',
+    'installer/src/dependencies/resolver.js',
+    'installer/src/skills.js',
+    'installer/src/instructions/compose.js',
     'installer/src/release/install-manifest.js',
     'installer/src/release/templates/install.sh',
   ])('rejects a clean committed generator file that did not execute: %s', (path) => {
