@@ -22,7 +22,7 @@ const fixtures = join(here, 'fixtures', 'skill-lint')
 const taxonomy = loadTaxonomy(repoRoot)
 
 // The resolver's shared skill roots and the reserved names in skills/, as in
-// catalog.js.
+// catalog.js. The resolver also reads each pack's packs/<pack>/skills/ first.
 const SKILL_ROOTS = ['skills', 'skills/ramp', 'skills-library']
 const RESERVED_SKILL_SLUGS = new Set(['ramp', 'README.md', 'taxonomy'])
 const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/
@@ -95,15 +95,17 @@ function skillMarkdownName(directory) {
 
 // During the compatibility window the root a skill lives in fixes its origin:
 // the resolver reads skills/ramp/ as RAMP skills and skills-library/ as locked
-// mirrors or legacy-local skills. Everywhere, a locked skill is upstream.
-function expectedOrigin(skillRoot, name, lock) {
+// mirrors or legacy-local skills. Everywhere, a locked skill is upstream. A
+// fork may still add a pack override under packs/<pack>/skills/; the resolver
+// reads it first and accepts only origin ramp with ownerPack set to that pack.
+function expectedOrigin(skillRoot, name, lock, overridePack) {
   const locked = lock?.skills.has(name) ?? false
-  if (skillRoot === 'skills/ramp') return 'ramp'
+  if (overridePack !== undefined || skillRoot === 'skills/ramp') return 'ramp'
   if (skillRoot === 'skills-library') return locked ? 'upstream' : 'local'
   return locked ? 'upstream' : undefined
 }
 
-function lintSkill(root, skillRoot, name, lock) {
+function lintSkill(root, skillRoot, name, lock, overridePack) {
   const path = `${skillRoot}/${name}`
   const directory = join(root, skillRoot, name)
   const hasMetadata = isFile(join(directory, 'skill.yaml'))
@@ -126,42 +128,59 @@ function lintSkill(root, skillRoot, name, lock) {
     lock,
   }).map((finding) => `${path}: ${finding}`)
 
-  const declaredName = skillMarkdownName(directory)
-  if (declaredName !== name) {
-    findings.push(`${path}: SKILL.md name ${declaredName} does not match the directory name`)
+  try {
+    const declaredName = skillMarkdownName(directory)
+    if (declaredName !== name) {
+      findings.push(`${path}: SKILL.md name ${declaredName} does not match the directory name`)
+    }
+  } catch (error) {
+    findings.push(`${path}: SKILL.md frontmatter is not valid YAML: ${error.message}`)
   }
   const origin = skillMetadataView(metadata)?.origin
-  const expected = expectedOrigin(skillRoot, name, lock)
+  const expected = expectedOrigin(skillRoot, name, lock, overridePack)
   if (expected !== undefined && origin !== expected) {
     findings.push(`${path}: skill.yaml origin must be ${expected}, found ${origin}`)
   }
-  return { findings, name, origin, ownerPack: metadata?.ownerPack }
+  const ownerPack = metadata?.ownerPack
+  if (overridePack !== undefined && ownerPack !== overridePack) {
+    findings.push(`${path}: skill.yaml ownerPack must be ${overridePack}, found ${ownerPack}`)
+  }
+  return { findings, name, path, origin, ownerPack, override: overridePack !== undefined }
 }
 
 // Walks every skill directory and every pack of a repository. Errors fail the
 // lint; warnings name replaced terms in prose and never fail it.
 function lintRepository(root) {
   const lock = loadSkillLock(root)
+  const packs = directoryNames(join(root, 'packs'))
+    .filter((pack) => isFile(join(root, 'packs', pack, 'pack.yaml')))
   const errors = []
   const skills = []
-  for (const skillRoot of SKILL_ROOTS) {
+  const lintRoot = (skillRoot, overridePack) => {
     for (const name of directoryNames(join(root, skillRoot))) {
       if (skillRoot === 'skills' && RESERVED_SKILL_SLUGS.has(name)) continue
-      const { findings, ...skill } = lintSkill(root, skillRoot, name, lock)
+      const { findings, ...skill } = lintSkill(root, skillRoot, name, lock, overridePack)
       errors.push(...findings)
       if (skill.name) skills.push(skill)
     }
   }
+  for (const skillRoot of SKILL_ROOTS) lintRoot(skillRoot)
+  for (const pack of packs) lintRoot(`packs/${pack}/skills`, pack)
 
+  for (const skill of skills) {
+    if (typeof skill.ownerPack === 'string' && !packs.includes(skill.ownerPack)) {
+      errors.push(`${skill.path}: skill.yaml ownerPack names pack ${skill.ownerPack}, which does not exist`)
+    }
+  }
+  // A pack override serves only its own pack, so only shared skills have owners
+  // that other packs must respect.
   const owners = new Map(
     skills
-      .filter((skill) => typeof skill.ownerPack === 'string')
+      .filter((skill) => !skill.override && typeof skill.ownerPack === 'string')
       .map((skill) => [skill.name, skill.ownerPack]),
   )
-  for (const pack of directoryNames(join(root, 'packs'))) {
-    const manifest = join(root, 'packs', pack, 'pack.yaml')
-    if (!isFile(manifest)) continue
-    const names = readYaml(manifest)?.skills
+  for (const pack of packs) {
+    const names = readYaml(join(root, 'packs', pack, 'pack.yaml'))?.skills
     // The legacy value "all" names only pack-local skills.
     if (!Array.isArray(names)) continue
     for (const name of names) {
@@ -325,6 +344,28 @@ describe('skill taxonomy lint', () => {
     expect(lintRepository(join(fixtures, 'owner-pack')).errors).toEqual([
       'packs/other-pack/pack.yaml names skill owned-skill, which pack owner-pack owns',
     ])
+  })
+
+  it('lints a pack override in packs/<pack>/skills/ like any other skill', () => {
+    expect(lintRepository(join(fixtures, 'pack-override')).errors).toEqual([
+      'packs/some-pack/skills/misowned: skill.yaml origin must be ramp, found local',
+      'packs/some-pack/skills/misowned: skill.yaml ownerPack must be some-pack, found undefined',
+      'packs/some-pack/skills/rogue has no skill.yaml',
+    ])
+  })
+
+  it('fails on an ownerPack that names no pack', () => {
+    expect(lintRepository(join(fixtures, 'dangling-owner')).errors).toEqual([
+      'skills-library/lonely-skill: skill.yaml ownerPack names pack no-such-pack, which does not exist',
+    ])
+  })
+
+  it('reports invalid SKILL.md frontmatter as a finding', () => {
+    const { errors } = lintRepository(join(fixtures, 'bad-frontmatter'))
+    expect(errors).toHaveLength(1)
+    expect(errors[0]).toMatch(
+      /^skills-library\/broken-skill: SKILL\.md frontmatter is not valid YAML: /,
+    )
   })
 
   it('warns once, without failing, on a replaced term outside generated and design files', () => {
