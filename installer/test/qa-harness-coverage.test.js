@@ -298,6 +298,8 @@ describe.skipIf(cacheDir === undefined)('QA Automated Testing release ZIP on eac
 
   describe.each(harnesses)('%s', (harness) => {
     const expected = HARNESSES[harness]
+    // A harness without an expected layout fails 'states the expected layout' above.
+    if (!expected) return
     const skillPrefix = `${expected.skillsRoot}/`
 
     it('places every file under the harness roots or its root files', () => {
