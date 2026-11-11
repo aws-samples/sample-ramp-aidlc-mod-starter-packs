@@ -1,7 +1,7 @@
 // installer/test/e2e.test.js
 import { describe, it, expect } from 'vitest'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, existsSync, readFileSync, readdirSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -20,6 +20,27 @@ const runLockedIntegration = (
   cacheDir &&
   process.env.RAMP_PILOT_CACHE_EXPECTATION !== 'unsynchronized'
 )
+
+describe('applyPlan skill copies', () => {
+  it('drops only the root skill.yaml of a copied skill', () => {
+    const source = mkdtempSync(join(tmpdir(), 'skill-'))
+    mkdirSync(join(source, 'nested'))
+    for (const path of ['SKILL.md', 'skill.yaml', 'nested/skill.yaml']) {
+      writeFileSync(join(source, path), `${path}\n`)
+    }
+    const target = mkdtempSync(join(tmpdir(), 'proj-'))
+    applyPlan(
+      [{ path: '.kiro/skills/demo', content: source, kind: 'copy' }],
+      target,
+      { dryRun: false, force: false },
+    )
+
+    const installed = join(target, '.kiro/skills/demo')
+    expect(existsSync(join(installed, 'SKILL.md'))).toBe(true)
+    expect(existsSync(join(installed, 'nested', 'skill.yaml'))).toBe(true)
+    expect(existsSync(join(installed, 'skill.yaml'))).toBe(false)
+  })
+})
 
 describe('e2e: cots-rewrite-on-cloudnative', () => {
   it('kiro: steering has inclusion frontmatter and mcp has autoApprove', () => {
@@ -149,8 +170,11 @@ describe('e2e: cots-rewrite-on-cloudnative', () => {
         existsSync(join(target, '.kiro/skills/aws-cloudformation/SKILL.md')),
       ).toBe(true)
       expect(
-        existsSync(join(target, '.kiro/skills/web-test-automation/skill.yaml')),
+        existsSync(join(target, '.kiro/skills/web-test-automation/SKILL.md')),
       ).toBe(true)
+      expect(
+        existsSync(join(target, '.kiro/skills/web-test-automation/skill.yaml')),
+      ).toBe(false)
     },
   )
 })

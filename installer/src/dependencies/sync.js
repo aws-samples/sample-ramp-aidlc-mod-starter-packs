@@ -1196,6 +1196,13 @@ function buildLockedEntry({ name, path, source, repository, commit }) {
   if (!records.some((record) => record.path === 'SKILL.md')) {
     throw new Error(`selected skill ${name} at ${commit}:${path} has no root SKILL.md`)
   }
+  // A root skill.yaml in RAMP is its own metadata sidecar, so locking an
+  // upstream one would put upstream bytes where RAMP metadata belongs.
+  if (records.some((record) => record.path === 'skill.yaml')) {
+    throw new Error(
+      `selected skill ${name} at ${commit}:${path} ships its own root skill.yaml, which would collide with the RAMP skill.yaml sidecar; update-lock refuses it`,
+    )
+  }
   const hashed = hashFileRecords(records)
   const license = readGitFile({
     repository,

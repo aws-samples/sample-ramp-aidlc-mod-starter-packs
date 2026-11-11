@@ -352,6 +352,49 @@ function registerRuntimeContract({
       })
     }
 
+    it.runIf(available)('skips the root skill.yaml of every skill', () => {
+      const fixture = createRepository()
+      const sources = {
+        'pack-only': 'packs/demo/skills/pack-only',
+        'ramp-only': 'skills/ramp/ramp-only',
+        'compat-only': 'skills-library/compat-only',
+      }
+      for (const source of Object.values(sources)) {
+        write(fixture.repo, `${source}/skill.yaml`, 'schemaVersion: 2\n')
+        write(fixture.repo, `${source}/nested/skill.yaml`, 'nested\n')
+      }
+      const target = tempRoot('ramp-helper-target-')
+      const result = run(fixture[scriptKey], ['--tool', 'kiro', '--target', target])
+
+      expect(result.error).toBeUndefined()
+      expect(result.status, result.stderr).toBe(0)
+      for (const [skill, source] of Object.entries(sources)) {
+        const installed = collectTree(join(target, '.kiro/skills', skill))
+        expect(installed.map(([path]) => path)).not.toContain('skill.yaml')
+        expect(installed).toEqual(
+          collectTree(join(fixture.repo, source))
+            .filter(([path]) => path !== 'skill.yaml'),
+        )
+      }
+    })
+
+    it.runIf(available)(
+      'skips skill.yaml case-sensitively and keeps Skill.yaml',
+      () => {
+        const fixture = createRepository()
+        write(fixture.repo, 'skills/ramp/ramp-only/Skill.yaml', 'content\n')
+        const target = tempRoot('ramp-helper-target-')
+        const result = run(fixture[scriptKey], ['--tool', 'kiro', '--target', target])
+
+        expect(result.error).toBeUndefined()
+        expect(result.status, result.stderr).toBe(0)
+        const installed = collectTree(join(target, '.kiro/skills/ramp-only'))
+          .map(([path]) => path)
+        expect(installed).toContain('Skill.yaml')
+        expect(installed).not.toContain('skill.yaml')
+      },
+    )
+
     it.runIf(available)(
       'supports an explicit repository and compatibility override from a copied helper',
       () => {

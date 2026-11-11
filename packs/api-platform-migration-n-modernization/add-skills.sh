@@ -583,6 +583,9 @@ while [ "$copy_index" -lt "${#SKILLS[@]}" ]; do
   rm -rf "$final_destination"
   mkdir -p "$final_destination"
   cp -R "$source_path"/. "$final_destination"/
+  # skill.yaml is RAMP source metadata; customer projects do not receive it.
+  # find -name matches case-sensitively, even on a case-insensitive file system.
+  find "$final_destination" -mindepth 1 -maxdepth 1 -name skill.yaml -exec rm -rf {} +
   echo "  + $skill [$source_kind]"
   copy_index=$((copy_index + 1))
 done

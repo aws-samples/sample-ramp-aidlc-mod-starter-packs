@@ -46,12 +46,48 @@ const CURSOR_RULE_CHANGES = {
   'vulnerability-remediation-pipeline': ['reverse-engineering', 'skill-activation'],
   'web-app-on-cloudnative': ['multi-repo-projects', 'reverse-engineering', 'skill-activation'],
 }
-const ALLOWLIST = Object.fromEntries(
-  Object.entries(CURSOR_RULE_CHANGES).flatMap(([pack, rules]) => rules.map((rule) => [
+
+// skill.yaml is RAMP source metadata and no longer reaches customer projects
+// (decision D1). Only the 9 RAMP skills shipped it, so one rule per target tool
+// allows exactly the removal of <tool skills root>/<RAMP skill>/skill.yaml, on
+// every route and pack.
+const RAMP_SKILLS = [
+  'ecs-architect',
+  'ecs-build',
+  'ecs-devops',
+  'ecs-observability',
+  'ecs-operation-review',
+  'ecs-recon',
+  'ecs-security',
+  'mobile-test-automation',
+  'web-test-automation',
+]
+const SKILLS_ROOT = {
+  'claude-code': '.claude/skills',
+  codex: '.agents/skills',
+  copilot: '.github/skills',
+  cursor: '.cursor/skills',
+  kiro: '.kiro/skills',
+}
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const ROUTE = '(?:init|add-skills\\.sh|add-skills\\.ps1|release)'
+const PACK = '[a-z0-9]+(?:-[a-z0-9]+)*'
+
+const ALLOWLIST = Object.fromEntries([
+  ...Object.entries(CURSOR_RULE_CHANGES).flatMap(([pack, rules]) => rules.map((rule) => [
     `cursor rule load: ${pack} ${rule}.mdc`,
     { change: 'changed', match: new RegExp(`^init/${pack}/cursor \\.cursor/rules/${rule}\\.mdc$`) },
   ])),
-)
+  ...Object.entries(SKILLS_ROOT).map(([tool, root]) => [
+    `skill.yaml not shipped: ${tool}`,
+    {
+      change: 'removed',
+      match: new RegExp(
+        `^${ROUTE}/${PACK}/${tool} ${escapeRegExp(root)}/(?:${RAMP_SKILLS.map(escapeRegExp).join('|')})/skill\\.yaml$`,
+      ),
+    },
+  ]),
+])
 
 const full = process.env.RAMP_CUSTOMER_LAYOUT === 'full'
 const cacheDir = process.env.RAMP_SKILLS_CACHE?.trim() || undefined
@@ -76,6 +112,32 @@ describe('customer-layout baseline', () => {
 
   it('keeps every allowlist rule well formed', () => {
     expect(allowlistProblems(ALLOWLIST)).toEqual([])
+  })
+
+  it('allows only the removal of a RAMP skill root skill.yaml', () => {
+    const skill = '.kiro/skills/web-test-automation'
+    const baselineLayout = [
+      record(`${skill}/SKILL.md`),
+      record(`${skill}/skill.yaml`),
+      record(`${skill}/references/skill.yaml`),
+      record('.kiro/skills/aws-iam/skill.yaml'),
+    ]
+    const without = (path) => baselineLayout.filter((entry) => entry.path !== path)
+    const differences = (id, actual) => layoutDifferences(id, baselineLayout, actual, ALLOWLIST)
+
+    expect(differences('init/demo/kiro', without(`${skill}/skill.yaml`))).toEqual([])
+    expect(differences('release/demo/kiro', without(`${skill}/skill.yaml`))).toEqual([])
+    expect(differences('init/demo/kiro', without(`${skill}/SKILL.md`)))
+      .toEqual([`removed: ${skill}/SKILL.md`])
+    expect(differences('init/demo/kiro', without(`${skill}/references/skill.yaml`)))
+      .toEqual([`removed: ${skill}/references/skill.yaml`])
+    expect(differences('init/demo/kiro', without('.kiro/skills/aws-iam/skill.yaml')))
+      .toEqual(['removed: .kiro/skills/aws-iam/skill.yaml'])
+    expect(differences('init/demo/claude-code', without(`${skill}/skill.yaml`)))
+      .toEqual([`removed: ${skill}/skill.yaml`])
+    expect(differences('init/demo/kiro', without(`${skill}/skill.yaml`).concat(
+      { ...record(`${skill}/skill.yaml`), sha256: '1'.repeat(64) },
+    ))).toEqual([expect.stringMatching(/^changed: \.kiro\/skills\/web-test-automation\/skill\.yaml /)])
   })
 
   it('rejects allowlist rules with the global or sticky flag', () => {

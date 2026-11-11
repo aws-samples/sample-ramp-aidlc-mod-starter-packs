@@ -665,7 +665,8 @@ for ($index = 0; $index -lt $Skills.Count; $index++) {
     Remove-Item -LiteralPath $destination -Recurse -Force
   }
   New-Item -ItemType Directory -Path $destination -Force | Out-Null
-  foreach ($entry in (Get-ChildItem -LiteralPath $source -Force)) {
+  # skill.yaml is RAMP source metadata; customer projects do not receive it.
+  foreach ($entry in (Get-ChildItem -LiteralPath $source -Force | Where-Object { $_.Name -cne 'skill.yaml' })) {
     Copy-Item -LiteralPath $entry.FullName -Destination $destination -Recurse -Force
   }
   Write-Output "  + $skill [$kind]"
