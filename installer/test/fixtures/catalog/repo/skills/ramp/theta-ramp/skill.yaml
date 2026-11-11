@@ -1,0 +1,5 @@
+schemaVersion: 1
+kind: ramp-skill
+name: theta-ramp
+version: 0.3.0
+license: MIT-0

@@ -11,6 +11,7 @@ import { loadManifest } from '../src/manifest.js'
 import { resolveWorkspace } from '../src/workspace.js'
 import { createSkillResolver } from '../src/dependencies/resolver.js'
 import { releasePack } from '../src/release/index.js'
+import { checkCatalog, writeCatalog } from '../src/catalog.js'
 import {
   syncLockedSkills,
   updateSkillLocks,
@@ -210,6 +211,38 @@ program
         for (const warning of result.warnings) console.error(`warning: ${warning}`)
         console.log(`${result.sha256}  ${result.archivePath}`)
       }
+    } catch (error) {
+      failCli(error)
+    }
+  })
+
+// catalog: generate skills/README.md, workflows/README.md and the README packs
+// block from pack.yaml, skill metadata, the lock and schemas/taxonomy.yaml.
+program
+  .command('catalog')
+  .description('write or check the generated skill, workflow and pack catalogue')
+  .option('--write', 'write every catalogue output', false)
+  .option('--check', 'exit 1 when any catalogue output is stale or missing', false)
+  .option('--root <dir>', 'repository root (default: this repository)')
+  .action((opts) => {
+    try {
+      if (opts.write === opts.check) throw new Error('select exactly one of --write or --check')
+      const root = opts.root !== undefined ? resolve(process.cwd(), opts.root) : repoRoot
+      if (opts.write) {
+        for (const output of writeCatalog(root)) {
+          const note = output.status === 'skipped' ? ' (no RAMP:CATALOG packs markers)' : ''
+          console.log(`${output.status}: ${output.path}${note}`)
+        }
+        return
+      }
+      const result = checkCatalog(root)
+      if (result.problems.length > 0) {
+        for (const problem of result.problems) console.error(`${problem.status}: ${problem.path}`)
+        console.error('The catalogue is out of date; run ramp-pack catalog --write')
+        process.exit(1)
+      }
+      const checked = result.outputs.filter((output) => output.status === 'current')
+      console.log(`Catalogue is current: ${checked.map((output) => output.path).join(', ')}`)
     } catch (error) {
       failCli(error)
     }

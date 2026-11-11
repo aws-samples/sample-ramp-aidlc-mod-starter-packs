@@ -1,0 +1,5 @@
+schemaVersion: 1
+kind: ramp-skill
+name: eta-ramp
+version: 0.2.0
+license: MIT-0
