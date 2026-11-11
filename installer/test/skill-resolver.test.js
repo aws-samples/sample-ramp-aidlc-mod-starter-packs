@@ -117,6 +117,22 @@ function metadata(
   writeFileSync(join(directory, 'skill.yaml'), `${lines.join('\n')}\n`)
 }
 
+function upstreamSidecar(directory, { name = 'aws-iam', origin = 'upstream' } = {}) {
+  writeFileSync(
+    join(directory, 'skill.yaml'),
+    [
+      'schemaVersion: 2',
+      'kind: ramp-skill',
+      `name: ${name}`,
+      `origin: ${origin}`,
+      ...(origin === 'upstream' ? [] : ['version: 1.2.3', 'license: MIT-0']),
+      'classification:',
+      '  useCases: []',
+      '',
+    ].join('\n'),
+  )
+}
+
 function lockedEntry(
   directory,
   {
@@ -390,6 +406,85 @@ describe('verifyLockedSkillDirectory', () => {
     },
   )
 
+  it('ignores a root skill.yaml sidecar with origin upstream', () => {
+    const state = fixture()
+    const directory = writeTree(join(state.repoRoot, 'candidate'))
+    const entry = lockedEntry(directory)
+    upstreamSidecar(directory)
+
+    expect(verifyLockedSkillDirectory(directory, entry)).toEqual({
+      treeSha256: entry.treeSha256,
+      files: entry.files,
+    })
+    expect(
+      verifyLockedSkillDirectory(directory, entry, { platform: 'win32' }),
+    ).toEqual({ treeSha256: entry.treeSha256, files: entry.files })
+  })
+
+  it('still rejects an extra non-sidecar file beside the sidecar', () => {
+    const state = fixture()
+    const directory = writeTree(join(state.repoRoot, 'candidate'))
+    const entry = lockedEntry(directory)
+    upstreamSidecar(directory)
+    writeFileSync(join(directory, 'NOTES.md'), 'extra')
+    expect(() => verifyLockedSkillDirectory(directory, entry)).toThrow(
+      /aws-iam.*path set mismatch; missing: NOTES\.md;/,
+    )
+  })
+
+  it('still verifies the locked files beside the sidecar', () => {
+    const state = fixture()
+    const directory = writeTree(join(state.repoRoot, 'candidate'))
+    const entry = lockedEntry(directory)
+    upstreamSidecar(directory)
+    writeFileSync(join(directory, 'references', 'guide.md'), 'drift')
+    expect(() => verifyLockedSkillDirectory(directory, entry)).toThrow(
+      /aws-iam.*references\/guide\.md sha256 mismatch/,
+    )
+  })
+
+  it.each([
+    [
+      'RAMP skill.yaml (schemaVersion 1)',
+      (directory) => metadata(directory),
+      /aws-iam.*path set mismatch; missing: skill\.yaml;/,
+    ],
+    [
+      'skill.yaml with origin ramp',
+      (directory) => upstreamSidecar(directory, { origin: 'ramp' }),
+      /aws-iam.*invalid skill\.yaml sidecar.*origin ramp is not accepted/,
+    ],
+    [
+      'sidecar naming another skill',
+      (directory) => upstreamSidecar(directory, { name: 'aws-lambda' }),
+      /aws-iam.*invalid skill\.yaml sidecar.*does not match/,
+    ],
+    [
+      'nested upstream skill.yaml',
+      (directory) => upstreamSidecar(join(directory, 'references')),
+      /aws-iam.*path set mismatch.*references\/skill\.yaml/,
+    ],
+  ])('does not ignore a %s', (_name, arrange, failure) => {
+    const state = fixture()
+    const directory = writeTree(join(state.repoRoot, 'candidate'))
+    const entry = lockedEntry(directory)
+    arrange(directory)
+    expect(() => verifyLockedSkillDirectory(directory, entry)).toThrow(failure)
+  })
+
+  it('verifies a locked skill.yaml as an ordinary file, not as a sidecar', () => {
+    const state = fixture()
+    const directory = writeTree(join(state.repoRoot, 'candidate'))
+    upstreamSidecar(directory)
+    const entry = lockedEntry(directory)
+    expect(entry.files.map((file) => file.path)).toContain('skill.yaml')
+    expect(verifyLockedSkillDirectory(directory, entry).files).toEqual(entry.files)
+    unlinkSync(join(directory, 'skill.yaml'))
+    expect(() => verifyLockedSkillDirectory(directory, entry)).toThrow(
+      /aws-iam.*path set mismatch; missing: <none>; extra: skill\.yaml/,
+    )
+  })
+
   it('uses locked executable modes for simulated Windows verification', () => {
     const state = fixture()
     const directory = writeTree(join(state.repoRoot, 'candidate'), [
@@ -609,6 +704,24 @@ describe('createSkillResolver precedence and provenance', () => {
     arrange(state)
     writeTree(join(state.libraryDir, 'aws-iam'))
     expect(() => resolveAwsIam(resolverFor(state), state)).toThrow(message)
+  })
+
+  it('resolves a locked mirror with an upstream sidecar to the cache provenance', () => {
+    const cachedState = fixture()
+    const reference = writeTree(join(cachedState.repoRoot, 'reference'))
+    const entry = lockedEntry(reference)
+    writeLock(cachedState.repoRoot, [['aws-iam', entry]])
+    writeTree(cacheSkill(cachedState.cacheDir, entry))
+    const fromCache = resolveAwsIam(resolverFor(cachedState), cachedState)
+
+    const mirrorState = fixture()
+    writeLock(mirrorState.repoRoot, [['aws-iam', entry]])
+    const mirror = writeTree(join(mirrorState.libraryDir, 'aws-iam'))
+    upstreamSidecar(mirror)
+    const fromMirror = resolveAwsIam(resolverFor(mirrorState), mirrorState)
+
+    expect(fromMirror.directory).toBe(mirror)
+    expect(fromMirror.provenance).toEqual(fromCache.provenance)
   })
 
   it('fails a corrupt cache instead of falling through to a valid mirror', () => {

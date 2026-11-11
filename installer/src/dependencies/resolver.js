@@ -1,7 +1,8 @@
-import { lstatSync } from 'node:fs'
+import { lstatSync, readFileSync } from 'node:fs'
 import { basename, isAbsolute, join, relative, resolve } from 'node:path'
 import {
   comparePortablePaths,
+  hashFileRecords,
   hashSkillTree,
 } from './checksum.js'
 import {
@@ -150,6 +151,38 @@ function compareFileRecords(actual, expected, { compareExecutable = true } = {})
   return null
 }
 
+// An upstream mirror may hold RAMP metadata as a root skill.yaml sidecar with
+// origin: upstream. Lock verification ignores exactly that one file; any other
+// extra file, or a skill.yaml with another origin, still fails.
+function hasUpstreamSidecar(directory, name, expectedFiles) {
+  if (expectedFiles.some((file) => file.path === 'skill.yaml')) return false
+  if (!hasMetadata(directory)) return false
+  const metadata = loadRampSkillMetadata(directory, {
+    expectedName: name,
+    allowedOrigins: ['upstream'],
+  })
+  return metadata.origin === 'upstream'
+}
+
+// Hashes a locked skill tree without its sidecar, so the result compares
+// directly with the lock. The sidecar must still be an ordinary file.
+function hashLockedTree(directory, { sidecar, executableByPath } = {}) {
+  if (!sidecar) return hashSkillTree(directory, { executableByPath })
+  const hashed = hashSkillTree(directory, {
+    executableByPath: executableByPath &&
+      new Map([...executableByPath, ['skill.yaml', false]]),
+  })
+  return hashFileRecords(
+    hashed.files
+      .filter((file) => file.path !== 'skill.yaml')
+      .map((file) => ({
+        path: file.path,
+        bytes: readFileSync(join(directory, ...file.path.split('/'))),
+        executable: file.executable,
+      })),
+  )
+}
+
 export function resolveCacheDir(options = {}) {
   const repoRoot = requireNonEmptyString(options.repoRoot, 'repoRoot')
   const hasExplicit = Object.prototype.hasOwnProperty.call(options, 'cacheDir')
@@ -208,9 +241,18 @@ export function verifyLockedSkillDirectory(
     expectedFiles.map((file) => [file.path, file.executable]),
   )
 
+  let sidecar
+  try {
+    sidecar = hasUpstreamSidecar(directory, name, expectedFiles)
+  } catch (error) {
+    throw new Error(
+      `locked skill ${name} at ${directory} has an invalid skill.yaml sidecar: ${error.message}`,
+    )
+  }
+
   let computed
   try {
-    computed = hashSkillTree(directory, { executableByPath })
+    computed = hashLockedTree(directory, { sidecar, executableByPath })
   } catch (error) {
     throw new Error(
       `locked skill ${name} at ${directory} failed verification: ${error.message}`,
@@ -231,7 +273,7 @@ export function verifyLockedSkillDirectory(
   if (platform !== 'win32') {
     let actual
     try {
-      actual = hashSkillTree(directory)
+      actual = hashLockedTree(directory, { sidecar })
     } catch (error) {
       throw new Error(
         `locked skill ${name} at ${directory} failed POSIX mode verification: ${error.message}`,

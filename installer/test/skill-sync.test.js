@@ -1561,6 +1561,28 @@ describe('deterministic lock updates', () => {
     ).toHaveLength(1)
   })
 
+  it('refuses an upstream skill that ships its own root skill.yaml and leaves the lock unchanged', () => {
+    const source = sourceRepository()
+    const entry = lockedEntry(source)
+    const repoRoot = rampRoot(source, [entry])
+    const lockPath = join(repoRoot, 'dependencies', 'skills.lock.yaml')
+    const before = readFileSync(lockPath)
+    write(source.repository, 'skills/aws-iam/skill.yaml', 'name: upstream-owned\n')
+    const withMetadata = commit(source.repository, 'upstream skill.yaml')
+
+    expect(() => updateSkillLocks({
+      repoRoot,
+      names: ['aws-iam'],
+      cacheDir: join(repoRoot, 'cache'),
+      sourceRoots: new Map([['test-source', source.repository]]),
+      sourceRefs: new Map([['test-source', withMetadata]]),
+      allowNetwork: false,
+    })).toThrow(
+      `selected skill aws-iam at ${withMetadata}:skills/aws-iam ships its own root skill.yaml`,
+    )
+    expect(readFileSync(lockPath)).toEqual(before)
+  })
+
   it('leaves the existing lock byte-identical on selection failure and regenerates deterministically', () => {
     const source = sourceRepository()
     const entry = lockedEntry(source)
@@ -2145,5 +2167,15 @@ describe('committed immutable skill lock', () => {
       )).not.toThrow()
     }
     expect(legalBySourceCommit.size).toBe(2)
+  })
+
+  // RAMP keeps skill.yaml as the sidecar beside an upstream mirror, so no
+  // locked upstream skill may ship its own.
+  it('locks no upstream skill with a root skill.yaml', () => {
+    const lock = loadSkillLock(projectRoot, { required: true })
+    const shipping = [...lock.skills.values()]
+      .filter((skill) => skill.files.some((file) => file.path === 'skill.yaml'))
+      .map((skill) => skill.name)
+    expect(shipping).toEqual([])
   })
 })
