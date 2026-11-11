@@ -1,7 +1,19 @@
 ---
 name: aws-lambda-microvms
-description: Builds, runs, debugs, and operates applications on AWS Lambda MicroVMs — Firecracker-isolated, snapshot-resumable serverless compute environments running inside a container with up to 8 hr lifetimes. Applicable when workloads need strong isolation between tenants, isolated serverless compute, sandbox compute, or secure multi-tenant execution. Also suited for AI/agent code-execution sandboxes, interactive code playgrounds and notebooks (Jupyter, REPLs, dev environments running user-supplied code), reinforcement-learning environments, multi-tenant CI executors and build runners, sessionful game or simulation servers, or isolated security scanners. Also applicable when the workload needs long-lived sessions, a real port-listening server (gRPC, WebSocket, custom TCP protocols), state preserved across periods of inactivity (suspend/resume), container-level access (FUSE, eBPF, custom syscalls), or session-affine routing.
-version: 1
+description: >
+  Build, run, debug, and operate applications on AWS Lambda MicroVMs —
+  Firecracker-isolated, snapshot-resumable serverless compute environments that
+  run inside a container with up to 8-hour lifetimes. Triggers on: Lambda
+  MicroVMs, Firecracker isolation, snapshot-resumable compute, suspend/resume,
+  sandboxed or untrusted code execution, AI/agent code-execution sandboxes,
+  interactive code playgrounds and notebooks (Jupyter, REPLs), reinforcement-learning
+  environments, multi-tenant CI executors and build runners, sessionful game or
+  simulation servers, isolated security scanners, long-lived sessions, or
+  port-listening servers (gRPC, WebSocket, custom TCP). For standard event-driven
+  Lambda functions, use the aws-lambda skill instead.
+argument-hint: "[describe your workload or what you need help with]"
+metadata:
+  tags: lambda, microvms, firecracker, sandbox, isolation, snapshot, suspend-resume, sessions, agent-sandbox
 ---
 
 # AWS Lambda MicroVMs
@@ -103,9 +115,9 @@ Hooks are organized into two groups under the `--hooks` parameter:
 
 > **Recommendation:** Implement the image build hooks (`/ready` and `/validate`) for best performance. They enable the platform to capture a complete snapshot and prefetch the portions accessed at run time.
 
-| Hook | Purpose | Timeout range |
-|---|---|---|
-| `ready` | Called during application boot. When this hook returns a 200 status code, it signals to the platform that the application is ready to be snapshotted. Use this to ensure your application is fully booted before a snapshot is taken. If your application is not yet ready, return a 503 status code until it is ready for snapshotting. | 1–3600s (default 30s) |
+| Hook       | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Timeout range         |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------- |
+| `ready`    | Called during application boot. When this hook returns a 200 status code, it signals to the platform that the application is ready to be snapshotted. Use this to ensure your application is fully booted before a snapshot is taken. If your application is not yet ready, return a 503 status code until it is ready for snapshotting.                                                                                                                                                                                                                                                                                 | 1–3600s (default 30s) |
 | `validate` | Called after running your application from the microVM snapshot. Use this hook to validate the application is ready to serve traffic. This hook additionally allows the platform to sample the portions of the snapshot that are used when your application is ran, allowing Lambda to prefetch those portions of the snapshot to reduce latency. To get the best performance, run mock payloads through the application during validate. When this hook returns a 200, it signals to the Lambda the MicroVM image is valid. If your application needs more time to run its validate workflow, return a 503 status code. | 1–3600s (default 30s) |
 
 > **Why implement `/ready`?** It signals the platform that your application has fully booted. Without it, the snapshot may be taken mid-initialization, meaning the cached state is incomplete and every run repeats part of the boot sequence.
@@ -114,20 +126,20 @@ Hooks are organized into two groups under the `--hooks` parameter:
 
 ### `microvmHooks` (runtime)
 
-| Hook | Purpose | Timeout range |
-|---|---|---|
-| `run` | Fires once after run from snapshot | 1–60s (default 1s) |
-| `resume` | Fires after SUSPENDED → RUNNING | 1–60s (default 1s) |
-| `suspend` | Fires before RUNNING → SUSPENDED | 1–60s (default 1s) |
-| `terminate` | Fires before termination | 1–60s (default 1s) |
+| Hook        | Purpose                            | Timeout range      |
+| ----------- | ---------------------------------- | ------------------ |
+| `run`       | Fires once after run from snapshot | 1–60s (default 1s) |
+| `resume`    | Fires after SUSPENDED → RUNNING    | 1–60s (default 1s) |
+| `suspend`   | Fires before RUNNING → SUSPENDED   | 1–60s (default 1s) |
+| `terminate` | Fires before termination           | 1–60s (default 1s) |
 
 See [`references/getting-started.md`](references/getting-started.md) for a full example enabling all hooks.
 
 ## Per-MicroVM size limits
 
-| Resource | Limit |
-|---|---|
-| Maximum vCPUs per MicroVM | 16 |
+| Resource                   | Limit |
+| -------------------------- | ----- |
+| Maximum vCPUs per MicroVM  | 16    |
 | Maximum memory per MicroVM | 32 GB |
 
 > For all other quotas — concurrent MicroVMs per account, launch rate, image count, max execution duration, auth token TTL, Lambda Network Connector (LNC) limits, per-ENI bandwidth, etc. — **check the AWS docs / Service Quotas console.** Most are soft quotas, raisable through Service Quotas / Support.

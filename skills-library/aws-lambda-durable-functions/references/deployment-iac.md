@@ -2,23 +2,6 @@
 
 Deploy durable functions using CloudFormation, CDK, or SAM.
 
-## IaC framework selection
-
-Default: CDK
-
-Override syntax:
-
-- "use CloudFormation" → Generate YAML templates
-- "use SAM" → Generate YAML templates
-
-When not specified, ALWAYS use CDK
-
-### Error Scenario: Unsupported IaC Framework
-
-- List detected framework
-- State: "[framework] might not support Lambda durable functions yet"
-- Suggest supported frameworks as alternatives
-
 ## Requirements
 
 All durable functions require:
@@ -74,7 +57,7 @@ Resources:
     Properties:
       FunctionName: !Ref DurableFunction
       FunctionVersion: !GetAtt DurableFunctionVersion.Version
-      Name: prod
+      Name: live
 
 Outputs:
   FunctionArn:
@@ -122,8 +105,8 @@ export class DurableFunctionStack extends cdk.Stack {
 
     // Create version and alias
     const version = durableFunction.currentVersion;
-    const alias = new lambda.Alias(this, 'ProdAlias', {
-      aliasName: 'prod',
+    const alias = new lambda.Alias(this, 'LiveAlias', {
+      aliasName: 'live',
       version: version
     });
 
@@ -217,7 +200,7 @@ Resources:
         RetentionPeriodInDays: 7
       Policies:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicDurableExecutionRolePolicy
-      AutoPublishAlias: prod
+      AutoPublishAlias: live
       Environment:
         Variables:
           LOG_LEVEL: INFO
@@ -319,7 +302,7 @@ DurableFunction:
       RetentionPeriodInDays: 1       # Short retention
     Environment:
       Variables:
-        LOG_LEVEL: DEBUG
+        LOG_LEVEL: DEBUG             # Use INFO or higher in non-dev — DEBUG may expose step results and execution state
         ENVIRONMENT: development
 ```
 
@@ -462,9 +445,9 @@ aws lambda invoke \
 
 # ✅ Invoke using alias
 aws lambda invoke \
-  --function-name 'myDurableFunction:production' \
+  --function-name 'myDurableFunction:live' \
   --invocation-type RequestResponse \
-  --durable-execution-name "prod-exec-1" \
+  --durable-execution-name "my-exec-1" \
   --payload '{"test":"data"}' \
   --cli-binary-format raw-in-base64-out \
   response.json
@@ -545,7 +528,7 @@ DurableFunctionErrorAlarm:
 
 ```bash
 # ✅ Correct
-aws lambda invoke --function-name myFunction:prod ...
+aws lambda invoke --function-name myFunction:live ...
 aws lambda invoke --function-name myFunction:1 ...
 
 # ❌ Wrong

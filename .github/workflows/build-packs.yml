@@ -31,7 +31,7 @@ jobs:
         run: |
           test ! -e "$RAMP_SKILLS_CACHE"
           test ! -e .ramp-cache
-      - name: Confirm locked pilot skills require synchronization
+      - name: Confirm locked pilot mirrors match the lock without a cache
         env:
           RAMP_PILOT_CACHE_EXPECTATION: unsynchronized
         run: npm test --prefix installer -- test/pilot-skill-provenance.test.js

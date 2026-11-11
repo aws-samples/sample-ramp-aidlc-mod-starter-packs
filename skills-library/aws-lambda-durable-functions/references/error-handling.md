@@ -89,7 +89,7 @@ const result = await context.step(
 ```python
 def custom_retry(error: Exception, attempt: int) -> RetryDecision:
     if hasattr(error, 'status_code') and 400 <= error.status_code < 500:
-        return RetryDecision(should_retry=False)
+        return RetryDecision.no_retry()
     
     if attempt < 5:
         return RetryDecision(
@@ -97,7 +97,7 @@ def custom_retry(error: Exception, attempt: int) -> RetryDecision:
             delay=Duration.from_seconds(2 ** attempt)
         )
     
-    return RetryDecision(should_retry=False)
+    return RetryDecision.no_retry()
 ```
 
 ## Error Classification
@@ -121,7 +121,7 @@ const result = await context.step(
   {
     retryStrategy: createRetryStrategy({
       maxAttempts: 3,
-      retryableErrorTypes: ['NetworkError', 'TimeoutError'],
+      retryableErrorTypes: [NetworkError],
       // ValidationError won't be retried
     })
   }
@@ -221,13 +221,13 @@ def handler(event: dict, context: DurableContext) -> dict:
         return {'success': True, 'order_id': shipment['order_id']}
 
     except Exception as error:
-        context.logger.error('Order failed, executing compensations', error)
+        context.logger.error(f'Order failed, executing compensations: {error}')
         
         for name, comp_step, resource_id in reversed(compensations):
             try:
                 context.step(comp_step(resource_id))
             except Exception as comp_error:
-                context.logger.error(f'Compensation {name} failed', comp_error)
+                context.logger.error(f'Compensation {name} failed: {comp_error}')
         
         raise error
 ```
@@ -239,19 +239,20 @@ Mark errors as unrecoverable to stop execution immediately:
 **TypeScript:**
 
 ```typescript
-import { UnrecoverableInvocationError } from '@aws/durable-execution-sdk-js';
-
 export const handler = withDurableExecution(async (event, context: DurableContext) => {
-  const user = await context.step('fetch-user', async () => {
-    const user = await fetchUser(event.userId);
-    
-    if (!user) {
-      // Stop execution immediately - no retry
-      throw new UnrecoverableInvocationError('User not found');
-    }
-    
-    return user;
-  });
+  const user = await context.step(
+    'fetch-user',
+    async () => {
+      const user = await fetchUser(event.userId);
+      
+      if (!user) {
+        throw new Error('User not found');
+      }
+      
+      return user;
+    },
+    { retryStrategy: () => ({ shouldRetry: false }) }
+  );
   
   // Continue processing...
 });
@@ -278,12 +279,12 @@ def handler(event: dict, context: DurableContext) -> dict:
 
 The SDK provides these exception types for different failure scenarios:
 
-| Exception                | Retryable       | Use case                                                    |
-| ------------------------ | --------------- | ----------------------------------------------------------- |
-| `ExecutionError`         | No              | Permanent business logic failures (returns FAILED status)   |
-| `InvocationError`        | Yes (by Lambda) | Transient infrastructure issues (Lambda retries invocation) |
-| `CallbackError`          | No              | Callback handling failures                                  |
-| `DurableExecutionsError` | —               | Base class for all SDK exceptions                           |
+| Exception | Retryable | Use case |
+|-----------|-----------|----------|
+| `ExecutionError` | No | Permanent business logic failures (returns FAILED status) |
+| `InvocationError` | Yes (by Lambda) | Transient infrastructure issues (Lambda retries invocation) |
+| `CallbackError` | No | Callback handling failures |
+| `DurableExecutionsError` | — | Base class for all SDK exceptions |
 
 ## Error Determinism
 
@@ -392,11 +393,11 @@ export const handler = withDurableExecution(async (event, context: DurableContex
     }
   );
 
-  if (results.hasFailure()) {
+  if (results.hasFailure) {
     // Log failures but continue
     context.logger.warn('Some items failed', {
       failureCount: results.failureCount,
-      failures: results.failed.map(f => ({
+      failures: results.failed().map(f => ({
         index: f.index,
         error: f.error?.message
       }))
@@ -404,7 +405,7 @@ export const handler = withDurableExecution(async (event, context: DurableContex
 
     // Store failed items for later retry
     await context.step('store-failures', async () => {
-      const failedItems = results.failed.map(f => event.items[f.index]);
+      const failedItems = results.failed().map(f => event.items[f.index]);
       return await storeFailedItems(failedItems);
     });
   }

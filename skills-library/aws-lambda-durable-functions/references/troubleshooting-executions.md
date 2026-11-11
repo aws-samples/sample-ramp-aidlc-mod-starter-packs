@@ -29,14 +29,14 @@ CRITICAL SAFETY RULES:
 - Only suggest manual remediation if user explicitly requests it
 
 Steps:
-
-0. If the user provides a function name + alias (e.g., my-function:prod) instead of a full ARN:
+0. If the user provides a function name + alias (e.g., my-function:live) instead of a full ARN:
    - Resolve the alias to a version: aws lambda get-alias --function-name <functionName> --name <alias> --region <region> --query 'FunctionVersion' --output text
    - List executions for that function: aws lambda list-durable-executions-by-function --function-name <functionName>:<version> --region <region>
    - Ask the user to identify the execution, or use the most recent one.
 
 1. Fetch the execution history directly:
    Run: aws lambda get-durable-execution-history --durable-execution-arn <durable-execution-arn> --region <region> --include-execution-data
+   Note: execution data may contain sensitive information (PII, credentials, business data). Do not display raw step results to users without reviewing content first.
 
 2. If the command succeeds, analyze and provide a user-friendly diagnosis:
    a. Report the execution status (RUNNING/SUCCEEDED/FAILED/STOPPED/TIMED_OUT)
@@ -116,32 +116,31 @@ Use jq for JSON parsing if available, otherwise use --query (AWS CLI built-in JM
 
 ## Example Usage
 
-````
-User: "My durable function execution abc-123 is stuck on my-function:prod in us-west-2"
+```
+User: "My durable function execution abc-123 is stuck on my-function:live in us-west-2"
 
 Agent: [Runs get-durable-execution-history command]
 Agent: [Analyzes with jq queries]
 
 Claude: Your execution is **waiting for an external callback** that hasn't arrived yet.
 
-The operation `wait-for-approval` has been pending since 2026-02-14 (3 days).
-It will time out in 12 hours if no callback is received.
+        The operation `wait-for-approval` has been pending since 2026-02-14 (3 days).
+        It will time out in 12 hours if no callback is received.
 
-Callback ID: `xyz789`
+        Callback ID: `xyz789`
 
-**[View this execution in the console](https://us-west-2.console.aws.amazon.com/lambda/home?region=us-west-2#/functions/my-function/versions/3/executions/abc-123/inv-456)**
+        **[View this execution in the console](https://us-west-2.console.aws.amazon.com/lambda/home?region=us-west-2#/functions/my-function/versions/3/executions/abc-123/inv-456)**
+        ```
+        https://us-west-2.console.aws.amazon.com/lambda/home?region=us-west-2#/functions/my-function/versions/3/executions/abc-123/inv-456
+        ```
+
+        **Next steps:**
+        1. Check if the approval email was sent to the recipient
+        2. Verify the callback ID `xyz789` was included in the email
+        3. If you'd like me to help send the callback manually, let me know
+```
 
 ```
-https://us-west-2.console.aws.amazon.com/lambda/home?region=us-west-2#/functions/my-function/versions/3/executions/abc-123/inv-456
-```
-
-**Next steps:**
-1. Check if the approval email was sent to the recipient
-2. Verify the callback ID `xyz789` was included in the email
-3. If you'd like me to help send the callback manually, let me know
-````
-
-````
 User: "Execution def-456 failed on order-processor:live in us-east-1"
 
 Agent: [Runs get-durable-execution-history command]
@@ -149,24 +148,22 @@ Agent: [Analyzes with jq queries]
 
 Claude: Your execution **failed** at the `charge-payment` step after 3 retry attempts.
 
-Error message:
+        Error message:
+        ```
+        PaymentGatewayError: Card declined - insufficient funds (code: card_declined)
+        ```
 
+        This means the payment provider rejected the charge. The durable function
+        retried 3 times with exponential backoff but the error persisted because
+        it's a permanent failure (not a transient network issue).
+
+        **[View this execution in the console](https://us-east-1.console.aws.amazon.com/lambda/home?region=us-east-1#/functions/order-processor/versions/5/executions/def-456/inv-789)**
+        ```
+        https://us-east-1.console.aws.amazon.com/lambda/home?region=us-east-1#/functions/order-processor/versions/5/executions/def-456/inv-789
+        ```
+
+        **Next steps:**
+        1. This is a business logic failure, not an infrastructure issue
+        2. Consider adding a non-retryable error classification for `card_declined`
+        3. Implement a compensation step to release the reserved inventory
 ```
-PaymentGatewayError: Card declined - insufficient funds (code: card_declined)
-```
-
-This means the payment provider rejected the charge. The durable function
-retried 3 times with exponential backoff but the error persisted because
-it's a permanent failure (not a transient network issue).
-
-**[View this execution in the console](https://us-east-1.console.aws.amazon.com/lambda/home?region=us-east-1#/functions/order-processor/versions/5/executions/def-456/inv-789)**
-
-```
-https://us-east-1.console.aws.amazon.com/lambda/home?region=us-east-1#/functions/order-processor/versions/5/executions/def-456/inv-789
-```
-
-**Next steps:**
-1. This is a business logic failure, not an infrastructure issue
-2. Consider adding a non-retryable error classification for `card_declined`
-3. Implement a compensation step to release the reserved inventory
-````
