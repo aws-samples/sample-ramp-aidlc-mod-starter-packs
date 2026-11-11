@@ -317,25 +317,45 @@ describe('generated Bash bundle installer', () => {
   })
 
   // Per-path subprocesses made each run grow with files times installed
-  // paths: 300 files took minutes. Every run here has a 60 s budget, which
-  // the old helper missed at 100 files and the current one meets with room.
-  it('installs, reinstalls, and shares a 300-file bundle within a time budget', () => {
-    const files = Object.fromEntries(Array.from({ length: 300 }, (_, i) => [`dir${i % 10}/file${i}.md`, `file ${i}\n`]))
-    const first = bundle({ files })
-    const second = bundle({ owner: 'other--kiro--standalone', bundleId: 'other--kiro--v1.0.0', files })
-    const target = tempRoot('ramp-install-target-')
-    const timed = (state, ...args) => spawnSync('bash', [state.script, '--target', target, ...args], {
-      cwd: tempRoot('ramp-install-cwd-'),
-      encoding: 'utf8',
-      shell: false,
-      timeout: 60_000,
-    })
-    expectSuccess(timed(first))
-    expectSuccess(timed(first))
-    expectSuccess(timed(second))
-    expectSuccess(timed(first, '--uninstall'))
-    expect(readFileSync(join(target, 'dir9/file299.md'), 'utf8')).toBe('file 299\n')
-  }, 300_000)
+  // paths: 300 files took minutes. A fixed budget also failed on loaded CI
+  // runners, so the same four runs on 30 and 300 files are timed step by
+  // step, side by side, and only their ratio is asserted: about 10x when
+  // linear, far more for work per pair of paths. The shared deadline only
+  // stops a hang.
+  it('installs, reinstalls, and shares a 300-file bundle in near-linear time', () => {
+    const deadline = Date.now() + 600_000
+    const sized = (count) => {
+      const files = Object.fromEntries(Array.from({ length: count }, (_, i) => [`dir${i % 10}/file${i}.md`, `file ${i}\n`]))
+      const first = bundle({ files })
+      const second = bundle({ owner: 'other--kiro--standalone', bundleId: 'other--kiro--v1.0.0', files })
+      const runs = [[first], [first], [second], [first, '--uninstall']]
+      return { count, runs, target: tempRoot('ramp-install-target-'), steps: [] }
+    }
+    const small = sized(30)
+    const large = sized(300)
+    for (let step = 0; step < large.runs.length; step++) {
+      for (const scenario of [small, large]) {
+        const [state, ...args] = scenario.runs[step]
+        const started = performance.now()
+        expectSuccess(spawnSync('bash', [state.script, '--target', scenario.target, ...args], {
+          cwd: tempRoot('ramp-install-cwd-'),
+          encoding: 'utf8',
+          shell: false,
+          // spawnSync treats a timeout of 0 as none, so the 1 ms floor keeps
+          // the hang guard alive once the deadline has passed.
+          timeout: Math.max(1, deadline - Date.now()),
+        }))
+        scenario.steps.push(Math.round(performance.now() - started))
+      }
+    }
+    expect(readFileSync(join(large.target, 'dir9/file299.md'), 'utf8')).toBe('file 299\n')
+    // Per-step times tell one stalled run apart from every step growing.
+    const total = (scenario) => scenario.steps.reduce((sum, ms) => sum + ms, 0)
+    const timings = [small, large]
+      .map((scenario) => `${scenario.count} files: ${scenario.steps.join(' + ')} = ${total(scenario)} ms`)
+      .join('; ')
+    expect(total(large) / total(small), `install, reinstall, share, uninstall; ${timings}`).toBeLessThan(20)
+  }, 660_000)
 
   it('exits 130 and restores the target on SIGINT mid-commit', () => {
     const v1 = bundle({ files: { 'a.txt': 'a 1\n', 'guide.md': 'guide 1\n' } })
