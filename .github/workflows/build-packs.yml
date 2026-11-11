@@ -46,6 +46,13 @@ jobs:
             --cache "$RAMP_SKILLS_CACHE"
       - name: Run installer test suite
         run: npm test --prefix installer
+      # npm test samples one target tool per pack; this step compares every
+      # route, pack and target tool with the baseline, and pwsh must be present.
+      - name: Compare the full customer-layout matrix with the baseline
+        env:
+          RAMP_CUSTOMER_LAYOUT: full
+          RAMP_REQUIRE_POWERSHELL: pwsh
+        run: npm test --prefix installer -- test/customer-layout.test.js
       - name: Regenerate committed scaffolds and helpers
         run: ./scripts/regenerate.sh
       - name: Fail on generated-output drift
