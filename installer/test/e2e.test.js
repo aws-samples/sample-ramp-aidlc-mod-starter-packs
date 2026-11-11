@@ -162,9 +162,14 @@ describe('codex: every pack fits Codex project instructions', () => {
     return manifest.schemaVersion !== 2 || manifest.distribution.targets.includes('codex')
   })
 
-  it.each(codexPacks)('%s renders AGENTS.md within 32 KiB', (pack) => {
+  // The fallback would keep AGENTS.md small anyway, so also require that no
+  // pack needs it: the primary stays inline in AGENTS.md.
+  it.each(codexPacks)('%s keeps its primary inline in an AGENTS.md within 32 KiB', (pack) => {
+    const manifest = loadManifest(join(packsRoot, pack))
+    const primary = manifest.instructions.find(({ role }) => role === 'primary')
     const plan = buildPlan(join(packsRoot, pack), 'codex', { includeSkills: false })
     const agents = plan.find(({ path }) => path === 'AGENTS.md')
+    expect(plan.find(({ path }) => path === `.codex/instructions/${primary.file}`)).toBeUndefined()
     expect(Buffer.byteLength(agents.content, 'utf8')).toBeLessThanOrEqual(32 * 1024)
   })
 })
