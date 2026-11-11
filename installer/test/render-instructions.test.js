@@ -477,6 +477,75 @@ describe('renderInstructions: common/ instruction fallback', () => {
         { file: 'nonexistent.md', role: 'companion', load: 'auto' },
       ],
     }
-    expect(() => renderInstructions(m, pack, 'kiro')).toThrow(/not found in pack or common/)
+    expect(() => renderInstructions(m, pack, 'kiro')).toThrow(/not found in pack, workflows\/base\/ or common\/instructions\//)
+  })
+})
+
+describe('renderInstructions: workflows/ ahead of the old roots', () => {
+  const overlay = (id, target, text) => [
+    '---',
+    `id: ${id}`,
+    `target: ${target}`,
+    `purpose: ${id}`,
+    `replaces: [${id}]`,
+    '---',
+    `<!-- RAMP:SLOT ${id} START -->`,
+    text,
+    `<!-- RAMP:SLOT ${id} END -->`,
+  ].join('\n')
+  const slotted = (id, text) => [
+    `<!-- RAMP:SLOT ${id} START -->`,
+    text,
+    `<!-- RAMP:SLOT ${id} END -->`,
+  ].join('\n')
+
+  // The same base file and variant in both roots, plus one file of each kind
+  // that only the old root holds.
+  function repository() {
+    const root = mkdtempSync(join(tmpdir(), 'repo-'))
+    for (const directory of ['workflows/base', 'workflows/variants', 'common/instructions', 'workflow-overlays']) {
+      mkdirSync(join(root, directory), { recursive: true })
+    }
+    writeFileSync(join(root, 'workflows/base/aidlc-workflow.md'), slotted('first', 'NEW BASE'))
+    writeFileSync(join(root, 'common/instructions/aidlc-workflow.md'), slotted('first', 'OLD BASE'))
+    writeFileSync(join(root, 'common/instructions/reverse-engineering.md'), slotted('second', 'OLD RE'))
+    writeFileSync(join(root, 'workflows/variants/first.md'), overlay('first', 'aidlc-workflow.md', 'NEW VARIANT'))
+    writeFileSync(join(root, 'workflow-overlays/first.md'), overlay('first', 'aidlc-workflow.md', 'OLD VARIANT'))
+    writeFileSync(join(root, 'workflow-overlays/second.md'), overlay('second', 'reverse-engineering.md', 'OLD-ROOT VARIANT'))
+    const pack = join(root, 'packs', 'demo')
+    mkdirSync(pack, { recursive: true })
+    return { root, pack }
+  }
+
+  const manifest = {
+    workflow: { overlays: ['first.md', 'second.md'] },
+    instructions: [
+      { file: 'aidlc-workflow.md', role: 'primary', load: 'always' },
+      { file: 'reverse-engineering.md', role: 'companion', load: 'auto' },
+    ],
+  }
+
+  it('reads workflows/base/ and workflows/variants/ first, and an old root only for a file absent from them', () => {
+    const { root, pack } = repository()
+    const traced = []
+
+    const writes = renderInstructions(manifest, pack, 'kiro', undefined, {
+      onInput: (input) => traced.push(input),
+    })
+
+    const primary = byPath(writes, '.kiro/steering/aidlc-workflow.md').content
+    expect(primary).toContain('NEW VARIANT')
+    expect(primary).not.toContain('BASE')
+    expect(primary).not.toContain('OLD VARIANT')
+    expect(byPath(writes, '.kiro/steering/reverse-engineering.md').content).toContain('OLD-ROOT VARIANT')
+    expect(traced.map(({ absolutePath, role }) => [absolutePath, role])).toEqual(expect.arrayContaining([
+      [join(root, 'workflows/base/aidlc-workflow.md'), 'instruction'],
+      [join(root, 'workflows/variants/first.md'), 'workflow-overlay'],
+      [join(root, 'common/instructions/reverse-engineering.md'), 'instruction'],
+      [join(root, 'workflow-overlays/second.md'), 'workflow-overlay'],
+    ]))
+    expect(traced.filter(({ absolutePath }) =>
+      absolutePath === join(root, 'common/instructions/aidlc-workflow.md') ||
+      absolutePath === join(root, 'workflow-overlays/first.md'))).toEqual([])
   })
 })

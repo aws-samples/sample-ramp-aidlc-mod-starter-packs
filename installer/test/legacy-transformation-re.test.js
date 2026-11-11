@@ -17,12 +17,14 @@ const localWorkflow = join(packDir, 'instructions', 'aidlc-workflow.md')
 const localReverseEngineering = join(packDir, 'instructions', 'reverse-engineering.md')
 const workflowOverlay = join(
   repoRoot,
-  'workflow-overlays',
+  'workflows',
+  'variants',
   'legacy-transformation-workflow.md',
 )
 const adaptiveOverlay = join(
   repoRoot,
-  'workflow-overlays',
+  'workflows',
+  'variants',
   'legacy-adaptive-reverse-engineering.md',
 )
 const qaPackDir = join(repoRoot, 'packs', 'qa-automated-testing')

@@ -147,11 +147,11 @@ only after explicit approval.
 ## What's in this pack
 
 ```text
-common/instructions/
+workflows/base/
 ├── aidlc-workflow.md             # Inherited primary decision-gated lifecycle
 └── reverse-engineering.md        # Inherited Phase 0 evidence companion
 
-workflow-overlays/
+workflows/variants/
 ├── legacy-transformation-workflow.md
 │                                  # Adaptive legacy primary specialization
 └── legacy-adaptive-reverse-engineering.md

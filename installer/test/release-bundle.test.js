@@ -1795,7 +1795,7 @@ describe('legal payloads and customer guidance', () => {
       'utf8',
     )
     const qaOverlay = readFileSync(
-      join(projectRoot, 'workflow-overlays/qa-existing-test-inventory.md'),
+      join(projectRoot, 'workflows/variants/qa-existing-test-inventory.md'),
       'utf8',
     )
     expect(qaPack).toContain('qa-existing-test-inventory.md')

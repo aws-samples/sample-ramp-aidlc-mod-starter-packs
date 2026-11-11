@@ -19,6 +19,19 @@ function findAssetDirectory(packDir, name) {
   return join(resolve(packDir, '..'), name)
 }
 
+// Shared workflow files live in workflows/; during the compatibility window
+// the old roots are read when a file is absent from the new one.
+const BASE_WORKFLOW_ROOTS = [['workflows', 'base'], ['common', 'instructions']]
+const VARIANT_ROOTS = [['workflows', 'variants'], ['workflow-overlays']]
+
+function findWorkflowFile(packDir, roots, file) {
+  for (const [name, ...rest] of roots) {
+    const path = join(findAssetDirectory(packDir, name), ...rest, file)
+    if (existsSync(path)) return path
+  }
+  return undefined
+}
+
 function assertSafeRelativePath(value, label) {
   if (
     typeof value !== 'string' ||
@@ -57,9 +70,9 @@ function resolveInstructionPath(packDir, file) {
   const local = join(packDir, 'instructions', file)
   if (existsSync(local)) return local
 
-  const common = join(findAssetDirectory(packDir, 'common'), 'instructions', file)
-  if (existsSync(common)) return common
-  throw new Error(`instruction not found in pack or common/: ${file}`)
+  const shared = findWorkflowFile(packDir, BASE_WORKFLOW_ROOTS, file)
+  if (shared !== undefined) return shared
+  throw new Error(`instruction not found in pack, workflows/base/ or common/instructions/: ${file}`)
 }
 
 function parseSlots(content, label) {
@@ -208,12 +221,11 @@ function loadOverlays(manifest, packDir, file, onInput) {
   const names = manifest.workflow?.overlays ?? []
   if (!Array.isArray(names)) throw new Error('manifest workflow.overlays must be an array')
 
-  const overlayRoot = findAssetDirectory(packDir, 'workflow-overlays')
   return names.map((name) => {
     assertSafeRelativePath(name, 'overlay path')
     if (name.includes('/')) throw new Error(`overlay path must be a safe filename: ${name}`)
-    const path = join(overlayRoot, name)
-    if (!existsSync(path)) throw new Error(`workflow overlay not found: ${name}`)
+    const path = findWorkflowFile(packDir, VARIANT_ROOTS, name)
+    if (path === undefined) throw new Error(`workflow overlay not found: ${name}`)
     const input = readInputFile(path, 'workflow-overlay', onInput)
     const overlay = parseOverlay(name, input.text)
     if (overlay.target === file) input.record()

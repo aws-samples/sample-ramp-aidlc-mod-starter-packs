@@ -12,18 +12,19 @@ import { resolveWorkspace } from '../src/workspace.js'
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(here, '..', '..')
 const packDir = join(repoRoot, 'packs', 'qa-automated-testing')
-const commonWorkflow = join(repoRoot, 'common', 'instructions', 'aidlc-workflow.md')
+const commonWorkflow = join(repoRoot, 'workflows', 'base', 'aidlc-workflow.md')
 const commonReverseEngineering = join(
   repoRoot,
-  'common',
-  'instructions',
+  'workflows',
+  'base',
   'reverse-engineering.md',
 )
 const localWorkflow = join(packDir, 'instructions', 'aidlc-workflow.md')
 const localReverseEngineering = join(packDir, 'instructions', 'reverse-engineering.md')
 const qaReverseEngineeringOverlay = join(
   repoRoot,
-  'workflow-overlays',
+  'workflows',
+  'variants',
   'qa-existing-test-inventory.md',
 )
 const manifest = loadManifest(packDir)

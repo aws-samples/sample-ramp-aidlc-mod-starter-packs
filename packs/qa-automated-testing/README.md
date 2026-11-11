@@ -105,11 +105,11 @@ The workflow guides the agent to ask for your decisions first (writing a `_decis
 ## What's in this pack
 
 ```
-common/instructions/
+workflows/base/
 ├── aidlc-workflow.md             # Inherited primary decision-gated lifecycle
 └── reverse-engineering.md        # Inherited brownfield evidence companion
 
-workflow-overlays/
+workflows/variants/
 └── qa-existing-test-inventory.md # QA evidence module and artifact entry
 
 packs/qa-automated-testing/
@@ -125,14 +125,14 @@ packs/qa-automated-testing/
 Source ownership for authors:
 
 - The pack's primary `aidlc-workflow.md` and companion
-  `reverse-engineering.md` are both inherited from `common/instructions/`;
+  `reverse-engineering.md` are both inherited from `workflows/base/`;
   there are no pack-local copies.
-- Edit `common/instructions/aidlc-workflow.md` only for universal lifecycle
+- Edit `workflows/base/aidlc-workflow.md` only for universal lifecycle
   behavior shared by every local workflow pack.
-- Edit `common/instructions/reverse-engineering.md` only for universal
+- Edit `workflows/base/reverse-engineering.md` only for universal
   brownfield evidence and approval behavior.
 - The only QA workflow overlay is
-  `workflow-overlays/qa-existing-test-inventory.md`; the manifest declares
+  `workflows/variants/qa-existing-test-inventory.md`; the manifest declares
   exactly where it replaces the two named common reverse-engineering slots.
 - Keep pack-local instructions limited to QA-specific behavior.
 - Treat `scaffolded-packs/` as derived output. Never edit it directly;
