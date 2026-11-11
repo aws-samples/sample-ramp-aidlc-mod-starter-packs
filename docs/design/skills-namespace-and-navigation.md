@@ -326,7 +326,7 @@ phase proves none remain outside the compatibility module:
 | Term | Meaning | Replaces |
 |---|---|---|
 | **Pack** | The unit a customer chooses: instructions, skills, MCP servers and a command for one outcome | unchanged |
-| **Target tool** | An agent tool a pack renders for: `kiro`, `claude-code`, `copilot`, `cursor` | "target" when it meant a tool |
+| **Target tool** | An agent tool a pack renders for: `kiro`, `claude-code`, `copilot`, `cursor`, and `codex` from implementation plan T18 | "target" when it meant a tool |
 | **Workspace profile** | A distribution profile: `standalone` or `shared` workspace, with spec and state roots | "profile" without qualifier |
 | **Workflow** | The base AI-DLC lifecycle instructions in `workflows/base/` | "canonical lifecycle", `common/instructions` |
 | **Workflow variant** | A named, declared replacement of slots in one base instruction | "workflow overlay", "overlay" |

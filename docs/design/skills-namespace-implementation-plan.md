@@ -20,22 +20,32 @@ The design was approved with the recommended answer to each open decision:
 | D4 | The 31 `origin: local` skills stay unreleasable; adopting or locking them is a later track. |
 | D5 | The compatibility window closes only after the first published release built from the new layout, by separate approval (T16 is filed held). |
 | D6 | The draft use-case, AWS-service and technology lists in the design are the initial vocabulary. |
+| D7 | QA Automated Testing ships for every harness in the adapter registry. Codex becomes the fifth adapter (T18), the pack declares and qualifies all five (T19), and a drift test keeps the pack and both helpers in step with the registry (T20). |
+
+D7 was added after approval, as an operator requirement (2026-11-11).
 
 ## Invariants every task keeps
 
 1. **Customer layout.** From T4 on, the customer-layout equivalence test
-   passes in every task. The only allowlisted changes are T7's removal of
-   `skill.yaml` from the 9 RAMP skills and, if T17 runs, the release bytes of
-   each adopted skill.
+   passes in every task. The only allowlisted changes are T18's Cursor rule
+   frontmatter and T7's removal of `skill.yaml` from the 9 RAMP skills. New
+   harness layouts are additions, not changes: T18 adds Codex for `init` and
+   both helpers, and T19 adds the new QA release targets. Both use the
+   capture script's `--add` mode, which never re-captures an existing entry.
+   T7's allowlist covers every entry present when it lands. If T19 lands
+   after T7, its additions are captured without `skill.yaml` and need no
+   allowlist entry.
 2. **Release determinism.** `scripts/verify-release-determinism.mjs` builds
    every qualified target twice with identical bytes, in every task that
    touches `installer/`, `skills*/`, `workflow*/`, `common/` or `packs/`.
+   From T19 on, that is five archives for `qa-automated-testing`, one per
+   registered harness.
 3. **Installer contract.** `.ramp/` state, the owner key
    `<pack>--<target>--<profile|standalone>`, the `install-files.tsv` format
    and `install.sh` / `install.ps1` behaviour do not change. The install test
    suites run unmodified, apart from path fixtures.
-4. **Lock.** `dependencies/skills.lock.yaml` changes in no task except the
-   conditional T17, which removes the entries of adopted skills.
+4. **Lock.** `dependencies/skills.lock.yaml` changes in no task. T17, the
+   one planned exception, was closed as not needed.
 5. **Generated files.** `scripts/regenerate.sh` leaves no diff under
    `packs/*/scaffolded-packs` or `packs/*/add-skills.{sh,ps1}`. Generated
    helpers are regenerated, never hand-edited.
@@ -73,12 +83,16 @@ starts.
 ```text
 T1, T3 ────────────────────────> T4
 T2 ────────────────────────────> T5
-T2, T4 ────────────────────────> T6, T7
+T2, T4 ────────────────────────> T6
+T4 ────────────────────────────> T18
+T2, T4, T18 ───────────────────> T7
+T6, T18 ───────────────────────> T19
 T7 ────────────────────────────> T8, T9, T10
+T19 ───────────────────────────> T10, T20
 T4, T8, T9, T10 ───────────────> T11
-T11 ───────────────────────────> T12, [T17 if needed]
-T6, T12 ───────────────────────> T13
-T5, T6, T8, T11, T13, [T17] ───> T14
+T11 ───────────────────────────> T12
+T6, T12, T19 ──────────────────> T13
+T5, T6, T8, T11, T13, T19 ─────> T14
 T14 ───────────────────────────> T15
 first release, approval ───────> [T16 held]
 ```
@@ -87,14 +101,35 @@ first release, approval ───────> [T16 held]
 |---|---|---|
 | 1 | T1, T2, T3 | now |
 | 2 | T4, T5 | T4: T1 and T3 landed. T5: T2 landed. |
-| 3 | T6, T7 | T2 and T4 landed |
-| 4 | T8, T9, T10 | T7 landed |
-| 5 | T11 | T4, T8, T9 and T10 landed |
-| 6 | T12, T17 (if needed) | T11 landed |
-| 7 | T13 | T6 and T12 landed |
-| 8 | T14 | T5, T6, T8, T11, T13 and, if it runs, T17 landed |
-| 9 | T15 | T14 landed |
+| 3 | T6, T18 | T6: T2 and T4 landed. T18: T4 landed. |
+| 4 | T7, T19 | T7: T2, T4 and T18 landed. T19: T6 and T18 landed. |
+| 5 | T8, T9, T10, T20 | T8 and T9: T7 landed. T10: T7 and T19 landed. T20: T19 landed. |
+| 6 | T11 | T4, T8, T9 and T10 landed |
+| 7 | T12 | T11 landed |
+| 8 | T13 | T6, T12 and T19 landed |
+| 9 | T14 | T5, T6, T8, T11, T13 and T19 landed |
+| 10 | T15 | T14 landed |
 | held | T16 | first published release from the new layout, and approval |
+
+T18 to T20 implement D7 and run as early as their conflicts allow:
+
+- T18 needs T4, because it extends T4's baseline. It lands before T7: both
+  edit the helper templates, the regenerated helpers and the equivalence
+  allowlist, and T7's allowlist must cover the Codex entries. This moves T7
+  and everything after it one wave later.
+- T19 needs T6, because both edit `packs/qa-automated-testing/pack.yaml`.
+  It runs beside T7: T19 edits only the baseline fixture, T7 only the
+  allowlist in the test file.
+- T20 needs T19, or it would be red on arrival. Its touch set is one new
+  test file, so it runs beside T8, T9 and T10.
+- T10 waits for T19 as well as T7: both edit the Windows entry of the
+  `helpers` job in `build-packs.yml` and `release-workflows.test.js`. T19
+  lands in wave 4, so T10 stays in wave 5.
+- T13 waits for T19, because both edit `packs/qa-automated-testing/pack.yaml`.
+- T14 waits for T19, so the generated catalogue records QA's final targets.
+- T11 and T12 run after T18 and T19 (through T10), and T13 after T19
+  directly. Each regenerates its scaffolds, Codex folders included, with no
+  diff.
 
 ## Tasks
 
@@ -622,6 +657,8 @@ determinism script and the helper matrix are green.
 
 ### T17: Adopt the kept-drifted mirrors (design D2), conditional
 
+**Closed as not needed:** T1 kept no mirror drifted, so T17 made no change.
+
 **Needed only if** T1 keeps any skill drifted. Otherwise it is closed with no
 change. It is the one task exempt from invariant 4.
 
@@ -657,17 +694,219 @@ each such change, and the equivalence test allowlists it.
 **Done when:** no adopted skill has a lock entry, each passes the lint as
 `origin: ramp`, and every check above is green.
 
+### T18: Codex target and Cursor rule loading (D7)
+
+**Goal:** `codex` is the fifth adapter in the registry, and `ramp-pack init`,
+`build-all`, both helpers and `ramp-pack release` render it. Cursor rules
+honour each instruction's `load`, so Cursor can be qualified.
+
+**Touch set:**
+- `installer/src/adapters/codex.js` (new) and `installer/src/adapters/index.js`
+- `installer/src/render/instructions.js` (a `codex-agents` kind; the Cursor
+  branch reads `load` and `description`)
+- `installer/src/render/mcp.js` (TOML output for Codex)
+- `installer/src/build-all.js` (a v2 pack renders its declared targets only)
+- `installer/src/render/add-skills.template.sh` and `.ps1` (tool list, usage
+  line, Codex skills root)
+- `packs/*/add-skills.{sh,ps1}` (regenerated)
+- `packs/*/scaffolded-packs/**` (regenerated: a `codex/` folder for each v1
+  pack, and the Cursor rule frontmatter)
+- `installer/package.json` and its lockfile, only for a TOML parser as a dev
+  dependency
+- `scripts/capture-customer-layout.mjs` (an `--add` mode)
+- `installer/test/fixtures/customer-layout-baseline.json` (additions only)
+- `installer/test/customer-layout.test.js` (allowlist: the Cursor rule
+  changes)
+- `installer/test/support/customer-layout.js`, only if it lists tools itself
+- tests: `adapters`, `render-instructions`, `render-mcp`, `render-command`,
+  `e2e`, `add-skills-helpers`, and `instruction-portability` (tool lists only)
+
+**Steps:**
+1. Write the Codex adapter to this layout. Each point marked "verify" is
+   checked against the current Codex CLI documentation and one real Codex
+   run. The PR records the Codex version and each result, and adjusts the
+   adapter where a point does not hold:
+   - instructions, kind `codex-agents`: the primary renders to `AGENTS.md` at
+     the project root, and companions to `.codex/instructions/<file>`.
+     Codex loads only `AGENTS.md` (verify), so `AGENTS.md` opens with a
+     header naming each companion and when to read it: at session start for
+     `load: always`, when its description applies for `load: auto`;
+   - skills under `.agents/skills/<slug>/` (verify; older Codex releases read
+     `.codex/skills/`);
+   - MCP servers in `.codex/config.toml`, one `[mcp_servers.<id>]` table each,
+     with `command`, `args` and an `env` table, or `url` for an HTTP server
+     (verify that Codex reads a project `.codex/config.toml` in a trusted
+     project, and the `url` key);
+   - command kind `none`, as for Kiro and Cursor, because Codex custom
+     prompts are user-level only (verify);
+   - default spec root `specs`;
+   - size: Codex reads at most 32 KiB of project instructions by default
+     (`project_doc_max_bytes`, verify). When the rendered `AGENTS.md` would
+     exceed it, the primary moves to `.codex/instructions/<file>` like a
+     companion, and `AGENTS.md` keeps only the header, which names that file
+     as the one to read first. The alternative, chosen only if the real
+     Codex run shows the pointer is not followed, is to raise
+     `project_doc_max_bytes` in the project `.codex/config.toml`.
+2. Render the TOML with a small deterministic writer for the value shapes
+   `pack.yaml` allows: strings, string arrays and a string table for `env`.
+   Any other shape fails with a clear error. The JSON adapters are unchanged.
+3. `build-all` renders the declared targets of a v2 pack and every registered
+   tool for a v1 pack. The two v2 packs keep their four folders until T19,
+   and each v1 pack gains `scaffolded-packs/codex/`.
+4. Cursor: a companion with `load: always` gets `alwaysApply: true`. One with
+   `load: auto` gets `alwaysApply: false` and its `description`, or the file
+   stem, so the Cursor agent can request it. Today both render
+   `alwaysApply: false` with no description, which Cursor treats as a rule
+   applied only by hand, so the always-loaded skill-activation rule never
+   loads. The existing Cursor expectation in `render-instructions` changes
+   with it.
+5. Add `codex` to both helper templates with the same message text in both
+   engines, and regenerate the helpers and scaffolds.
+6. Add the Codex layouts of `init`, the Bash helper and the PowerShell helper
+   for every pack to the baseline with `capture-customer-layout.mjs --add`,
+   which refuses to change an existing entry. Add the Cursor rule changes to
+   the allowlist, per pack and file.
+
+**Tests:** the adapter contract row for `codex`, with `codex` last in
+`listAdapterIds()`. `AGENTS.md` with its companion header. Exact TOML bytes
+for a stdio server, an HTTP server and a server with `env`, parsed back by a
+TOML parser. An unsupported value shape fails. `init --tool codex` and both
+helpers with `--tool codex` install into a temporary project. Every pack's
+rendered `AGENTS.md` is at most 32 KiB; today's largest primary is close to
+it. A fixture with an oversized primary renders the short `AGENTS.md` and the
+moved primary file, with the primary bytes unchanged. Red proof: the old
+Cursor renderer fails the `load: always` assertion; a v2 fixture that does
+not declare `codex` gets no `codex/` folder; removing `codex` from the
+PowerShell template fails the helper test; the oversized fixture with the
+fallback disabled fails the size assertion.
+
+**Customer bytes:** added: Codex layouts for `init`, the scaffolds and both
+helpers. Changed: the Cursor rule frontmatter of companion instructions in
+every pack, allowlisted. No release ZIP changes, because no pack qualifies
+Codex or Cursor yet.
+
+**Done when:** `scripts/regenerate.sh` leaves no diff, the equivalence test
+passes with only the additions and the allowlisted Cursor changes, and the PR
+records each "verify" result.
+
+### T19: QA Automated Testing on every harness (D7)
+
+**Goal:** `qa-automated-testing` declares and qualifies every registered
+harness, and ships a scaffold and a deterministic release ZIP for each, each
+proved by a harness-specific structural and install test.
+
+**Touch set:**
+- `packs/qa-automated-testing/pack.yaml` (`distribution` block only)
+- `packs/qa-automated-testing/scaffolded-packs/**` (regenerated; adds `codex/`)
+- `packs/qa-automated-testing/README.md` (tool lists, a Codex row, MCP paths)
+- `installer/test/qa-harness-coverage.test.js` (new)
+- `installer/test/support/harness-incompatibilities.js` (new; the approved
+  incompatibilities, empty)
+- `installer/test/fixtures/customer-layout-baseline.json` (additions only)
+- `.github/workflows/build-packs.yml` (both entries of the `helpers` job)
+- `installer/test/release-workflows.test.js` (asserts those entries)
+
+**Steps:**
+1. Set `targets` and `qualifiedTargets` to
+   `[kiro, claude-code, copilot, cursor, codex]`, in registry order.
+2. Regenerate the pack's scaffolds.
+3. Build the five ZIPs twice with the determinism script, and record the five
+   SHA-256 values in the PR. Copilot and Cursor already build twice with
+   identical bytes once declared; nothing in the release builder blocks them.
+4. Write the coverage test. It iterates `listAdapterIds()`, not the manifest,
+   and skips only the harnesses listed in
+   `support/harness-incompatibilities.js`, a module exporting one object of
+   approved incompatibilities that starts empty; T20 enforces its rules.
+   For each harness it builds the ZIP and checks the structure: instruction
+   paths and frontmatter, the MCP file path and format (the JSON root key, or
+   the Codex TOML tables), the 8 skills under the harness skills root, the
+   command file where the harness has one, and no overlay path outside that
+   harness's roots apart from its root files (`AGENTS.md`, `CLAUDE.md`,
+   `.mcp.json`). It then runs `install.sh`, and `install.ps1` with `pwsh`,
+   into a temporary project: install, a reinstall that changes nothing, a
+   refusal when an unowned primary instruction file already exists, and an
+   uninstall that leaves the project empty.
+5. Record in the PR, per harness, the documented behaviour each structural
+   check relies on: Copilot reads a description-only instructions file and
+   `.github/skills`; Cursor's rule types, `.cursor/skills` and the `type` key
+   in `.cursor/mcp.json`; Codex the T18 points. Each is marked verified, or
+   adjusted in this task.
+6. Add the three new release layouts to the baseline with
+   `capture-customer-layout.mjs --add`.
+7. Update the pack README: the supported-tool sentence, the scaffold table
+   with a Codex row, the `--tool` lists of both helpers and `init`, the
+   instruction-mapping table with a Codex column and T18's Cursor
+   frontmatter, and the MCP configuration paths.
+8. Add the coverage test to both entries of the `helpers` job, so
+   `RAMP_REQUIRE_POWERSHELL` makes a missing engine fail instead of skip.
+
+**Tests:** the coverage test on Linux and Windows; the determinism script for
+the pack, five archives; the equivalence test. Red proof: dropping `cursor`
+from `qualifiedTargets` fails the coverage test, and one changed byte in the
+rendered Codex `config.toml` fails its structural check.
+
+**Customer bytes:** added: the Copilot, Cursor and Codex release ZIPs and the
+`codex/` scaffold of this pack. The Kiro and Claude Code customer files are
+unchanged; their `bundle-manifest.json` records the new manifest hash, which
+is ZIP metadata.
+
+**Done when:** five ZIPs build twice with identical bytes, the coverage test
+is green on both runner families, and the equivalence test passes with only
+the additions.
+
+### T20: Harness registry drift test (D7)
+
+**Goal:** CI fails when the adapter registry gains a harness that QA
+Automated Testing or either helper does not cover, unless the maintainer has
+recorded an approved incompatibility.
+
+**Touch set:**
+- `installer/test/harness-registry-drift.test.js` (new). It reads T19's
+  `support/harness-incompatibilities.js` and does not edit it.
+
+**Steps:**
+1. Write the check as one function of the registry, the QA manifest, the
+   tools each helper template accepts, and the approved incompatibilities.
+   It returns findings.
+2. Findings: QA `targets` or `qualifiedTargets` differs from the registry,
+   as sets, minus the approved incompatibilities; a helper template accepts a
+   tool set other than the registry, or a skills root other than the
+   adapter's.
+3. The approved incompatibilities are the object in
+   `support/harness-incompatibilities.js`, which T19's coverage test also
+   reads, so an approved harness is skipped there and allowed here. This
+   test owns the list's rules: each entry names the harness and states a
+   non-empty reason; an entry for a harness outside the registry, or for one
+   QA qualifies, is a finding, so the list cannot go stale. Adding an entry
+   is a reviewed change to that module, and that review is the maintainer's
+   explicit approval.
+4. The test runs the check on the repository and expects no findings.
+
+**Tests:** the test itself. Red proofs in the same file, on injected inputs:
+a registry with an extra `future-tool` gives findings naming QA and both
+helpers; an approved entry for it clears the QA findings; an entry without a
+reason gives a finding; a stale entry gives a finding.
+
+**Customer bytes:** none.
+
+**Done when:** the test is green on the branch and holds the four red proofs.
+
 ## Rollback
 
 Each task is one merge commit on `revamp-starter-packs`. Revert in reverse
 landing order with `git revert -m 1 <merge>` through a pull request. Reverting
-T11, T12, T13 or T17 after T14 also regenerates the catalogue in the same revert,
-so the CI check stays green. Customers need no action at any point (design,
-"Rollback").
+T11, T12, T13 or T19 after T14 also regenerates the catalogue in the same revert,
+so the CI check stays green. Each baseline addition reverts with the task that
+made it. To withdraw Codex alone after later tasks have landed, revert T20,
+T19 and T18 in one pull request, and drop the Codex entries from the
+equivalence allowlist in the same change. Customers need no action at any
+point (design, "Rollback").
 
 ## Follow-on work, not in this plan
 
 - Lock verification in the no-Node helpers.
 - Adopting or locking the 31 `origin: local` skills (D4).
 - Converting the 12 v1 manifests to v2.
+- Qualifying `legacy-transformation-on-aws` for Copilot, Cursor and Codex.
+- Adding Codex to the tool lists in the other pack READMEs.
 - A documentation site built from the catalogue model.
