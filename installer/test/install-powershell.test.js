@@ -13,6 +13,11 @@ import {
   templates,
 } from './support/install-oracle.js'
 
+// A pwsh parent (the GitHub Windows runner's default shell) leaves PowerShell 7
+// module paths in PSModulePath, and Windows PowerShell 5.1 then cannot load
+// Get-FileHash. Every engine builds its own default path, as from a customer shell.
+if (process.platform === 'win32') delete process.env.PSModulePath
+
 const bashTemplate = templates.bash.toString('utf8')
 const template = templates.powershell.toString('utf8')
 const rendered = renderInstallers({

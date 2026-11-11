@@ -10,6 +10,11 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { bundle, expectSuccess, snapshot, tempRoot } from './support/install-oracle.js'
 
+// A pwsh parent (the GitHub Windows runner's default shell) leaves PowerShell 7
+// module paths in PSModulePath, and Windows PowerShell 5.1 then cannot load
+// Get-FileHash. Every engine builds its own default path, as from a customer shell.
+if (process.platform === 'win32') delete process.env.PSModulePath
+
 const repoRoot = new URL('../../', import.meta.url)
 const required = (process.env.RAMP_REQUIRE_POWERSHELL ?? '')
   .split(',')
