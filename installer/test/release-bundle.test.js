@@ -2507,6 +2507,31 @@ describe('deterministic unpacked bundle', () => {
     ).toThrow(/generator|executing|does not match/i)
   })
 
+  it('refuses a pack that references another pack\'s skills/ skill and names the owner', () => {
+    const state = makeBundleRepository({ rampSkill: false })
+    write(state.repository, 'skills/demo-skill/SKILL.md', '# Demo skill\n')
+    write(
+      state.repository,
+      'skills/demo-skill/skill.yaml',
+      [
+        'schemaVersion: 2',
+        'kind: ramp-skill',
+        'name: demo-skill',
+        'origin: ramp',
+        'version: 1.0.0',
+        'license: MIT-0',
+        'ownerPack: other-pack',
+        'classification:',
+        '  useCases: []',
+        '',
+      ].join('\n'),
+    )
+    state.sourceCommit = commitAll(state.repository, 'skill owned by another pack')
+    expect(() =>
+      buildBundle(state.packDir, bundleOptions(state)),
+    ).toThrow('skill demo-skill belongs to pack other-pack; pack demo-pack cannot use it')
+  })
+
   it('rejects a repository-authored non-MIT-0 skill', () => {
     const state = makeBundleRepository()
     writeDeclaredSkillMetadata(state, { license: 'Apache-2.0' })
