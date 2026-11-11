@@ -975,8 +975,11 @@ describe('createSkillResolver skills/ root', () => {
     skillMetadataV2(mirror, { origin: 'upstream' })
     writeLock(state.repoRoot, [['aws-iam', entry]])
     writeFileSync(join(mirror, 'references', 'guide.md'), 'drift')
-    expect(failureOf(() => resolveAwsIam(resolverFor(state), state))).toMatch(
-      /^upstream skill aws-iam differs from the lock; run ramp-pack skills sync --locked \(.*references\/guide\.md sha256 mismatch\)$/,
+    expect(failureOf(() => resolveAwsIam(resolverFor(state), state))).toBe(
+      [
+        'upstream skill aws-iam differs from the lock; run ramp-pack skills sync --locked',
+        'locked skill aws-iam at skills/aws-iam file references/guide.md sha256 mismatch',
+      ].join('\n'),
     )
   })
 
@@ -1008,7 +1011,7 @@ describe('createSkillResolver skills/ root', () => {
       resolverFor(state, { strictProvenance: true, allowLegacyLocal: false }),
       state,
       'origin-local-skill',
-    )).toThrow(`strict provenance rejects local skill origin-local-skill: ${directory}`)
+    )).toThrow('strict provenance rejects local skill origin-local-skill: skills/origin-local-skill')
     expect(() => resolveFor(
       resolverFor(state, { allowLegacyLocal: false }),
       state,
@@ -1018,9 +1021,9 @@ describe('createSkillResolver skills/ root', () => {
 
   it('requires skill.yaml in skills/<slug>/', () => {
     const state = fixture()
-    const directory = skillsSkill(state)
-    expect(() => resolveAwsIam(resolverFor(state), state)).toThrow(
-      `skill aws-iam in skills/ requires skill.yaml: ${join(directory, 'skill.yaml')}`,
+    skillsSkill(state)
+    expect(failureOf(() => resolveAwsIam(resolverFor(state), state))).toBe(
+      'skill aws-iam in skills/ requires skill.yaml: skills/aws-iam/skill.yaml',
     )
   })
 

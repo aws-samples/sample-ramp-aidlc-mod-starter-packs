@@ -15,7 +15,7 @@ import {
 const IDENTIFIER = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 // skills/ holds only skill directories plus README.md, so these names can never
 // be skills, and a leftover skills/ramp/ is never read as one.
-const RESERVED_SKILL_SLUGS = new Set(['ramp', 'README.md', 'taxonomy'])
+export const RESERVED_SKILL_SLUGS = new Set(['ramp', 'README.md', 'taxonomy'])
 const printedWarnings = new Set()
 
 // Prints each distinct warning once per process: a command that resolves the
@@ -503,7 +503,7 @@ export function createSkillResolver(options = {}) {
   function fromSkillsRoot(name, directory, packId) {
     if (!hasMetadata(directory)) {
       throw new Error(
-        `skill ${name} in skills/ requires skill.yaml: ${join(directory, 'skill.yaml')}`,
+        `skill ${name} in skills/ requires skill.yaml: ${displayPath(join(directory, 'skill.yaml'))}`,
       )
     }
     const ownerPack = declaredOwnerPack(directory)
@@ -534,8 +534,12 @@ export function createSkillResolver(options = {}) {
           allowSidecar: true,
         })
       } catch (error) {
+        // The design's exact text, then the verification detail on its own line.
         throw new Error(
-          `upstream skill ${name} differs from the lock; run ramp-pack skills sync --locked (${error.message})`,
+          [
+            `upstream skill ${name} differs from the lock; run ramp-pack skills sync --locked`,
+            error.message.replaceAll(directory, displayPath(directory)),
+          ].join('\n'),
         )
       }
       return {
@@ -547,7 +551,7 @@ export function createSkillResolver(options = {}) {
     if (origin === 'local') {
       if (strictProvenance) {
         throw new Error(
-          `strict provenance rejects local skill ${name}: ${directory}`,
+          `strict provenance rejects local skill ${name}: ${displayPath(directory)}`,
         )
       }
       if (!allowLegacyLocal) {
