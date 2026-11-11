@@ -65,6 +65,28 @@ const RAMP_SKILL_FIELDS = new Set([
   'ownerPack',
 ])
 const BASED_ON_FIELDS = new Set(['source', 'commit', 'path'])
+const SKILL_V2_FIELDS = new Set([
+  'schemaVersion',
+  'kind',
+  'name',
+  'origin',
+  'version',
+  'license',
+  'maturity',
+  'ownerPack',
+  'basedOn',
+  'classification',
+])
+const SKILL_V2_REQUIRED_FIELDS = [
+  'schemaVersion',
+  'kind',
+  'name',
+  'origin',
+  'classification',
+]
+const SKILL_ORIGINS = ['ramp', 'upstream', 'local']
+const SKILL_MATURITY_LEVELS = ['experimental', 'preview', 'stable', 'deprecated']
+export const CLASSIFICATION_FACETS = ['useCases', 'awsServices', 'technologies']
 
 function requireObject(value, label) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -542,6 +564,13 @@ export function loadRampSkillMetadata(
   requireRegularFile(metadataPath, 'skill.yaml')
 
   const value = parseYamlFile(metadataPath, 'skill.yaml')
+  if (value.schemaVersion === 2) {
+    return normalizeSkillMetadataV2(value, { expectedName, ownerPack })
+  }
+  return normalizeSkillMetadataV1(value, { expectedName, ownerPack })
+}
+
+function normalizeSkillMetadataV1(value, { expectedName, ownerPack } = {}) {
   assertOnlyKeys(value, RAMP_SKILL_FIELDS, 'skill.yaml')
   assertRequiredKeys(
     value,
@@ -606,4 +635,228 @@ export function loadRampSkillMetadata(
     ...(basedOn ? { basedOn } : {}),
     ...(normalizedOwnerPack ? { ownerPack: normalizedOwnerPack } : {}),
   }
+}
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function hasField(value, key) {
+  return Object.prototype.hasOwnProperty.call(value, key)
+}
+
+function stringFinding(value, label) {
+  if (typeof value !== 'string' || value.trim() === '') {
+    return `${label} must be a non-empty string`
+  }
+  return null
+}
+
+function identifierFinding(value, label) {
+  return stringFinding(value, label) ??
+    (IDENTIFIER.test(value) ? null : `${label} must be a lower-kebab identifier`)
+}
+
+function patternFinding(value, pattern, label) {
+  return stringFinding(value, label) ??
+    (pattern.test(value) ? null : `${label} has an invalid format`)
+}
+
+function basedOnFindings(basedOn) {
+  if (!isPlainObject(basedOn)) return ['skill.yaml basedOn must be an object']
+  const findings = []
+  for (const key of Object.keys(basedOn)) {
+    if (!BASED_ON_FIELDS.has(key)) {
+      findings.push(`skill.yaml basedOn has unknown field: ${key}`)
+    }
+  }
+  for (const key of BASED_ON_FIELDS) {
+    if (!hasField(basedOn, key)) {
+      findings.push(`skill.yaml basedOn is missing required field: ${key}`)
+    }
+  }
+  if (hasField(basedOn, 'source')) {
+    findings.push(identifierFinding(basedOn.source, 'skill.yaml basedOn source'))
+  }
+  if (hasField(basedOn, 'commit')) {
+    findings.push(patternFinding(basedOn.commit, COMMIT, 'skill.yaml basedOn commit'))
+  }
+  if (hasField(basedOn, 'path')) {
+    try {
+      assertPortableRelativePath(basedOn.path, 'skill.yaml basedOn path')
+    } catch (error) {
+      findings.push(error.message)
+    }
+  }
+  return findings.filter(Boolean)
+}
+
+function classificationFindings(classification) {
+  if (!isPlainObject(classification)) {
+    return ['skill.yaml classification must be an object']
+  }
+  const findings = []
+  for (const key of Object.keys(classification)) {
+    if (!CLASSIFICATION_FACETS.includes(key)) {
+      findings.push(`skill.yaml classification has unknown field: ${key}`)
+    }
+  }
+  for (const facet of CLASSIFICATION_FACETS) {
+    if (!hasField(classification, facet)) continue
+    const label = `skill.yaml classification.${facet}`
+    const values = classification[facet]
+    if (!Array.isArray(values)) {
+      findings.push(`${label} must be an array`)
+      continue
+    }
+    const seen = new Set()
+    values.forEach((item, index) => {
+      const finding = identifierFinding(item, `${label} value ${index}`)
+      if (finding) {
+        findings.push(finding)
+      } else if (seen.has(item)) {
+        findings.push(`${label} has duplicate value: ${item}`)
+      }
+      seen.add(item)
+    })
+  }
+  return findings
+}
+
+// Collects every structural problem of a schemaVersion 2 skill.yaml instead of
+// stopping at the first, so the taxonomy lint can report them together.
+function skillMetadataV2Findings(value, { expectedName } = {}) {
+  const findings = []
+  for (const key of Object.keys(value)) {
+    if (!SKILL_V2_FIELDS.has(key)) findings.push(`skill.yaml has unknown field: ${key}`)
+  }
+  for (const key of SKILL_V2_REQUIRED_FIELDS) {
+    if (!hasField(value, key)) {
+      findings.push(`skill.yaml schemaVersion 2 is missing required field: ${key}`)
+    }
+  }
+
+  if (hasField(value, 'kind') && value.kind !== 'ramp-skill') {
+    findings.push('skill.yaml kind must be ramp-skill')
+  }
+  if (hasField(value, 'name')) {
+    const nameFinding = identifierFinding(value.name, 'skill.yaml name')
+    if (nameFinding) {
+      findings.push(nameFinding)
+    } else if (expectedName !== undefined && value.name !== expectedName) {
+      findings.push(`skill.yaml name ${value.name} does not match expectedName ${expectedName}`)
+    }
+  }
+
+  const origin = value.origin
+  if (hasField(value, 'origin') && !SKILL_ORIGINS.includes(origin)) {
+    findings.push(`skill.yaml origin must be one of: ${SKILL_ORIGINS.join(', ')}`)
+  }
+  if (origin === 'ramp' || origin === 'local') {
+    for (const key of ['version', 'license']) {
+      if (!hasField(value, key)) {
+        findings.push(`skill.yaml origin ${origin} is missing required field: ${key}`)
+      }
+    }
+  }
+  if (origin === 'upstream') {
+    for (const key of ['version', 'license']) {
+      if (hasField(value, key)) {
+        findings.push(`skill.yaml ${key} is forbidden for origin upstream; the skill lock supplies it`)
+      }
+    }
+    if (hasField(value, 'ownerPack')) {
+      findings.push('skill.yaml ownerPack is forbidden for origin upstream')
+    }
+  }
+  const basedOnForbidden = origin === 'upstream' || origin === 'local'
+  if (basedOnForbidden && hasField(value, 'basedOn')) {
+    findings.push(`skill.yaml basedOn is forbidden for origin ${origin}`)
+  }
+
+  if (origin !== 'upstream') {
+    if (hasField(value, 'version')) {
+      findings.push(patternFinding(value.version, SEMVER, 'skill.yaml version'))
+    }
+    if (hasField(value, 'license')) {
+      findings.push(patternFinding(value.license, SPDX_STYLE, 'skill.yaml license'))
+    }
+    if (hasField(value, 'ownerPack')) {
+      findings.push(identifierFinding(value.ownerPack, 'skill.yaml ownerPack'))
+    }
+  }
+  if (!basedOnForbidden && hasField(value, 'basedOn')) {
+    findings.push(...basedOnFindings(value.basedOn))
+  }
+  if (
+    hasField(value, 'maturity') &&
+    !SKILL_MATURITY_LEVELS.includes(value.maturity)
+  ) {
+    findings.push(`skill.yaml maturity must be one of: ${SKILL_MATURITY_LEVELS.join(', ')}`)
+  }
+  if (hasField(value, 'classification')) {
+    findings.push(...classificationFindings(value.classification))
+  }
+  return findings.filter(Boolean)
+}
+
+function normalizeSkillMetadataV2(value, { expectedName, ownerPack } = {}) {
+  const findings = skillMetadataV2Findings(value, { expectedName })
+  if (findings.length > 0) throw new Error(findings[0])
+
+  // A pack-local override must still name its pack, exactly as in v1. In the
+  // shared namespace ownerPack is an optional declaration on ramp and local
+  // skills.
+  let normalizedOwnerPack = value.ownerPack
+  if (ownerPack !== undefined) {
+    requireIdentifier(ownerPack, 'expected ownerPack')
+    normalizedOwnerPack = requireIdentifier(
+      value.ownerPack,
+      'skill.yaml ownerPack',
+    )
+    if (normalizedOwnerPack !== ownerPack) {
+      throw new Error(`skill.yaml ownerPack ${normalizedOwnerPack} does not match ${ownerPack}`)
+    }
+  }
+
+  return {
+    schemaVersion: 2,
+    kind: 'ramp-skill',
+    name: value.name,
+    origin: value.origin,
+    ...(value.version !== undefined ? { version: value.version } : {}),
+    ...(value.license !== undefined ? { license: value.license } : {}),
+    ...(value.maturity !== undefined ? { maturity: value.maturity } : {}),
+    ...(normalizedOwnerPack !== undefined ? { ownerPack: normalizedOwnerPack } : {}),
+    ...(value.basedOn !== undefined
+      ? {
+          basedOn: {
+            source: value.basedOn.source,
+            commit: value.basedOn.commit,
+            path: value.basedOn.path,
+          },
+        }
+      : {}),
+    classification: Object.fromEntries(
+      CLASSIFICATION_FACETS.map((facet) => [
+        facet,
+        [...(value.classification[facet] ?? [])],
+      ]),
+    ),
+  }
+}
+
+// Returns the structural problems of a parsed skill.yaml as messages, without
+// throwing. schemaVersion 1 keeps its reader, which stops at the first problem.
+export function skillMetadataFindings(value, { expectedName } = {}) {
+  if (!isPlainObject(value)) return ['skill.yaml must be an object']
+  if (value.schemaVersion === 2) {
+    return skillMetadataV2Findings(value, { expectedName })
+  }
+  try {
+    normalizeSkillMetadataV1(value, { expectedName })
+  } catch (error) {
+    return [error.message]
+  }
+  return []
 }
