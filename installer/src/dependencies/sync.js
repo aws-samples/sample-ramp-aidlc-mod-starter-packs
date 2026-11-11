@@ -16,7 +16,6 @@ import {
   unlinkSync,
   writeFileSync,
 } from 'node:fs'
-import { devNull } from 'node:os'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import {
   assertPortableRelativePath,
@@ -24,6 +23,7 @@ import {
   hashFileRecords,
 } from './checksum.js'
 import {
+  NO_GLOBAL_GIT_CONFIG,
   materializeGitTree,
   readGitFile,
   readGitTree,
@@ -42,7 +42,7 @@ import {
 const IDENTIFIER = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const GIT_ENV = {
   GCM_INTERACTIVE: 'Never',
-  GIT_CONFIG_GLOBAL: devNull,
+  GIT_CONFIG_GLOBAL: NO_GLOBAL_GIT_CONFIG,
   GIT_CONFIG_NOSYSTEM: '1',
   GIT_NO_LAZY_FETCH: '1',
   GIT_NO_REPLACE_OBJECTS: '1',
