@@ -77,7 +77,21 @@ function git(repoRoot, args) {
 // Explicit options win; SOURCE_DATE_EPOCH replaces only the build time; a Git
 // checkout supplies whatever remains. buildBundle() then verifies every
 // consumed input against sourceCommit, so derivation never relaxes that gate.
-function releaseSource(repoRoot, { sourceCommit, buildTime, env }) {
+// Deriving sourceCommit from HEAD is honest only when no tracked release input
+// differs from it; untracked planning files elsewhere never block a build.
+function assertCleanReleaseInputs(repoRoot, packDir) {
+  const pack = relative(repoRoot, resolve(packDir)).split(sep).join('/')
+  const inputs = [pack, 'common', 'workflow-overlays', 'skills/ramp', 'dependencies', 'installer']
+  const changed = git(repoRoot, ['diff', '--name-only', 'HEAD', '--', ...inputs])
+  if (changed !== '') {
+    const paths = changed.split('\n').join(', ')
+    throw new Error(
+      `tracked changes under release inputs: ${paths}; commit them or pass --source-commit and --build-time`,
+    )
+  }
+}
+
+function releaseSource(repoRoot, { sourceCommit, buildTime, env }, packDir) {
   const inGit = existsSync(join(repoRoot, '.git'))
   const epoch = env.SOURCE_DATE_EPOCH
   if (!inGit && (sourceCommit === undefined || (buildTime === undefined && epoch === undefined))) {
@@ -85,6 +99,7 @@ function releaseSource(repoRoot, { sourceCommit, buildTime, env }) {
       'release outside Git requires --source-commit and --build-time (or SOURCE_DATE_EPOCH)',
     )
   }
+  if (sourceCommit === undefined) assertCleanReleaseInputs(repoRoot, packDir)
   const commit = sourceCommit ?? git(repoRoot, ['rev-parse', '--verify', 'HEAD^{commit}'])
   let time
   if (buildTime !== undefined) time = explicitBuildTime(buildTime)
@@ -231,7 +246,7 @@ export async function releasePack(packDir, options = {}) {
     sourceCommit: options.sourceCommit,
     buildTime: options.buildTime,
     env,
-  })
+  }, packDir)
   const workspace = resolveWorkspace(manifest, {
     tools: [target],
     ...(profile !== undefined ? { profile } : {}),

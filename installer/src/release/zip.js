@@ -84,12 +84,14 @@ function normalizedEntries(entries) {
   if (roots.size !== 1) {
     throw new Error('ZIP entries must share exactly one top-level directory')
   }
-  const keys = [...folded.keys()].sort(comparePortablePaths)
-  for (let index = 0; index < keys.length - 1; index += 1) {
-    if (keys[index + 1].startsWith(`${keys[index]}/`)) {
-      throw new Error(
-        `ZIP entry file-directory prefix collision: ${folded.get(keys[index])}`,
-      )
+  // Check every ancestor, not sorted neighbours: 'a-b' sorts between 'a' and 'a/c'.
+  for (const key of folded.keys()) {
+    const segments = key.split('/')
+    for (let depth = 1; depth < segments.length; depth += 1) {
+      const parent = segments.slice(0, depth).join('/')
+      if (folded.has(parent)) {
+        throw new Error(`ZIP entry file-directory prefix collision: ${folded.get(parent)}`)
+      }
     }
   }
   return normalized

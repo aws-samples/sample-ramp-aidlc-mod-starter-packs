@@ -178,6 +178,14 @@ describe('deterministic ZIP encoding', () => {
     ], { mtime: MTIME })).rejects.toThrow(/prefix/)
   })
 
+  it('rejects a file-directory clash separated by a name that sorts before slash', async () => {
+    await expect(encodeDeterministicZip([
+      { path: 'root/a', bytes: Buffer.from('a'), mode: 0o100644 },
+      { path: 'root/a-b', bytes: Buffer.from('ab'), mode: 0o100644 },
+      { path: 'root/a/c', bytes: Buffer.from('c'), mode: 0o100644 },
+    ], { mtime: MTIME })).rejects.toThrow(/prefix/)
+  })
+
   it('rejects entries outside one top-level directory', async () => {
     await expect(encodeDeterministicZip([
       { path: 'one/a.md', bytes: Buffer.from('a'), mode: 0o100644 },

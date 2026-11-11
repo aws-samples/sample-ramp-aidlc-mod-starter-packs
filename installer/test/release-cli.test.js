@@ -425,7 +425,9 @@ describe('releasePack', () => {
   it('rejects a dirty consumed input even when SOURCE_DATE_EPOCH is set', async () => {
     const state = makeRepository()
     write(state.repository, 'skills/ramp/demo-skill/SKILL.md', '# Dirty skill\n')
+    // An explicit commit skips the derivation check, so buildBundle's own gate must catch it.
     await expect(releasePack(state.packDir, options(state, {
+      sourceCommit: state.sourceCommit,
       env: { SOURCE_DATE_EPOCH: '1767225600' },
     }))).rejects.toThrow(/mismatch commit/)
     expect(existsSync(join(state.repository, 'dist'))).toBe(false)
@@ -435,6 +437,19 @@ describe('releasePack', () => {
     const state = makeRepository()
     write(state.repository, 'skills/ramp/demo-skill/references/new.md', 'untracked\n')
     await expect(releasePack(state.packDir, options(state))).rejects.toThrow()
+  })
+
+  it('refuses to derive provenance while a tracked release input is modified', async () => {
+    const state = makeRepository()
+    write(
+      state.repository,
+      'installer/src/release/zip.js',
+      `${readFileSync(join(state.repository, 'installer/src/release/zip.js'), 'utf8')}// local edit\n`,
+    )
+    await expect(releasePack(state.packDir, options(state, {
+      env: { SOURCE_DATE_EPOCH: '1767225600' },
+    }))).rejects.toThrow(/tracked changes under release inputs: installer\/src\/release\/zip\.js/)
+    expect(existsSync(join(state.repository, 'dist'))).toBe(false)
   })
 
   it('allows untracked planning files outside the consumed inputs', async () => {
