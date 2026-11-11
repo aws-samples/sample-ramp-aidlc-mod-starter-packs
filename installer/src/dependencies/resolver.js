@@ -488,8 +488,14 @@ export function createSkillResolver(options = {}) {
       ),
     ].filter(Boolean)
     if (others.length > 0) {
+      // One line per conflicting old root, in the text the helpers print.
       throw new Error(
-        `skill ${name} is ambiguous: it exists in ${displayPath(skillsCandidate)} and ${others.map(displayPath).join(' and ')}; keep only skills/${name}/`,
+        others
+          .map(
+            (other) =>
+              `skill ${name} is ambiguous: found in ${displayPath(skillsCandidate)} and ${displayPath(other)}; keep only one copy`,
+          )
+          .join('\n'),
       )
     }
   }
@@ -567,7 +573,9 @@ export function createSkillResolver(options = {}) {
     } = {},
   ) {
     if (RESERVED_SKILL_SLUGS.has(name)) {
-      throw new Error(`skill name ${name} is reserved in skills/`)
+      throw new Error(
+        `skill name ${name} is reserved: ramp, README.md and taxonomy cannot be skill names`,
+      )
     }
     requireIdentifier(name, 'skill name')
     const packRoot = resolve(requireNonEmptyString(packDir, 'packDir'))

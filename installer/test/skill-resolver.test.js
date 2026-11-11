@@ -1039,17 +1039,20 @@ describe('createSkillResolver skills/ root', () => {
     skillMetadataV2(skillsSkill(state))
     arrange(state)
     expect(failureOf(() => resolveAwsIam(resolverFor(state), state))).toBe(
-      `skill aws-iam is ambiguous: it exists in skills/aws-iam and ${oldPath}; keep only skills/aws-iam/`,
+      `skill aws-iam is ambiguous: found in skills/aws-iam and ${oldPath}; keep only one copy`,
     )
   })
 
-  it('names every old copy when a slug is in several old roots', () => {
+  it('prints one line per old copy when a slug is in several old roots', () => {
     const state = fixture()
     skillMetadataV2(skillsSkill(state))
     metadata(writeTree(join(state.rampDir, 'aws-iam')))
     writeTree(join(state.libraryDir, 'aws-iam'))
     expect(failureOf(() => resolveAwsIam(resolverFor(state), state))).toBe(
-      'skill aws-iam is ambiguous: it exists in skills/aws-iam and skills/ramp/aws-iam and skills-library/aws-iam; keep only skills/aws-iam/',
+      [
+        'skill aws-iam is ambiguous: found in skills/aws-iam and skills/ramp/aws-iam; keep only one copy',
+        'skill aws-iam is ambiguous: found in skills/aws-iam and skills-library/aws-iam; keep only one copy',
+      ].join('\n'),
     )
   })
 
@@ -1067,7 +1070,7 @@ describe('createSkillResolver skills/ root', () => {
     const state = fixture()
     metadata(writeTree(join(state.rampDir, 'ramp')), { name: 'ramp' })
     expect(() => resolveFor(resolverFor(state), state, name)).toThrow(
-      `skill name ${name} is reserved in skills/`,
+      `skill name ${name} is reserved: ramp, README.md and taxonomy cannot be skill names`,
     )
   })
 
