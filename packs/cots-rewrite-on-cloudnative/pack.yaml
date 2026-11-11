@@ -2,6 +2,9 @@ name: cots-rewrite-on-cloudnative
 title: COTS Rewrite on Cloud-Native
 description: Rewrite a commercial off-the-shelf or packaged/low-code application (e.g. OutSystems) as a cloud-native system, from source code and/or FSDs.
 
+catalog:
+  useCases: [application-modernization, cloud-native-development]
+
 instructions:
   - file: aidlc-workflow.md
     role: primary

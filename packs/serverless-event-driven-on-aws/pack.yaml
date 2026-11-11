@@ -2,6 +2,9 @@ name: serverless-event-driven-on-aws
 title: Serverless Event-Driven on AWS
 description: Event-driven serverless systems — real-time streaming, subscription matching, notifications, and third-party integrations.
 
+catalog:
+  useCases: [cloud-native-development]
+
 instructions:
   - file: aidlc-workflow.md
     role: primary

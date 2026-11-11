@@ -6,6 +6,9 @@ description: >
   permitted tooling are discovered and gated in-flow (validated with the AWS Knowledge MCP), not
   assumed. Monolith→microservices decomposition is an optional, separately-gated stretch target.
 
+catalog:
+  useCases: [application-modernization]
+
 instructions:
   - file: aidlc-workflow.md
     role: primary

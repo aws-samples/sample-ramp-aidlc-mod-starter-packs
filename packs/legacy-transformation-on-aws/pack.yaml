@@ -11,6 +11,7 @@ catalog:
   domain: application-modernization
   executionModel: assisted-builder
   maturity: preview
+  useCases: [application-modernization]
 
 workflow:
   provider: local-instructions-v1
