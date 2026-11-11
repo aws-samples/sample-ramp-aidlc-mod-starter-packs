@@ -1,0 +1,40 @@
+# Catalogue fixture vocabulary. Display order differs from id order on purpose.
+schemaVersion: 1
+useCases:
+  - id: modernize
+    label: Modernize an application
+    description: Fixture use case shown first by order.
+    outcome: transform
+    order: 10
+  - id: build-things
+    label: Build something new
+    description: Fixture use case shown second by order.
+    outcome: reimagine
+    order: 20
+  - id: automate-checks
+    label: Automate checks
+    description: Fixture use case that no pack or skill declares.
+    outcome: automate
+    order: 30
+awsServices:
+  - id: lambda
+    label: AWS Lambda
+    description: Fixture service shown second by order.
+    order: 20
+  - id: ecs
+    label: Amazon ECS
+    description: Fixture service shown first by order.
+    order: 10
+  - id: s3
+    label: Amazon S3
+    description: Fixture service no skill declares.
+    order: 30
+technologies:
+  - id: terraform
+    label: Terraform
+    description: Fixture technology.
+    order: 10
+  - id: dotnet
+    label: .NET
+    description: Fixture technology.
+    order: 20

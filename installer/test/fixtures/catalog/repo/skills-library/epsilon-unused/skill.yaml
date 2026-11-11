@@ -1,0 +1,11 @@
+schemaVersion: 2
+kind: ramp-skill
+name: epsilon-unused
+origin: local
+version: 0.0.0
+license: MIT-0
+maturity: experimental
+classification:
+  useCases: [modernize]
+  awsServices: []
+  technologies: [dotnet]

@@ -1,0 +1,11 @@
+schemaVersion: 2
+kind: ramp-skill
+name: gamma-ramp
+origin: ramp
+version: 1.0.0
+license: MIT-0
+maturity: preview
+classification:
+  useCases: [build-things, modernize]
+  awsServices: [lambda, ecs]
+  technologies: [terraform]

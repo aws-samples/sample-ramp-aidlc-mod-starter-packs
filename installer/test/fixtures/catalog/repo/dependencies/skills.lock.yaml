@@ -1,0 +1,29 @@
+schemaVersion: 1
+skills:
+  - name: beta-upstream
+    source: fixture-source
+    commit: 1234567890abcdef1234567890abcdef12345678
+    path: skills/beta-upstream
+    treeSha256: 85928a7eb515155da4734357435fdfb35629efecc8047800dee91c897f4b9deb
+    files:
+      - path: SKILL.md
+        sha256: e72577dda385376eec19ed56f375c39398f86bdba5981ed633c46412e41594d9
+        size: 130
+        executable: false
+      - path: references/guide.md
+        sha256: f9c097d639413c7c6b5ad67f4f6402eb6c2c95a60a2454238bae01ed4ce9a352
+        size: 20
+        executable: false
+    license: Apache-2.0
+    licensePath: LICENSE
+    licenseFile:
+      path: LICENSE
+      sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+      size: 100
+      executable: false
+    noticePath: NOTICE
+    noticeFile:
+      path: NOTICE
+      sha256: cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+      size: 100
+      executable: false

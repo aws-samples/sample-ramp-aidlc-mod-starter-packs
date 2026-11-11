@@ -1,0 +1,14 @@
+name: zeta-pack
+title: Zeta | Pack
+description: Modernizes the zeta system. Uses a local copy of the primary instruction.
+instructions:
+  - file: aidlc-workflow.md
+    role: primary
+  - file: reverse-engineering.md
+    role: companion
+    load: auto
+    description: Fixture reverse engineering.
+skills:
+  - beta-upstream
+  - delta-local
+  - eta-ramp

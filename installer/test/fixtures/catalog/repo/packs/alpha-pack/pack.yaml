@@ -1,0 +1,32 @@
+schemaVersion: 2
+kind: ramp-pack
+name: alpha-pack
+title: Alpha Pack
+description: >
+  Builds the alpha service on AWS, e.g. a small API behind a load balancer.
+  This second sentence is not shown in the catalogue.
+version: 0.1.0
+catalog:
+  outcome: reimagine
+  domain: fixture
+  executionModel: assisted-builder
+  maturity: preview
+workflow:
+  provider: local-instructions-v1
+  overlays:
+    - shared-variant.md
+    - older-style.md
+instructions:
+  - file: aidlc-workflow.md
+    role: primary
+  - file: reverse-engineering.md
+    role: companion
+    load: auto
+    description: Fixture reverse engineering.
+skills:
+  - gamma-ramp
+  - beta-upstream
+distribution:
+  targets: [cursor, kiro, claude-code]
+  qualifiedTargets: [kiro]
+  profiles: []
