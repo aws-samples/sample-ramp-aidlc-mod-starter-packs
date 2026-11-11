@@ -2164,6 +2164,7 @@ describe('committed immutable skill lock', () => {
       expect(() => verifyLockedSkillDirectory(
         join(projectRoot, 'skills-library', name),
         skill,
+        { allowSidecar: true },
       )).not.toThrow()
     }
     expect(legalBySourceCommit.size).toBe(2)
