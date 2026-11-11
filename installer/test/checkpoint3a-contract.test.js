@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import {
   existsSync,
   lstatSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -19,7 +20,7 @@ import { createSkillResolver } from '../src/dependencies/resolver.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(here, '..', '..')
-const rampRoot = join(repoRoot, 'skills', 'ramp')
+const rampRoot = join(repoRoot, 'skills')
 const movedSkills = [
   'mobile-test-automation',
   'web-test-automation',
@@ -357,15 +358,19 @@ describe('Checkpoint 3A RAMP-owned skill move contract', () => {
   it('loads exact RAMP metadata and resolves every moved skill with declared provenance', () => {
     const sentinels = mkdtempSync(join(tmpdir(), 'ramp-checkpoint3a-'))
     const cacheSentinel = join(sentinels, 'cache-must-not-be-read')
-    const librarySentinel = join(sentinels, 'library-must-not-be-read')
+    // The ambiguity guard lists the compatibility library, so it is a
+    // directory holding only a sentinel file that must stay untouched.
+    const libraryDir = join(sentinels, 'library')
+    const librarySentinel = join(libraryDir, 'library-must-not-be-read')
     writeFileSync(cacheSentinel, 'cache sentinel\n')
+    mkdirSync(libraryDir)
     writeFileSync(librarySentinel, 'library sentinel\n')
 
     try {
       const resolver = createSkillResolver({
         repoRoot,
         cacheDir: cacheSentinel,
-        libraryDir: librarySentinel,
+        libraryDir,
         strictProvenance: true,
         allowLegacyLocal: false,
       })
@@ -432,9 +437,12 @@ describe('Checkpoint 3A RAMP-owned skill move contract', () => {
     }
   })
 
-  it('removes the nine compatibility-library source trees', () => {
+  it('removes the nine skills from the compatibility roots', () => {
     for (const skill of movedSkills) {
       expect(existsSync(join(repoRoot, 'skills-library', skill)), skill).toBe(
+        false,
+      )
+      expect(existsSync(join(repoRoot, 'skills', 'ramp', skill)), skill).toBe(
         false,
       )
     }
@@ -450,7 +458,7 @@ describe('Checkpoint 3A scoped product filesystem contract', () => {
     }
 
     for (const skill of movedSkills) {
-      assertOrdinaryPath(`skills/ramp/${skill}`, 'directory')
+      assertOrdinaryPath(`skills/${skill}`, 'directory')
     }
 
     // The collector recursively rejects symbolic links and special entries.

@@ -28,7 +28,7 @@ Pick **one** of the two ways to add this pack to your project.
 
 ### Option A — copy the committed folder (no tooling)
 
-Each pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. Copy the folder for your tool into your project root — no Node required — then run `add-skills.sh` to port this pack's skills from the shared `skills-library/` (the `SKILLS` list at the top of the script is editable):
+Each pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. Copy the folder for your tool into your project root — no Node required — then run `add-skills.sh` to port this pack's skills from the shared `skills/` (the `SKILLS` list at the top of the script is editable):
 
 | Your tool | Copy from | Into your project |
 |---|---|---|
@@ -57,7 +57,7 @@ Run the `ramp-pack` installer from the repo root; it reads the neutral source an
 node installer/bin/ramp-pack.js init voice-ai-agent-on-aws --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
 ```
 
-Add `--dry-run` to preview, `--force` to overwrite existing files. To rebuild all four committed tool scaffolds in place, run `./scripts/regenerate.sh voice-ai-agent-on-aws` (requires Node). The tool-neutral source plus the shared `skills-library/` are the single source of truth for both the committed `scaffolded-packs/` and the installer output.
+Add `--dry-run` to preview, `--force` to overwrite existing files. To rebuild all four committed tool scaffolds in place, run `./scripts/regenerate.sh voice-ai-agent-on-aws` (requires Node). The tool-neutral source plus the shared `skills/` are the single source of truth for both the committed `scaffolded-packs/` and the installer output.
 
 ### Then
 
@@ -80,13 +80,13 @@ voice-ai-agent-on-aws/
 │   ├── aidlc-workflow.md         # Decision-gated Requirements → Design → Tasks (primary)
 │   ├── skill-activation.md       # When to activate skills + MCP (companion, always)
 │   └── reverse-engineering.md    # Phase 0 playbook (companion, brownfield-only)
-├── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills-library/
+├── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills/
 ├── add-skills.ps1            # Windows/PowerShell equivalent of add-skills.sh (no Node)
 └── scaffolded-packs/         # Committed per-tool steering (regenerated from source)
     └── kiro/ claude-code/ copilot/ cursor/   # steering/MCP/command only — NO skills
 ```
 
-> `instructions/` and `pack.yaml` are the **neutral source** you edit. Skills are **not** stored in the pack — they are referenced by name in `pack.yaml` (`skills:`) and live in the shared [`skills-library/`](../../skills-library/) at the repo root (a local `skills/` dir appears only when a pack overrides a library skill). The committed per-tool scaffolds under `scaffolded-packs/` (steering only) are rendered from this neutral source, and `add-skills.sh` ports the named skills from the shared skills-library — regenerate the scaffolds with `./scripts/regenerate.sh voice-ai-agent-on-aws`.
+> `instructions/` and `pack.yaml` are the **neutral source** you edit. Skills are **not** stored in the pack — they are referenced by name in `pack.yaml` (`skills:`) and live in the shared [`skills/`](../../skills/) at the repo root (a local `skills/` dir appears only when a pack overrides a library skill). The committed per-tool scaffolds under `scaffolded-packs/` (steering only) are rendered from this neutral source, and `add-skills.sh` ports the named skills from the shared skills/ — regenerate the scaffolds with `./scripts/regenerate.sh voice-ai-agent-on-aws`.
 
 ### How each instruction maps per tool
 

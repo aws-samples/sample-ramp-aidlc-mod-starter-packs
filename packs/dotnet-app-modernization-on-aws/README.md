@@ -18,7 +18,7 @@ Pick **one** of the two ways to add this pack to your project.
 
 ### Option A — copy the committed scaffold (no tooling)
 
-Each pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. Copy the folder for your tool into your project root — no Node required — then run the pack's `add-skills.sh` to port its skills in from the shared `skills-library/`:
+Each pack ships committed, per-tool steering under `scaffolded-packs/<tool>/`. Copy the folder for your tool into your project root — no Node required — then run the pack's `add-skills.sh` to port its skills in from the shared `skills/`:
 
 | Your tool | Copy from | Into your project |
 |---|---|---|
@@ -39,7 +39,7 @@ On Windows (PowerShell), use the equivalent `add-skills.ps1`:
 add-skills.ps1 -Tool <kiro|claude-code|copilot|cursor> -Target C:\path\to\your\project
 ```
 
-`add-skills.sh` is pure bash + `cp` (no Node) and copies this pack's skills from the shared `skills-library/` into the target's per-tool skills directory. The `SKILLS=()` list at the top of the script is editable — add or remove skills for your use case.
+`add-skills.sh` is pure bash + `cp` (no Node) and copies this pack's skills from the shared `skills/` into the target's per-tool skills directory. The `SKILLS=()` list at the top of the script is editable — add or remove skills for your use case.
 
 ### Option B — generate it (installer)
 
@@ -49,7 +49,7 @@ Run the `ramp-pack` installer from the repo root; it reads the neutral source an
 node installer/bin/ramp-pack.js init dotnet-app-modernization-on-aws --tool <kiro|claude-code|copilot|cursor> --target /path/to/your/project
 ```
 
-Add `--dry-run` to preview, `--force` to overwrite existing files; this installs steering **and** skills in one step. To rebuild the committed per-tool scaffolds in place, run `./scripts/regenerate.sh dotnet-app-modernization-on-aws` (requires Node). The neutral source plus the shared `skills-library/` are the single source of truth.
+Add `--dry-run` to preview, `--force` to overwrite existing files; this installs steering **and** skills in one step. To rebuild the committed per-tool scaffolds in place, run `./scripts/regenerate.sh dotnet-app-modernization-on-aws` (requires Node). The neutral source plus the shared `skills/` are the single source of truth.
 
 ### Then
 
@@ -93,7 +93,7 @@ dotnet-app-modernization-on-aws/
 │   ├── aidlc-workflow.md         # Decision-gated Requirements → Design → Tasks (primary)
 │   ├── skill-activation.md       # When to activate which skill + MCP (companion, always)
 │   └── reverse-engineering.md    # Phase 0 playbook + ATX ingest (companion, brownfield-first)
-├── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills-library/
+├── add-skills.sh             # editable SKILLS list; ports this pack's skills from skills/
 ├── add-skills.ps1            # Windows/PowerShell equivalent of add-skills.sh (no Node)
 └── scaffolded-packs/         # Committed, regenerated from source
     └── kiro/ claude-code/ copilot/ cursor/   # per-tool steering/MCP/command (steering only, NO skills)
@@ -101,7 +101,7 @@ dotnet-app-modernization-on-aws/
 
 > `instructions/`, `pack.yaml`, and this README are the **neutral source** you edit. The pack's skills are
 > referenced **by name** from `pack.yaml` (`skills:` list) and resolved from the shared
-> [`skills-library/`](../../skills-library/) at the repo root — the pack has no `skills/` directory of its own
+> [`skills/`](../../skills/) at the repo root — the pack has no `skills/` directory of its own
 > (a local `skills/` appears only when a pack overrides a library skill). They are ported into a target project
 > by `add-skills.sh`. The committed per-tool scaffolds are regenerated from the neutral
 > source — rebuild them with the installer or `./scripts/regenerate.sh dotnet-app-modernization-on-aws` rather
@@ -154,11 +154,11 @@ Curated, domain-specific knowledge bundles the agent activates on demand. They f
 
 ## Credits & attribution
 
-The skills this pack uses — referenced **by name** from `pack.yaml` and resolved from the shared `skills-library/` at the repo root — are sourced from the following open-source projects. Full credit to their authors and maintainers:
+The skills this pack uses — referenced **by name** from `pack.yaml` and resolved from the shared `skills/` at the repo root — are sourced from the following open-source projects. Full credit to their authors and maintainers:
 
 - **[adisimon217/sample-appmod-skills](https://github.com/adisimon217/sample-appmod-skills)** — Application Modernization Agent Skills, licensed under the **MIT License**. Source of the .NET modernization skills: `dotnet-post-transform`, `dotnet-aws-ecs`, `dotnet-adot-sidecar`, `dotnet-aspnet-sessionstate-aws`, and `dotnet-aws-parameterstore`.
 - **[aws-samples/sample-apex-skills](https://github.com/aws-samples/sample-apex-skills)** — APEX (Agentic Platform Engineering eXperience) skills by AWS, licensed under the **MIT-0 License**. Source of the ECS platform skills: `ecs-architect`, `ecs-build`, `ecs-devops`, `ecs-observability`, `ecs-security`, `ecs-recon`, and `ecs-operation-review`.
 - **[aws/agent-toolkit-for-aws](https://github.com/aws/agent-toolkit-for-aws)** — `aws-core` plugin (**Apache License 2.0**). Source of the IaC, identity, and observability skills: `aws-cloudformation`, `aws-iam`, and `aws-observability`.
 - **[awslabs/agent-plugins](https://github.com/awslabs/agent-plugins)** — Agent Plugins for AWS (**Apache License 2.0**). Source of the API and data skills: `api-gateway` (`aws-serverless` plugin), and `aurora-dsql`, `amazon-aurora-postgresql`, `amazon-aurora-mysql`, `creating-amazon-aurora-db-cluster-with-instances` (`databases-on-aws` plugin).
 
-Skills are vendored (copied) into the shared `skills-library/` so packs work offline and pin a known-good version. Refer to the upstream repositories for the latest versions, additional skills, and their `LICENSE` / `NOTICE` files. AI-DLC steering is adapted from [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows) (MIT-0).
+Skills are vendored (copied) into the shared `skills/` so packs work offline and pin a known-good version. Refer to the upstream repositories for the latest versions, additional skills, and their `LICENSE` / `NOTICE` files. AI-DLC steering is adapted from [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows) (MIT-0).

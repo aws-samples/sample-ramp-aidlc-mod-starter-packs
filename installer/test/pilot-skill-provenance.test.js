@@ -16,7 +16,7 @@ const PILOT_IDS = [
   'legacy-transformation-on-aws',
 ]
 
-// Locked skills whose skills-library mirror differs from the lock, so they
+// Locked skills whose skills/ mirror differs from the lock, so they
 // resolve only from a synchronized cache. Every mirror matches its lock, so
 // with no cache each pilot skill must still resolve from its mirror; any
 // mirror drift fails the unsynchronized run.

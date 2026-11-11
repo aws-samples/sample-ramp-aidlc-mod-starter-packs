@@ -123,6 +123,15 @@ Removed at the end of the compatibility window: `skills-library/`,
 `README.md` and `taxonomy` are reserved and rejected as skill names, so a
 leftover `skills/ramp/` can never be read as a skill.
 
+Each skill directory holds `SKILL.md` and an adjacent `skill.yaml` (see Skill
+metadata). Exact upstream content does not describe its source in
+`skill.yaml`: its repository, immutable commit, file closure, licence and
+notice provenance belong in `dependencies/skills.sources.yaml` and
+`dependencies/skills.lock.yaml`. Normal installation may copy a portable skill
+into a customer project but never deploys an ATX custom agent
+(`atx/README.md`). These rules were in `skills/ramp/README.md`, which the
+skills move (P3) removes.
+
 ### Pack-owned skills
 
 `packs/<pack>/skills/<slug>/` is replaced by a metadata field. A skill that only
