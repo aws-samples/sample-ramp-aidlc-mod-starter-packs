@@ -270,27 +270,53 @@ export function layoutDifferences(id, expected, actual, allowlist = {}) {
   return differences
 }
 
-// One record per line keeps the committed baseline reviewable in a diff.
+// One record per line keeps the committed baseline reviewable in a diff. A
+// layout whose list equals an earlier layout's (in id order) is stored as
+// { "sameAs": "<that id>" }; the reference always names a stored list.
 export function renderBaseline(layouts) {
   const ids = Object.keys(layouts).sort(comparePaths)
+  const firstHolder = new Map()
   const lines = ['{', '  "schemaVersion": 1,', '  "layouts": {']
   ids.forEach((id, index) => {
-    const records = layouts[id]
+    const records = layouts[id].map((record) => JSON.stringify({
+      path: record.path,
+      sha256: record.sha256,
+      mode: record.mode,
+    }))
+    const key = records.join('\n')
+    const comma = index < ids.length - 1 ? ',' : ''
+    if (firstHolder.has(key)) {
+      lines.push(`    ${JSON.stringify(id)}: ${JSON.stringify({ sameAs: firstHolder.get(key) })}${comma}`)
+      return
+    }
+    firstHolder.set(key, id)
     lines.push(`    ${JSON.stringify(id)}: [`)
-    records.forEach((record, position) => {
-      const value = JSON.stringify({ path: record.path, sha256: record.sha256, mode: record.mode })
+    records.forEach((value, position) => {
       lines.push(`      ${value}${position < records.length - 1 ? ',' : ''}`)
     })
-    lines.push(`    ]${index < ids.length - 1 ? ',' : ''}`)
+    lines.push(`    ]${comma}`)
   })
   lines.push('  }', '}', '')
   return lines.join('\n')
 }
 
+// Returns every layout as its full list, with sameAs references resolved.
 export function readBaseline(path = baselinePath) {
   const baseline = JSON.parse(readFileSync(path, 'utf8'))
   if (baseline.schemaVersion !== 1) {
     throw new Error(`unsupported customer layout baseline schemaVersion: ${baseline.schemaVersion}`)
   }
-  return baseline.layouts
+  const layouts = {}
+  for (const [id, value] of Object.entries(baseline.layouts)) {
+    if (Array.isArray(value)) {
+      layouts[id] = value
+      continue
+    }
+    const target = baseline.layouts[value?.sameAs]
+    if (!Array.isArray(target)) {
+      throw new Error(`customer layout ${id} must be a list or a sameAs reference to a stored list`)
+    }
+    layouts[id] = target
+  }
+  return layouts
 }
