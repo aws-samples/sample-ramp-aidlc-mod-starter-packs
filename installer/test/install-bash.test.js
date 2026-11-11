@@ -329,7 +329,7 @@ describe('generated Bash bundle installer', () => {
       const first = bundle({ files })
       const second = bundle({ owner: 'other--kiro--standalone', bundleId: 'other--kiro--v1.0.0', files })
       const runs = [[first], [first], [second], [first, '--uninstall']]
-      return { runs, target: tempRoot('ramp-install-target-'), ms: 0 }
+      return { count, runs, target: tempRoot('ramp-install-target-'), steps: [] }
     }
     const small = sized(30)
     const large = sized(300)
@@ -341,14 +341,20 @@ describe('generated Bash bundle installer', () => {
           cwd: tempRoot('ramp-install-cwd-'),
           encoding: 'utf8',
           shell: false,
+          // spawnSync treats a timeout of 0 as none, so the 1 ms floor keeps
+          // the hang guard alive once the deadline has passed.
           timeout: Math.max(1, deadline - Date.now()),
         }))
-        scenario.ms += performance.now() - started
+        scenario.steps.push(Math.round(performance.now() - started))
       }
     }
     expect(readFileSync(join(large.target, 'dir9/file299.md'), 'utf8')).toBe('file 299\n')
-    const timings = `30 files: ${Math.round(small.ms)} ms, 300 files: ${Math.round(large.ms)} ms`
-    expect(large.ms / small.ms, timings).toBeLessThan(20)
+    // Per-step times tell one stalled run apart from every step growing.
+    const total = (scenario) => scenario.steps.reduce((sum, ms) => sum + ms, 0)
+    const timings = [small, large]
+      .map((scenario) => `${scenario.count} files: ${scenario.steps.join(' + ')} = ${total(scenario)} ms`)
+      .join('; ')
+    expect(total(large) / total(small), `install, reinstall, share, uninstall; ${timings}`).toBeLessThan(20)
   }, 660_000)
 
   it('exits 130 and restores the target on SIGINT mid-commit', () => {
