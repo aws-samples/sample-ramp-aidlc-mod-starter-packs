@@ -4,9 +4,12 @@
 #
 #   ./add-skills.sh --tool kiro --target /path/to/project
 #   ./add-skills.sh --tool claude-code --repo-root /path/to/ramp-repository
-#   ./add-skills.sh --tool cursor --skills-src /path/to/skills-library
+#   ./add-skills.sh --tool cursor --skills-src /path/to/skills
 #
-# Source precedence is pack override, RAMP-owned, then compatibility library.
+# Source precedence is skills/<slug>/, then during the compatibility window the
+# pack override, RAMP-owned and compatibility library tiers. --skills-src
+# replaces skills/ and the compatibility library. A slug found in skills/ (or
+# --skills-src) and in any other root is ambiguous and fails.
 # The editable SKILLS list below is generated from pack.yaml.
 #
 set -eo pipefail
@@ -39,7 +42,7 @@ SKILLS=(
 # -----------------------------------------------------------------------------
 
 usage() {
-  echo "usage: $0 --tool <kiro|claude-code|copilot|cursor|codex> [--target <dir>] [--repo-root <ramp-repository-root>] [--skills-src <compatibility-library-root>]" >&2
+  echo "usage: $0 --tool <kiro|claude-code|copilot|cursor|codex> [--target <dir>] [--repo-root <ramp-repository-root>] [--skills-src <skills-root>]" >&2
 }
 
 tool=""
@@ -266,6 +269,8 @@ check_directory_chain() {
   return 0
 }
 
+# skills/ is required; skills/ramp/ and skills-library/ are optional
+# compatibility roots that must be ordinary directories when present.
 validate_repository() {
   validate_repo="$1"
   validate_compat="$2"
@@ -273,8 +278,10 @@ validate_repository() {
   check_directory_component "$validate_repo/packs/$PACK_NAME" "pack directory for '$PACK_NAME'" || return 1
   check_regular_file "$validate_repo/packs/$PACK_NAME/pack.yaml" "pack marker for '$PACK_NAME'" || return 1
   check_directory_component "$validate_repo/skills" "repository skills directory" || return 1
-  check_directory_component "$validate_repo/skills/ramp" "RAMP skills directory" || return 1
-  if [ "$validate_compat" -eq 1 ]; then
+  if lexists "$validate_repo/skills/ramp"; then
+    check_directory_component "$validate_repo/skills/ramp" "RAMP skills directory" || return 1
+  fi
+  if [ "$validate_compat" -eq 1 ] && lexists "$validate_repo/skills-library"; then
     check_directory_component "$validate_repo/skills-library" "compatibility skills directory" || return 1
   fi
   return 0
@@ -282,7 +289,6 @@ validate_repository() {
 
 is_repository_candidate() {
   candidate_repo="$1"
-  candidate_compat="$2"
   [ -d "$candidate_repo" ] && [ ! -L "$candidate_repo" ] || return 1
   [ -d "$candidate_repo/packs" ] && [ ! -L "$candidate_repo/packs" ] || return 1
   [ -d "$candidate_repo/packs/$PACK_NAME" ] &&
@@ -290,12 +296,6 @@ is_repository_candidate() {
   [ -f "$candidate_repo/packs/$PACK_NAME/pack.yaml" ] &&
     [ ! -L "$candidate_repo/packs/$PACK_NAME/pack.yaml" ] || return 1
   [ -d "$candidate_repo/skills" ] && [ ! -L "$candidate_repo/skills" ] || return 1
-  [ -d "$candidate_repo/skills/ramp" ] &&
-    [ ! -L "$candidate_repo/skills/ramp" ] || return 1
-  if [ "$candidate_compat" -eq 1 ]; then
-    [ -d "$candidate_repo/skills-library" ] &&
-      [ ! -L "$candidate_repo/skills-library" ] || return 1
-  fi
   return 0
 }
 
@@ -327,7 +327,7 @@ if [ "$repo_root_explicit" -eq 1 ]; then
 elif [ -n "$helper_root" ]; then
   candidate="$helper_root"
   while :; do
-    if is_repository_candidate "$candidate" "$((1 - skills_src_explicit))"; then
+    if is_repository_candidate "$candidate"; then
       repo_root="$candidate"
       validate_repository "$repo_root" "$((1 - skills_src_explicit))" || true
       break
@@ -338,13 +338,32 @@ elif [ -n "$helper_root" ]; then
   done
 fi
 
+# --skills-src replaces both skills/ and skills-library/; the pack and
+# skills/ramp/ tiers still apply during the compatibility window.
+skills_root=""
+skills_root_kind=""
 skills_src=""
+compatibility_roots=()
+compatibility_kinds=()
 if [ "$skills_src_explicit" -eq 1 ]; then
-  if ordinary_directory_root "$skills_src_input" "compatibility root"; then
+  if ordinary_directory_root "$skills_src_input" "skills source root"; then
     skills_src="$RESOLVED_DIRECTORY_ROOT"
+    skills_root="$skills_src"
+    skills_root_kind="skills-src"
   fi
 elif [ -n "$repo_root" ]; then
-  skills_src="$repo_root/skills-library"
+  skills_root="$repo_root/skills"
+  skills_root_kind="skills"
+fi
+if [ -n "$repo_root" ]; then
+  compatibility_roots[${#compatibility_roots[@]}]="packs/$PACK_NAME/skills"
+  compatibility_kinds[${#compatibility_kinds[@]}]="pack"
+  compatibility_roots[${#compatibility_roots[@]}]="skills/ramp"
+  compatibility_kinds[${#compatibility_kinds[@]}]="ramp"
+  if [ "$skills_src_explicit" -eq 0 ]; then
+    compatibility_roots[${#compatibility_roots[@]}]="skills-library"
+    compatibility_kinds[${#compatibility_kinds[@]}]="compatibility"
+  fi
 fi
 
 validate_skill_tree() {
@@ -384,7 +403,10 @@ validate_skill_tree() {
 }
 
 for skill in "${SKILLS[@]}"; do
-  if ! printf '%s' "$skill" | grep -Eq '^[a-z0-9]+(-[a-z0-9]+)*$'; then
+  if [ "$skill" = "ramp" ] || [ "$skill" = "README.md" ] || [ "$skill" = "taxonomy" ]; then
+    add_error "skill name $skill is reserved: ramp, README.md and taxonomy cannot be skill names"
+    NAME_VALIDITY[${#NAME_VALIDITY[@]}]=0
+  elif ! printf '%s' "$skill" | grep -Eq '^[a-z0-9]+(-[a-z0-9]+)*$'; then
     add_error "invalid skill name '$skill': expected lower-kebab case"
     NAME_VALIDITY[${#NAME_VALIDITY[@]}]=0
   else
@@ -415,37 +437,38 @@ for skill_index in "${!SKILLS[@]}"; do
     continue
   fi
 
-  if [ -n "$repo_root" ]; then
-    pack_relative="packs/$PACK_NAME/skills/$skill"
-    pack_candidate="$repo_root/$pack_relative"
-    check_directory_chain "$repo_root" "$pack_relative" "pack source" || true
-    if lexists "$pack_candidate"; then
-      selected_source="$pack_candidate"
-      selected_kind="pack"
-    else
-      ramp_relative="skills/ramp/$skill"
-      ramp_candidate="$repo_root/$ramp_relative"
-      check_directory_chain "$repo_root" "$ramp_relative" "RAMP source" || true
-      if lexists "$ramp_candidate"; then
-        selected_source="$ramp_candidate"
-        selected_kind="ramp"
-      fi
+  skills_root_hit=0
+  if [ -n "$skills_root" ]; then
+    check_directory_chain "$skills_root" "$skill" "$skills_root_kind source" || true
+    if lexists "$skills_root/$skill"; then
+      selected_source="$skills_root/$skill"
+      selected_kind="$skills_root_kind"
+      skills_root_hit=1
     fi
   fi
 
-  if [ -z "$selected_source" ] && [ -n "$skills_src" ]; then
-    check_directory_chain "$skills_src" "$skill" "compatibility source" || true
-    compatibility_candidate="$skills_src/$skill"
-    if lexists "$compatibility_candidate"; then
-      selected_source="$compatibility_candidate"
-      selected_kind="compatibility"
+  # Every compatibility root is consulted so the ambiguity guard sees them all.
+  root_index=0
+  while [ "$root_index" -lt "${#compatibility_roots[@]}" ]; do
+    root_kind="${compatibility_kinds[$root_index]}"
+    root_relative="${compatibility_roots[$root_index]}/$skill"
+    root_candidate="$repo_root/$root_relative"
+    check_directory_chain "$repo_root" "$root_relative" "$root_kind source" || true
+    if lexists "$root_candidate"; then
+      if [ "$skills_root_hit" -eq 1 ]; then
+        add_error "skill $skill is ambiguous: found in $selected_source and $root_candidate; keep only one copy"
+      elif [ -z "$selected_source" ]; then
+        selected_source="$root_candidate"
+        selected_kind="$root_kind"
+      fi
     fi
-  fi
+    root_index=$((root_index + 1))
+  done
 
   if [ -z "$selected_source" ]; then
     available_roots=""
     [ -n "$repo_root" ] && available_roots="$available_roots repository=$repo_root"
-    [ -n "$skills_src" ] && available_roots="$available_roots compatibility=$skills_src"
+    [ -n "$skills_src" ] && available_roots="$available_roots skills-src=$skills_src"
     if [ -z "$repo_root" ]; then
       add_error "skill '$skill' was not found.$available_roots Pass --repo-root <ramp-repository-root> for pack or RAMP skills."
     else

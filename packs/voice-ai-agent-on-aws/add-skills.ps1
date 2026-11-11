@@ -4,8 +4,11 @@
 Copies this pack's Agent Skills into a project without requiring Node.
 
 .DESCRIPTION
-Sources are selected in this order: pack override, RAMP-owned, compatibility
-library. Every source and destination is preflighted before target mutation.
+Sources are selected in this order: skills/<slug>/, then during the
+compatibility window the pack override, RAMP-owned and compatibility library
+tiers. -SkillsSrc replaces skills/ and the compatibility library. A slug found
+in skills/ (or -SkillsSrc) and in any other root is ambiguous and fails. Every
+source and destination is preflighted before target mutation.
 #>
 [CmdletBinding()]
 param(
@@ -27,7 +30,7 @@ $Skills = @(
   'nova-sonic-optimization'
   'text-agent-to-nova-sonic-voice'
 )
-$SourceKinds = @('pack', 'ramp', 'compatibility')
+$SourceKinds = @('skills', 'skills-src', 'pack', 'ramp', 'compatibility')
 $null = $SourceKinds
 
 $DestinationByTool = @{
@@ -240,6 +243,8 @@ function Test-DirectoryChain {
   return $true
 }
 
+# skills/ is required; skills/ramp/ and skills-library/ are optional
+# compatibility roots that must be ordinary directories when present.
 function Test-Repository {
   param(
     [string]$Root,
@@ -260,21 +265,22 @@ function Test-Repository {
   if (-not (Test-DirectoryPath $skillsDirectory 'repository skills directory')) {
     $valid = $false
   }
-  if (-not (Test-DirectoryPath (Join-Path $skillsDirectory 'ramp') 'RAMP skills directory')) {
+  $rampDirectory = Join-Path $skillsDirectory 'ramp'
+  if ($null -ne (Get-LexicalItem $rampDirectory) -and
+      -not (Test-DirectoryPath $rampDirectory 'RAMP skills directory')) {
     $valid = $false
   }
+  $libraryDirectory = Join-Path $Root 'skills-library'
   if ($RequireCompatibility -and
-      -not (Test-DirectoryPath (Join-Path $Root 'skills-library') 'compatibility skills directory')) {
+      $null -ne (Get-LexicalItem $libraryDirectory) -and
+      -not (Test-DirectoryPath $libraryDirectory 'compatibility skills directory')) {
     $valid = $false
   }
   return $valid
 }
 
 function Test-RepositoryCandidate {
-  param(
-    [string]$Root,
-    [bool]$RequireCompatibility
-  )
+  param([string]$Root)
   $rootItem = Get-LexicalItem $Root
   if ($null -eq $rootItem -or
       (Test-IsReparsePoint $rootItem) -or
@@ -285,12 +291,8 @@ function Test-RepositoryCandidate {
     @{ Path = (Join-Path $Root 'packs'); Directory = $true },
     @{ Path = (Join-Path (Join-Path $Root 'packs') $PackName); Directory = $true },
     @{ Path = (Join-Path (Join-Path (Join-Path $Root 'packs') $PackName) 'pack.yaml'); Directory = $false },
-    @{ Path = (Join-Path $Root 'skills'); Directory = $true },
-    @{ Path = (Join-Path (Join-Path $Root 'skills') 'ramp'); Directory = $true }
+    @{ Path = (Join-Path $Root 'skills'); Directory = $true }
   )
-  if ($RequireCompatibility) {
-    $checks += @{ Path = (Join-Path $Root 'skills-library'); Directory = $true }
-  }
   foreach ($check in $checks) {
     $item = Get-LexicalItem $check.Path
     if ($null -eq $item -or (Test-IsReparsePoint $item)) {
@@ -389,7 +391,7 @@ if ($repoWasExplicit) {
 elseif ($null -ne $helperDirectory) {
   $candidate = $helperDirectory
   while ($true) {
-    if (Test-RepositoryCandidate $candidate (-not $skillsSrcWasExplicit)) {
+    if (Test-RepositoryCandidate $candidate) {
       $canonicalRepoRoot = $candidate
       $null = Test-Repository $canonicalRepoRoot (-not $skillsSrcWasExplicit)
       break
@@ -402,19 +404,41 @@ elseif ($null -ne $helperDirectory) {
   }
 }
 
+# -SkillsSrc replaces both skills/ and skills-library/; the pack and
+# skills/ramp/ tiers still apply during the compatibility window.
+$skillsRoot = $null
+$skillsRootKind = $null
 $canonicalSkillsSrc = $null
+$compatibilityRoots = @()
 if ($skillsSrcWasExplicit) {
-  $canonicalSkillsSrc = Resolve-OrdinaryDirectoryRoot $SkillsSrc 'compatibility root'
+  $canonicalSkillsSrc = Resolve-OrdinaryDirectoryRoot $SkillsSrc 'skills source root'
+  if ($null -ne $canonicalSkillsSrc) {
+    $skillsRoot = $canonicalSkillsSrc
+    $skillsRootKind = 'skills-src'
+  }
 }
 elseif ($null -ne $canonicalRepoRoot) {
-  $canonicalSkillsSrc = Join-Path $canonicalRepoRoot 'skills-library'
+  $skillsRoot = Join-Path $canonicalRepoRoot 'skills'
+  $skillsRootKind = 'skills'
+}
+if ($null -ne $canonicalRepoRoot) {
+  $compatibilityRoots += @{ Relative = "packs/$PackName/skills"; Kind = 'pack' }
+  $compatibilityRoots += @{ Relative = 'skills/ramp'; Kind = 'ramp' }
+  if (-not $skillsSrcWasExplicit) {
+    $compatibilityRoots += @{ Relative = 'skills-library'; Kind = 'compatibility' }
+  }
 }
 
 $namePattern = '^[a-z0-9]+(-[a-z0-9]+)*$'
+$reservedNames = @('ramp', 'README.md', 'taxonomy')
 $seenNames = @{}
 foreach ($skill in $Skills) {
   $validName = $true
-  if ($skill -notmatch $namePattern) {
+  if ($reservedNames -ccontains $skill) {
+    Add-ErrorMessage "skill name $skill is reserved: ramp, README.md and taxonomy cannot be skill names"
+    $validName = $false
+  }
+  elseif ($skill -cnotmatch $namePattern) {
     Add-ErrorMessage "invalid skill name '$skill': expected lower-kebab case"
     $validName = $false
   }
@@ -439,47 +463,46 @@ for ($skillIndex = 0; $skillIndex -lt $Skills.Count; $skillIndex++) {
     continue
   }
 
-  if ($null -ne $canonicalRepoRoot) {
-    $packRelative = "packs/$PackName/skills/$skill"
-    $null = Test-DirectoryChain $canonicalRepoRoot $packRelative 'pack source'
-    $packCandidate = Join-Path $canonicalRepoRoot ($packRelative -replace '/', [IO.Path]::DirectorySeparatorChar)
-    if ($null -ne (Get-LexicalItem $packCandidate)) {
-      $selectedSource = $packCandidate
-      $selectedKind = 'pack'
+  $skillsRootHit = $false
+  if ($null -ne $skillsRoot) {
+    $null = Test-DirectoryChain $skillsRoot $skill "$skillsRootKind source"
+    $skillsCandidate = Join-Path $skillsRoot $skill
+    if ($null -ne (Get-LexicalItem $skillsCandidate)) {
+      $selectedSource = $skillsCandidate
+      $selectedKind = $skillsRootKind
+      $skillsRootHit = $true
     }
-    else {
-      $rampRelative = "skills/ramp/$skill"
-      $null = Test-DirectoryChain $canonicalRepoRoot $rampRelative 'RAMP source'
-      $rampCandidate = Join-Path $canonicalRepoRoot ($rampRelative -replace '/', [IO.Path]::DirectorySeparatorChar)
-      if ($null -ne (Get-LexicalItem $rampCandidate)) {
-        $selectedSource = $rampCandidate
-        $selectedKind = 'ramp'
+  }
+
+  # Every compatibility root is consulted so the ambiguity guard sees them all.
+  foreach ($root in $compatibilityRoots) {
+    $rootRelative = "$($root.Relative)/$skill"
+    $null = Test-DirectoryChain $canonicalRepoRoot $rootRelative "$($root.Kind) source"
+    $rootCandidate = Join-Path $canonicalRepoRoot ($rootRelative -replace '/', [IO.Path]::DirectorySeparatorChar)
+    if ($null -ne (Get-LexicalItem $rootCandidate)) {
+      if ($skillsRootHit) {
+        Add-ErrorMessage "skill $skill is ambiguous: found in $selectedSource and $rootCandidate; keep only one copy"
+      }
+      elseif ($null -eq $selectedSource) {
+        $selectedSource = $rootCandidate
+        $selectedKind = $root.Kind
       }
     }
   }
 
-  if ($null -eq $selectedSource -and $null -ne $canonicalSkillsSrc) {
-    $null = Test-DirectoryChain $canonicalSkillsSrc $skill 'compatibility source'
-    $compatibilityCandidate = Join-Path $canonicalSkillsSrc $skill
-    if ($null -ne (Get-LexicalItem $compatibilityCandidate)) {
-      $selectedSource = $compatibilityCandidate
-      $selectedKind = 'compatibility'
-    }
-  }
-
   if ($null -eq $selectedSource) {
-    $availableRoots = @()
+    $availableRoots = ''
     if ($null -ne $canonicalRepoRoot) {
-      $availableRoots += "repository=$canonicalRepoRoot"
+      $availableRoots += " repository=$canonicalRepoRoot"
     }
     if ($null -ne $canonicalSkillsSrc) {
-      $availableRoots += "compatibility=$canonicalSkillsSrc"
+      $availableRoots += " skills-src=$canonicalSkillsSrc"
     }
     if ($null -eq $canonicalRepoRoot) {
-      Add-ErrorMessage "skill '$skill' was not found. $($availableRoots -join ' ') Pass -RepoRoot <ramp-repository-root> for pack or RAMP skills."
+      Add-ErrorMessage "skill '$skill' was not found.$availableRoots Pass -RepoRoot <ramp-repository-root> for pack or RAMP skills."
     }
     else {
-      Add-ErrorMessage "skill '$skill' was not found in available roots: $($availableRoots -join ' ')"
+      Add-ErrorMessage "skill '$skill' was not found in available roots:$availableRoots"
     }
     $SelectedSources.Add('') | Out-Null
     $SelectedKinds.Add('') | Out-Null
