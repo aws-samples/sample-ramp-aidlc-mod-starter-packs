@@ -1,0 +1,8 @@
+schemaVersion: 2
+kind: ramp-skill
+name: aws-iam
+origin: upstream
+classification:
+  useCases: [cloud-foundations]
+  awsServices: [iam]
+  technologies: []

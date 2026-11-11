@@ -1,0 +1,8 @@
+schemaVersion: 2
+kind: ramp-skill
+name: connecting-lambda-to-api-gateway
+origin: upstream
+classification:
+  useCases: [cloud-native-development]
+  awsServices: [lambda, api-gateway]
+  technologies: []

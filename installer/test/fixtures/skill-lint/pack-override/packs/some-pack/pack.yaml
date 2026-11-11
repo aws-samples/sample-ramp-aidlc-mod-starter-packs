@@ -1,0 +1,7 @@
+schemaVersion: 1
+kind: ramp-pack
+name: some-pack
+skills:
+  - kept
+  - misowned
+  - rogue

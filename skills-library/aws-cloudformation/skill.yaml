@@ -1,0 +1,8 @@
+schemaVersion: 2
+kind: ramp-skill
+name: aws-cloudformation
+origin: upstream
+classification:
+  useCases: [infrastructure-as-code]
+  awsServices: [cloudformation]
+  technologies: []

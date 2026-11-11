@@ -1,0 +1,8 @@
+schemaVersion: 2
+kind: ramp-skill
+name: aurora-dsql
+origin: upstream
+classification:
+  useCases: [application-modernization, cloud-native-development]
+  awsServices: [aurora-dsql]
+  technologies: [postgresql]

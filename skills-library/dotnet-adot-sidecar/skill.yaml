@@ -1,0 +1,10 @@
+schemaVersion: 2
+kind: ramp-skill
+name: dotnet-adot-sidecar
+origin: local
+version: 0.0.0
+license: NOASSERTION # SKILL.md declares no licence
+classification:
+  useCases: [application-modernization, operations-and-incident-response]
+  awsServices: [ecs, cloudwatch, x-ray]
+  technologies: [dotnet, opentelemetry]
