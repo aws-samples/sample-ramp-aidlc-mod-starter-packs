@@ -5,7 +5,7 @@ import { renderMcp } from '../src/render/mcp.js'
 
 describe('tool adapter registry', () => {
   it('lists every supported adapter in stable release order', () => {
-    expect(listAdapterIds()).toEqual(['kiro', 'claude-code', 'copilot', 'cursor'])
+    expect(listAdapterIds()).toEqual(['kiro', 'claude-code', 'copilot', 'cursor', 'codex'])
   })
 
   it.each([
@@ -13,6 +13,7 @@ describe('tool adapter registry', () => {
     ['claude-code', 'specs', '.claude/skills', '.mcp.json', 'mcpServers'],
     ['copilot', 'specs', '.github/skills', '.vscode/mcp.json', 'servers'],
     ['cursor', 'specs', '.cursor/skills', '.cursor/mcp.json', 'mcpServers'],
+    ['codex', 'specs', '.agents/skills', '.codex/config.toml', 'mcp_servers'],
   ])('owns the rendering destinations for %s', (id, defaultSpecRoot, skillsRoot, mcpPath, mcpRootKey) => {
     const adapter = getAdapter(id)
 
@@ -24,6 +25,16 @@ describe('tool adapter registry', () => {
     expect(adapter.instructions.companionPath).toBeTypeOf('function')
     expect(adapter.mcp).toMatchObject({ path: mcpPath, rootKey: mcpRootKey })
     expect(adapter.command.kind).toBeTruthy()
+  })
+
+  it('renders Codex instructions to AGENTS.md and companions under .codex/instructions', () => {
+    const { instructions, command } = getAdapter('codex')
+
+    expect(instructions.kind).toBe('codex-agents')
+    expect(instructions.primaryPath('aidlc-workflow.md')).toBe('AGENTS.md')
+    expect(instructions.companionPath('skill-activation.md')).toBe('.codex/instructions/skill-activation.md')
+    expect(instructions.maxPrimaryBytes).toBe(32 * 1024)
+    expect(command.kind).toBe('none')
   })
 
   it('fails consistently for an unknown adapter', () => {

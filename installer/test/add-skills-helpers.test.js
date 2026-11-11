@@ -27,6 +27,7 @@ const destinations = {
   'claude-code': '.claude/skills',
   copilot: '.github/skills',
   cursor: '.cursor/skills',
+  codex: '.agents/skills',
 }
 const mixedManifest = {
   name: 'demo',

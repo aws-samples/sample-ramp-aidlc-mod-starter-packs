@@ -94,13 +94,63 @@ export function renderInstructions(
   }
 
   if (instructions.kind === 'cursor-rules') {
-    return manifest.instructions.map((i) => ({
-      path: i.role === 'primary'
-        ? instructions.primaryPath(i.file)
-        : instructions.companionPath(i.file),
-      content: `---\nalwaysApply: ${i.role === 'primary'}\n---\n${body(manifest, packDir, i.file, tool, resolvedWorkspace, options)}`,
+    // The primary and load:always companions apply to every request. A
+    // load:auto companion carries a description, so the Cursor agent can
+    // request it when the description applies.
+    return manifest.instructions.map((i) => {
+      const fm = i.role === 'primary' || i.load === 'always'
+        ? '---\nalwaysApply: true\n---\n'
+        : `---\ndescription: ${i.description ?? stem(i.file)}\nalwaysApply: false\n---\n`
+      return {
+        path: i.role === 'primary'
+          ? instructions.primaryPath(i.file)
+          : instructions.companionPath(i.file),
+        content: fm + body(manifest, packDir, i.file, tool, resolvedWorkspace, options),
+        kind: 'text',
+      }
+    })
+  }
+
+  if (instructions.kind === 'codex-agents') {
+    // Codex loads only AGENTS.md, so AGENTS.md opens with a header naming every
+    // other instruction file and when to read it.
+    const header = (entries) =>
+      'Codex loads only this file. Read each instruction file below and follow it:\n' +
+      entries.map(([path, when]) => `- \`${path}\`: ${when}`).join('\n') +
+      '\n'
+    const companionEntries = companions.map((c) => [
+      instructions.companionPath(c.file),
+      c.load === 'always'
+        ? 'read at session start.'
+        : `read when this applies: ${c.description ?? stem(c.file)}`,
+    ])
+    const primaryBody = body(manifest, packDir, primary.file, tool, resolvedWorkspace, options)
+    const companionWrites = companions.map((c) => ({
+      path: instructions.companionPath(c.file),
+      content: body(manifest, packDir, c.file, tool, resolvedWorkspace, options),
       kind: 'text',
     }))
+    const agents = companionEntries.length
+      ? `${header(companionEntries)}\n${primaryBody}`
+      : primaryBody
+    if (Buffer.byteLength(agents, 'utf8') <= instructions.maxPrimaryBytes) {
+      return [
+        { path: instructions.primaryPath(primary.file), content: agents, kind: 'text' },
+        ...companionWrites,
+      ]
+    }
+    // Codex would cut the primary off at its byte limit, so the primary moves
+    // beside the companions and AGENTS.md keeps only the header.
+    const movedPrimary = instructions.companionPath(primary.file)
+    return [
+      {
+        path: instructions.primaryPath(primary.file),
+        content: header([[movedPrimary, 'read first, at session start.'], ...companionEntries]),
+        kind: 'text',
+      },
+      { path: movedPrimary, content: primaryBody, kind: 'text' },
+      ...companionWrites,
+    ]
   }
 
   throw new Error(`unsupported instruction adapter kind: ${instructions.kind}`)

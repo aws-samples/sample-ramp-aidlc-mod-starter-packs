@@ -12,6 +12,7 @@ import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   POWERSHELL,
+  addToBaseline,
   allowlistProblems,
   computeLayout,
   createLayoutContext,
@@ -25,7 +26,32 @@ import {
 // Allowed differences from the baseline, keyed by a short reason. Each rule is
 // { change: 'added' | 'removed' | 'changed', match: RegExp over '<layout id> <path>' }
 // without the g or y flag. The full matrix fails on a rule that never matched.
-const ALLOWLIST = {}
+//
+// Cursor rules honour each instruction's load: a load:always companion renders
+// alwaysApply: true, and a load:auto companion its description. Only `init`
+// writes the rules, so only the init/<pack>/cursor layouts change.
+const CURSOR_RULE_CHANGES = {
+  'agentic-ai-workflow': ['reverse-engineering'],
+  'agentic-incident-response': ['reverse-engineering', 'skill-activation'],
+  'api-platform-migration-n-modernization': ['reverse-engineering', 'skill-activation'],
+  'cots-rewrite-on-cloudnative': ['requirements-traceability', 'reverse-engineering', 'skill-activation'],
+  'dotnet-app-modernization-on-aws': ['reverse-engineering', 'skill-activation'],
+  'framework-upgrade-containerise': ['reverse-engineering', 'skill-activation'],
+  'genai-on-serverless': ['reverse-engineering', 'skill-activation'],
+  'legacy-transformation-on-aws': ['reverse-engineering', 'skill-activation'],
+  'ocr-mobile-app-on-serverless': ['reverse-engineering', 'skill-activation'],
+  'qa-automated-testing': ['reverse-engineering', 'skill-activation'],
+  'serverless-event-driven-on-aws': ['multi-repo-projects', 'practices-discovery', 'reverse-engineering', 'skill-activation'],
+  'voice-ai-agent-on-aws': ['reverse-engineering', 'skill-activation'],
+  'vulnerability-remediation-pipeline': ['reverse-engineering', 'skill-activation'],
+  'web-app-on-cloudnative': ['multi-repo-projects', 'reverse-engineering', 'skill-activation'],
+}
+const ALLOWLIST = Object.fromEntries(
+  Object.entries(CURSOR_RULE_CHANGES).flatMap(([pack, rules]) => rules.map((rule) => [
+    `cursor rule load: ${pack} ${rule}.mdc`,
+    { change: 'changed', match: new RegExp(`^init/${pack}/cursor \\.cursor/rules/${rule}\\.mdc$`) },
+  ])),
+)
 
 const full = process.env.RAMP_CUSTOMER_LAYOUT === 'full'
 const cacheDir = process.env.RAMP_SKILLS_CACHE?.trim() || undefined
@@ -85,6 +111,26 @@ describe('customer-layout baseline', () => {
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
+  })
+
+  it('adds layouts without rewriting an existing entry', () => {
+    const stored = [record('AGENTS.md')]
+    const text = renderBaseline({ 'init/demo/kiro': stored, 'init/demo/zed': stored })
+    const added = addToBaseline(text, {
+      'init/demo/codex': stored,
+      'init/demo/cursor': [record('.cursor/rules/a.mdc')],
+    })
+
+    // the new id sorts first, yet refers to the existing holder
+    expect(JSON.parse(added).layouts).toEqual({
+      'init/demo/codex': { sameAs: 'init/demo/kiro' },
+      'init/demo/cursor': [record('.cursor/rules/a.mdc')],
+      'init/demo/kiro': stored,
+      'init/demo/zed': { sameAs: 'init/demo/kiro' },
+    })
+    expect(addToBaseline(text, {})).toBe(text)
+    expect(() => addToBaseline(text, { 'init/demo/kiro': [record('CLAUDE.md')] }))
+      .toThrow(/init\/demo\/kiro is already in the baseline/)
   })
 
   if (full) {

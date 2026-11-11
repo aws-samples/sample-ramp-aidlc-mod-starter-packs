@@ -1,4 +1,5 @@
 ---
+description: Phase 0 upgrade-focused assessment — detect JDK/framework/build tool, container status, and the Java-version risk surface. Framed for upgrade, not decomposition.
 alwaysApply: false
 ---
 # Assessment (Reverse Engineering) — Upgrade-focused

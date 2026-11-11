@@ -74,9 +74,10 @@ describe('renderCommand', () => {
     expect(w.content).toMatch(/Do not skip ahead\.\n$/)
   })
 
-  it('kiro and cursor: no command file', () => {
+  it('kiro, cursor and codex: no command file', () => {
     expect(renderCommand(manifest, 'kiro')).toBeNull()
     expect(renderCommand(manifest, 'cursor')).toBeNull()
+    expect(renderCommand(manifest, 'codex')).toBeNull()
   })
 
   it('returns null when manifest has no command', () => {

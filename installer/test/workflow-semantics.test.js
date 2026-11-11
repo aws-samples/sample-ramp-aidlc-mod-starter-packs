@@ -38,6 +38,7 @@ const nativeReverseEngineeringPaths = {
   'claude-code': '.claude/rules/reverse-engineering.md',
   copilot: '.github/instructions/reverse-engineering.instructions.md',
   cursor: '.cursor/rules/reverse-engineering.mdc',
+  codex: '.codex/instructions/reverse-engineering.md',
 }
 
 function primaryContent(tool, workspace = resolveWorkspace(manifest, { tools: [tool] })) {
@@ -175,7 +176,7 @@ describe('canonical RAMP workflow source', () => {
   })
 })
 
-describe.each(listAdapterIds())('QA workflow semantics for %s', (tool) => {
+describe.each(manifest.distribution.targets)('QA workflow semantics for %s', (tool) => {
   it('uses only the adapter-native reverse-engineering instruction path', () => {
     const content = primaryContent(tool)
     const nativePath = nativeReverseEngineeringPaths[tool]
@@ -514,7 +515,7 @@ describe('QA reverse-engineering overlay', () => {
   })
 })
 
-describe.each(listAdapterIds())('QA reverse-engineering rendering for %s', (tool) => {
+describe.each(manifest.distribution.targets)('QA reverse-engineering rendering for %s', (tool) => {
   it('resolves the inventory path under a custom state root', () => {
     const workspace = resolveWorkspace(manifest, {
       tools: [tool],
@@ -584,7 +585,7 @@ describe('legacy primary workflow composition', () => {
   })
 })
 
-describe.each(listAdapterIds())('legacy primary workflow rendering for %s', (tool) => {
+describe.each(legacyManifest.distribution.targets)('legacy primary workflow rendering for %s', (tool) => {
   it('uses native companion paths and resolves custom workspace roots', () => {
     const workspace = resolveWorkspace(legacyManifest, {
       tools: [tool],
@@ -641,7 +642,7 @@ const pilotCases = [
     ],
   },
 ].flatMap((pilot) =>
-  listAdapterIds().map((tool) => ({ ...pilot, tool })),
+  pilot.manifest.distribution.targets.map((tool) => ({ ...pilot, tool })),
 )
 
 describe.each(pilotCases)(

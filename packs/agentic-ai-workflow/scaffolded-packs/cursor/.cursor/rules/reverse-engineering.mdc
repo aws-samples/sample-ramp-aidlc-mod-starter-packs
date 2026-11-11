@@ -1,4 +1,5 @@
 ---
+description: Brownfield reverse engineering — use when an existing system or codebase is present and you need to analyze it before designing. Inherits the shared common/ playbook.
 alwaysApply: false
 ---
 # Reverse Engineering

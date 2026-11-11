@@ -1,11 +1,15 @@
 // installer/test/e2e.test.js
 import { describe, it, expect } from 'vitest'
-import { mkdtempSync, existsSync, readFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { mkdtempSync, existsSync, readFileSync, readdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parse as parseToml } from 'smol-toml'
 import { buildPlan } from '../src/plan.js'
 import { applyPlan } from '../src/apply.js'
+import { listPacks } from '../src/build-all.js'
+import { loadManifest } from '../src/manifest.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(here, '..', '..')
@@ -71,7 +75,51 @@ describe('e2e: cots-rewrite-on-cloudnative', () => {
     )
     const primary = readFileSync(join(target, '.cursor/rules/aidlc-workflow.mdc'), 'utf8')
     expect(primary.startsWith('---\nalwaysApply: true\n---')).toBe(true)
+    const skill = readFileSync(join(target, '.cursor/rules/skill-activation.mdc'), 'utf8')
+    expect(skill.startsWith('---\nalwaysApply: true\n---')).toBe(true)
+    const re = readFileSync(join(target, '.cursor/rules/reverse-engineering.mdc'), 'utf8')
+    expect(re).toMatch(/^---\ndescription: Phase 0 .+\nalwaysApply: false\n---\n/)
   })
+
+  it('codex: AGENTS.md names every companion, MCP servers in .codex/config.toml, no command file', () => {
+    const target = mkdtempSync(join(tmpdir(), 'proj-'))
+    applyPlan(
+      buildPlan(packDir, 'codex', { includeSkills: false }),
+      target,
+      { dryRun: false, force: false },
+    )
+    const agents = readFileSync(join(target, 'AGENTS.md'), 'utf8')
+    expect(agents.startsWith('Codex loads only this file.')).toBe(true)
+    expect(agents).toContain('- `.codex/instructions/skill-activation.md`: read at session start.\n')
+    expect(agents).toContain('- `.codex/instructions/reverse-engineering.md`: read when this applies: Phase 0 ')
+    expect(agents).toContain('- `.codex/instructions/requirements-traceability.md`: read when this applies: ')
+    expect(readdirSync(join(target, '.codex/instructions')).sort()).toEqual([
+      'requirements-traceability.md',
+      'reverse-engineering.md',
+      'skill-activation.md',
+    ])
+    const config = parseToml(readFileSync(join(target, '.codex/config.toml'), 'utf8'))
+    expect(config.mcp_servers['aws-knowledge-mcp-server'].autoApprove).toBeUndefined()
+    expect(readdirSync(target).sort()).toEqual(['.codex', 'AGENTS.md'])
+  })
+
+  it.runIf(runLockedIntegration)(
+    'codex: ramp-pack init --tool codex installs instructions, MCP config and skills',
+    () => {
+      const target = mkdtempSync(join(tmpdir(), 'proj-'))
+      execFileSync(process.execPath, [
+        join(repoRoot, 'installer', 'bin', 'ramp-pack.js'),
+        'init', 'cots-rewrite-on-cloudnative',
+        '--tool', 'codex',
+        '--target', target,
+        '--cache', cacheDir,
+      ], { cwd: target, stdio: 'pipe' })
+      expect(readFileSync(join(target, 'AGENTS.md'), 'utf8')).toContain('.codex/instructions/skill-activation.md')
+      expect(existsSync(join(target, '.codex/config.toml'))).toBe(true)
+      expect(existsSync(join(target, '.agents/skills/aws-cloudformation/SKILL.md'))).toBe(true)
+      expect(existsSync(join(target, '.codex/skills'))).toBe(false)
+    },
+  )
 
   it.runIf(runLockedIntegration)(
     'copies exact locked upstream and declared RAMP skills from an explicit synchronized cache',
@@ -104,4 +152,18 @@ describe('e2e: cots-rewrite-on-cloudnative', () => {
       ).toBe(true)
     },
   )
+})
+
+describe('codex: every pack fits Codex project instructions', () => {
+  const packsRoot = join(repoRoot, 'packs')
+  const codexPacks = listPacks(packsRoot).filter((pack) => {
+    const manifest = loadManifest(join(packsRoot, pack))
+    return manifest.schemaVersion !== 2 || manifest.distribution.targets.includes('codex')
+  })
+
+  it.each(codexPacks)('%s renders AGENTS.md within 32 KiB', (pack) => {
+    const plan = buildPlan(join(packsRoot, pack), 'codex', { includeSkills: false })
+    const agents = plan.find(({ path }) => path === 'AGENTS.md')
+    expect(Buffer.byteLength(agents.content, 'utf8')).toBeLessThanOrEqual(32 * 1024)
+  })
 })

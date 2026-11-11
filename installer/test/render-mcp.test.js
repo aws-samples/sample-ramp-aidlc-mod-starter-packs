@@ -1,5 +1,6 @@
 // installer/test/render-mcp.test.js
 import { describe, it, expect } from 'vitest'
+import { parse as parseToml } from 'smol-toml'
 import { renderMcp } from '../src/render/mcp.js'
 
 const manifest = {
@@ -59,5 +60,81 @@ describe('renderMcp', () => {
 
   it('returns null when there are no mcp servers', () => {
     expect(renderMcp({ mcp: [] }, 'kiro')).toBeNull()
+    expect(renderMcp({ mcp: [] }, 'codex')).toBeNull()
+  })
+})
+
+describe('renderMcp for codex (.codex/config.toml)', () => {
+  it('writes a stdio server as command and args, without agent-only fields', () => {
+    const w = renderMcp(
+      { mcp: [{ id: 'aws-knowledge', command: 'npx', args: ['mcp-remote', 'https://x'], autoApprove: ['a'], disabled: false }] },
+      'codex',
+    )
+    expect(w).toEqual({
+      path: '.codex/config.toml',
+      content: '[mcp_servers.aws-knowledge]\ncommand = "npx"\nargs = ["mcp-remote", "https://x"]\n',
+      kind: 'text',
+    })
+    expect(parseToml(w.content)).toEqual({
+      mcp_servers: { 'aws-knowledge': { command: 'npx', args: ['mcp-remote', 'https://x'] } },
+    })
+  })
+
+  it('writes an HTTP server as url, without a transport key', () => {
+    const w = renderMcp(
+      { mcp: [{ id: 'aws-knowledge-mcp-server', transport: 'http', url: 'https://knowledge-mcp.global.api.aws' }] },
+      'codex',
+    )
+    expect(w.content).toBe('[mcp_servers.aws-knowledge-mcp-server]\nurl = "https://knowledge-mcp.global.api.aws"\n')
+    expect(parseToml(w.content)).toEqual({
+      mcp_servers: { 'aws-knowledge-mcp-server': { url: 'https://knowledge-mcp.global.api.aws' } },
+    })
+  })
+
+  it('writes env as a string table and separates servers by one blank line', () => {
+    const w = renderMcp(manifest, 'codex')
+    expect(w.content).toBe(
+      '[mcp_servers.aws-knowledge]\n' +
+        'command = "npx"\n' +
+        'args = ["mcp-remote", "https://x"]\n' +
+        '\n' +
+        '[mcp_servers.aurora-dsql]\n' +
+        'command = "uvx"\n' +
+        'args = ["pkg@latest"]\n' +
+        '\n' +
+        '[mcp_servers.aurora-dsql.env]\n' +
+        'FASTMCP_LOG_LEVEL = "ERROR"\n',
+    )
+    expect(parseToml(w.content)).toEqual({
+      mcp_servers: {
+        'aws-knowledge': { command: 'npx', args: ['mcp-remote', 'https://x'] },
+        'aurora-dsql': { command: 'uvx', args: ['pkg@latest'], env: { FASTMCP_LOG_LEVEL: 'ERROR' } },
+      },
+    })
+  })
+
+  it('quotes keys that are not bare and escapes strings so they parse back unchanged', () => {
+    const tricky = 'quote " backslash \\ tab \t newline \n delete \u007f é'
+    const w = renderMcp(
+      { mcp: [{ id: 'dotted.id', command: tricky, args: [], env: { 'A KEY': tricky } }] },
+      'codex',
+    )
+    expect(w.content.split('\n')[0]).toBe('[mcp_servers."dotted.id"]')
+    expect(parseToml(w.content)).toEqual({
+      mcp_servers: { 'dotted.id': { command: tricky, args: [], env: { 'A KEY': tricky } } },
+    })
+  })
+
+  it.each([
+    [{ id: 'k', command: 42 }, /k\.command must be a string/],
+    [{ id: 'k', command: 'npx', args: 'mcp-remote' }, /k\.args must be an array of strings/],
+    [{ id: 'k', command: 'npx', args: ['ok', 1] }, /k\.args\[1\] must be a string/],
+    [{ id: 'k', command: 'npx', env: ['A=1'] }, /k\.env must be a table of strings/],
+    [{ id: 'k', command: 'npx', env: { DEBUG: true } }, /k\.env\.DEBUG must be a string/],
+    [{ id: 'k', url: { href: 'https://x' } }, /k\.url must be a string/],
+    [{ id: 'k', command: 'bad \ud800' }, /k\.command holds a lone surrogate/],
+    [{ command: 'npx' }, /key undefined must be a string/],
+  ])('refuses an unsupported value shape %#', (server, message) => {
+    expect(() => renderMcp({ mcp: [server] }, 'codex')).toThrow(message)
   })
 })

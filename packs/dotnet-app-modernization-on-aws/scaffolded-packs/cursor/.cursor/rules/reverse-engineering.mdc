@@ -1,4 +1,5 @@
 ---
+description: Phase 0 reverse-engineering playbook — brownfield-first for .NET modernization. Use when existing .NET source is present, or when modernizing, migrating, replatform-ing, or containerizing an existing app. Ingests pre-existing AWS Transform (ATX) analysis if found.
 alwaysApply: false
 ---
 # Reverse Engineering
