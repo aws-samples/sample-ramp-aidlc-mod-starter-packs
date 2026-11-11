@@ -86,7 +86,7 @@ jobs:
             tests: test/install-bash.test.js test/install-powershell.test.js test/windows-helper-fixtures.test.js test/qa-harness-coverage.test.js
           - os: windows-latest
             powershell: powershell.exe,pwsh
-            tests: test/install-powershell.test.js test/windows-helper-fixtures.test.js test/qa-harness-coverage.test.js
+            tests: test/install-powershell.test.js test/windows-helper-fixtures.test.js test/qa-harness-coverage.test.js test/add-skills-helpers.test.js
     runs-on: ${{ matrix.os }}
     steps:
       # The runner context is unavailable in jobs.<id>.env, so export the path here.

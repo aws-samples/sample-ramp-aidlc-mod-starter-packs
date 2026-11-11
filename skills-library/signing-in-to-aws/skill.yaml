@@ -1,0 +1,8 @@
+schemaVersion: 2
+kind: ramp-skill
+name: signing-in-to-aws
+origin: upstream
+classification:
+  useCases: [cloud-foundations]
+  awsServices: [iam]
+  technologies: []

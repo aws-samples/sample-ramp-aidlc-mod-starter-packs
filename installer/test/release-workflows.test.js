@@ -65,6 +65,10 @@ describe('build-packs workflow helper coverage', () => {
     }
   })
 
+  it('runs the add-skills helper tests under Windows PowerShell 5.1 and pwsh', () => {
+    expect(entry('windows-latest').tests.split(' ')).toContain('test/add-skills-helpers.test.js')
+  })
+
   it('runs the QA harness coverage test on both runner families after the cache sync and verify', () => {
     for (const os of ['ubuntu-latest', 'windows-latest']) {
       expect(entry(os).tests.split(' ')).toContain('test/qa-harness-coverage.test.js')

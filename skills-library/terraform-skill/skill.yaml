@@ -1,0 +1,10 @@
+schemaVersion: 2
+kind: ramp-skill
+name: terraform-skill
+origin: local
+version: 0.0.0
+license: Apache-2.0
+classification:
+  useCases: [infrastructure-as-code]
+  awsServices: []
+  technologies: [terraform, opentofu]
