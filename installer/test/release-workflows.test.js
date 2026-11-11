@@ -73,6 +73,22 @@ describe('build-packs workflow helper coverage', () => {
     expect(runOf(testStep)).toContain('${{ matrix.tests }}')
   })
 
+  it('compares the full customer-layout matrix after the cache sync, requiring pwsh', () => {
+    const steps = definition.jobs.verify.steps
+    const sync = stepIndex(steps, (_step, run) => run.includes('skills sync') && run.includes('--locked'))
+    const suite = stepIndex(steps, (_step, run) => run === 'npm test --prefix installer')
+    const layout = stepIndex(steps, (_step, run) =>
+      run === 'npm test --prefix installer -- test/customer-layout.test.js')
+    expect(sync).toBeGreaterThanOrEqual(0)
+    expect(suite).toBeGreaterThan(sync)
+    expect(layout).toBeGreaterThan(sync)
+    expect(steps[layout].env).toEqual({
+      RAMP_CUSTOMER_LAYOUT: 'full',
+      RAMP_REQUIRE_POWERSHELL: 'pwsh',
+    })
+    expect(definition.jobs.verify['runs-on']).toBe('ubuntu-latest')
+  })
+
   it('installs from the lockfile on Node 20 before the helper tests', () => {
     const steps = helpers.steps
     expect(steps.find((step) => step.uses === 'actions/setup-node@v4').with['node-version']).toBe(20)
