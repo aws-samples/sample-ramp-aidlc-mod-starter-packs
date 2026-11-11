@@ -105,28 +105,33 @@ def handler(event: dict, context: DurableContext) -> str:
 ```typescript
 import { StepSemantics } from '@aws/durable-execution-sdk-js';
 
-// AtMostOncePerRetry (DEFAULT) - For idempotent operations
-// Step executes at most once per retry attempt
-// If step fails partway through, it won't re-execute the same attempt
+// AtLeastOncePerRetry (DEFAULT) - For operations that can execute multiple times
+// Step may execute multiple times per retry attempt
+// Use when idempotency is handled externally
 await context.step(
   'update-database',
   async () => {
     // This is idempotent - safe to retry
     return await updateUserRecord(userId, data);
   },
-  { semantics: StepSemantics.AtMostOncePerRetry }
+  { semantics: StepSemantics.AtLeastOncePerRetry }
 );
 
-// AtLeastOncePerRetry - For operations that can execute multiple times
-// Step may execute multiple times per retry attempt
-// Use when idempotency is handled externally
+// AtMostOncePerRetry - For non-idempotent operations
+// Step executes at most once per retry attempt
+// If step fails partway through, it won't re-execute the same attempt
 await context.step(
-  'send-notification',
+  'charge-payment',
   async () => {
-    // External system handles deduplication
-    return await sendEmail(email, message);
+    // Non-idempotent - duplicates would double-charge the customer
+    return await chargePayment(customerId, amount);
   },
-  { semantics: StepSemantics.AtLeastOncePerRetry }
+  {
+    semantics: StepSemantics.AtMostOncePerRetry,
+    // Pair with shouldRetry: false to guarantee at-most-once overall,
+    // since the default retry strategy still allows multiple retry attempts.
+    retryStrategy: () => ({ shouldRetry: false }),
+  }
 );
 ```
 
@@ -134,8 +139,8 @@ await context.step(
 
 | Semantic                | Use When                      | Example Operations                                |
 | ----------------------- | ----------------------------- | ------------------------------------------------- |
-| **AtMostOncePerRetry**  | Operation is idempotent       | Database updates, API calls with idempotency keys |
-| **AtLeastOncePerRetry** | External deduplication exists | Queuing systems, event streams                    |
+| **AtLeastOncePerRetry** (default) | Operation is idempotent, or external dedup exists | Database upserts, idempotency-keyed API calls, queuing systems |
+| **AtMostOncePerRetry**            | Operation is non-idempotent, duplicates must be avoided | Charge payment, send unique notification, non-idempotent external writes |
 
 ## Completion Policies - Interaction and Combination
 
@@ -222,7 +227,7 @@ const results = await context.map(
 
 // Only one item processed (assuming first succeeds)
 if (results.successCount > 0) {
-  const match = results.getSucceeded()[0];
+  const match = results.succeeded()[0];
   context.logger.info('Found match', { match });
 }
 ```
@@ -247,17 +252,22 @@ import {
 } from '@aws/durable-execution-sdk-js';
 
 class User {
-  constructor(
-    public name: string,
-    public email: string,
-    public createdAt: Date,
-    public updatedAt: Date
-  ) {}
+  name: string = '';
+  email: string = '';
+  createdAt: Date = new Date();
+  updatedAt: Date = new Date();
 }
 
 const result = await context.step(
   'create-user',
-  async () => new User('Alice', 'alice@example.com', new Date(), new Date()),
+  async () => {
+    const user = new User();
+    user.name = 'Alice';
+    user.email = 'alice@example.com';
+    user.createdAt = new Date();
+    user.updatedAt = new Date();
+    return user;
+  },
   {
     serdes: createClassSerdesWithDates(User, ['createdAt', 'updatedAt'])
   }
@@ -275,19 +285,19 @@ console.log(result.createdAt instanceof Date); // true
 import { createClassSerdes } from '@aws/durable-execution-sdk-js';
 
 class Order {
-  constructor(
-    public id: string,
-    public items: OrderItem[],
-    public customer: Customer
-  ) {}
+  id: string = '';
+  items: OrderItem[] = [];
+  customer: Customer = new Customer();
 }
 
 class OrderItem {
-  constructor(public sku: string, public quantity: number) {}
+  sku: string = '';
+  quantity: number = 0;
 }
 
 class Customer {
-  constructor(public id: string, public name: string) {}
+  id: string = '';
+  name: string = '';
 }
 
 // Create serdes for each class
@@ -298,12 +308,23 @@ const customerSerdes = createClassSerdes(Customer);
 const result = await context.step(
   'process-order',
   async () => {
-    const customer = new Customer('CUST-123', 'Alice');
-    const items = [
-      new OrderItem('SKU-001', 2),
-      new OrderItem('SKU-002', 1)
-    ];
-    return new Order('ORD-456', items, customer);
+    const customer = new Customer();
+    customer.id = 'CUST-123';
+    customer.name = 'Alice';
+
+    const item1 = new OrderItem();
+    item1.sku = 'SKU-001';
+    item1.quantity = 2;
+
+    const item2 = new OrderItem();
+    item2.sku = 'SKU-002';
+    item2.quantity = 1;
+
+    const order = new Order();
+    order.id = 'ORD-456';
+    order.items = [item1, item2];
+    order.customer = customer;
+    return order;
   },
   { serdes: orderSerdes }
 );

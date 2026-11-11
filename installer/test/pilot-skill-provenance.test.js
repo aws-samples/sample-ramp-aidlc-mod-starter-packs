@@ -16,16 +16,13 @@ const PILOT_IDS = [
   'legacy-transformation-on-aws',
 ]
 
+// Locked skills whose skills-library mirror differs from the lock, so they
+// resolve only from a synchronized cache. Every mirror matches its lock, so
+// with no cache each pilot skill must still resolve from its mirror; any
+// mirror drift fails the unsynchronized run.
 const EXPECTED_UNSYNCHRONIZED_FAILURES = {
-  'qa-automated-testing': [
-    'amazon-bedrock',
-    'aws-lambda-microvms',
-  ],
-  'legacy-transformation-on-aws': [
-    'aws-cloudformation',
-    'aws-lambda-durable-functions',
-    'aws-observability',
-  ],
+  'qa-automated-testing': [],
+  'legacy-transformation-on-aws': [],
 }
 
 const PRESERVED_ENTRY_DIGESTS = new Map([
@@ -256,17 +253,23 @@ describe('strict provenance for the two release pilots', () => {
       const report = resolvePilots(configuredCache)
 
       if (cacheExpectation === 'unsynchronized') {
-        expect(report.failures).toEqual(EXPECTED_UNSYNCHRONIZED_FAILURES)
+        expect(report.failures, formatFailures(report.details))
+          .toEqual(EXPECTED_UNSYNCHRONIZED_FAILURES)
       } else if (Object.values(report.failures).some((names) => names.length > 0)) {
         throw new Error(
           `pilot cache not synchronized or strict provenance failed:\n${formatFailures(report.details)}`,
         )
       }
 
-      if (cacheExpectation !== 'unsynchronized') {
-        expect(report.resolved['qa-automated-testing']).toHaveLength(8)
-        expect(report.resolved['legacy-transformation-on-aws']).toHaveLength(19)
-      }
+      const expectedFailureCount = (packId) => (
+        cacheExpectation === 'unsynchronized'
+          ? EXPECTED_UNSYNCHRONIZED_FAILURES[packId].length
+          : 0
+      )
+      expect(report.resolved['qa-automated-testing'])
+        .toHaveLength(8 - expectedFailureCount('qa-automated-testing'))
+      expect(report.resolved['legacy-transformation-on-aws'])
+        .toHaveLength(19 - expectedFailureCount('legacy-transformation-on-aws'))
       expect(existsSync(defaultCache), 'default repository cache after test')
         .toBe(false)
     },
