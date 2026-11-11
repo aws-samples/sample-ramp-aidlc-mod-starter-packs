@@ -134,9 +134,9 @@ function initializeGit(repository) {
   git(repository, ['config', 'core.autocrlf', 'false'])
 }
 
-function commitAll(repository, message = 'fixture') {
+function commitAll(repository, message = 'fixture', { allowEmpty = false } = {}) {
   git(repository, ['add', '-A'])
-  git(repository, ['commit', '-m', message])
+  git(repository, ['commit', ...(allowEmpty ? ['--allow-empty'] : []), '-m', message])
   return git(repository, ['rev-parse', 'HEAD'])
 }
 
@@ -417,7 +417,8 @@ function makeRealPilotRepository() {
   return {
     repository,
     packDir: join(repository, 'packs', 'qa-automated-testing'),
-    sourceCommit: commitAll(repository, 'executing release generator'),
+    // A clean checkout (CI) leaves nothing to commit; uncommitted generator edits still land.
+    sourceCommit: commitAll(repository, 'executing release generator', { allowEmpty: true }),
   }
 }
 
