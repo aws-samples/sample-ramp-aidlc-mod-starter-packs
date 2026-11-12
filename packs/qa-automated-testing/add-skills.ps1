@@ -34,6 +34,7 @@ $PackName = 'qa-automated-testing'
 
 # --- EDIT ME: the skills installed for this use case --------------------------
 $Skills = @(
+  'agentic-qa-platform'
   'amazon-bedrock'
   'aws-iam'
   'aws-lambda'

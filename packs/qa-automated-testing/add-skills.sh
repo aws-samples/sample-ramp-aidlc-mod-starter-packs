@@ -18,6 +18,7 @@ PACK_NAME="qa-automated-testing"
 
 # --- EDIT ME: the skills installed for this use case --------------------------
 SKILLS=(
+  agentic-qa-platform
   amazon-bedrock
   aws-iam
   aws-lambda

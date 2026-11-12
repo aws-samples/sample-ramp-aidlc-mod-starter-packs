@@ -1,6 +1,6 @@
 # QA Automated Testing — AI-DLC Starter Pack
 
-A **tool-agnostic** starter pack for designing and building **automated test suites for web and mobile applications**, driven by the **AI-Driven Development Lifecycle (AI-DLC)** decision-gated workflow. It ships two curated testing skills — one for **web** (Playwright-first) and one for **mobile** (Maestro/Appium-first, with AWS Device Farm guidance) — plus a set of **AWS build skills** for standing up the serverless test infrastructure behind the suite (Lambda test runners, Step Functions orchestration, API Gateway trigger/results APIs, IAM roles, Bedrock for AI-assisted testing, and Lambda MicroVMs for isolated executors) — so the agent proposes current best-practice options instead of guessing.
+A **tool-agnostic** starter pack for designing and building **automated test suites for web and mobile applications** and reusable **agentic QA platforms**, driven by the **AI-Driven Development Lifecycle (AI-DLC)** decision-gated workflow. It ships two curated testing skills — one for **web** (Playwright-first) and one for **mobile** (Maestro/Appium-first, with AWS Device Farm guidance) — an `agentic-qa-platform` skill for building governed multi-repository QA capabilities, plus **AWS build skills** for standing up the infrastructure behind them (AgentCore agents, Lambda test runners, Step Functions orchestration, API Gateway trigger/results APIs, IAM roles, and Lambda MicroVMs for isolated executors).
 
 The pack is authored once as tool-neutral source and works with **Kiro, Claude Code, GitHub Copilot, and Cursor**. Whichever agent you use gains deep testing expertise and follows structured, decision-gated workflows — no manual setup needed.
 
@@ -90,9 +90,15 @@ The neutral instructions declare a **role** (`primary` / `companion`) and a **lo
 | `reverse-engineering` (auto) | `inclusion: auto` | `.claude/rules/*` | `.github/instructions/*` (conditional) | `.mdc` `alwaysApply: false` |
 | `/aidlc` command | — | `.claude/commands/aidlc.md` | `.github/prompts/aidlc.prompt.md` | — |
 
-### Skills — Testing + AWS test infrastructure
+### Skills — Testing + agentic QA platform + AWS infrastructure
 
-The pack includes eight skills that activate based on conversation triggers. The two **testing skills** cover authoring web and mobile suites; the six **AWS build skills** cover standing up the serverless infrastructure behind those suites (runners, orchestration, APIs, roles, AI assist, and isolated executors). Each skill bundles `SKILL.md` plus a `references/` library with deep-dive guides. All follow the [Agent Skills open standard](https://agentskills.io/), so they copy verbatim into every supported tool.
+The pack includes nine skills that activate based on conversation triggers. The two **testing skills** cover authoring web and mobile suites; `agentic-qa-platform` covers building a reusable governed QA capability; and the six **AWS build skills** cover its agents and infrastructure (runners, orchestration, APIs, roles, AI assist, and isolated executors). Each skill bundles `SKILL.md` plus a `references/` library with deep-dive guides. All follow the [Agent Skills open standard](https://agentskills.io/), so they copy verbatim into every supported tool.
+
+**Agentic QA platform**
+
+| Skill | Activates on | Covers |
+|---|---|---|
+| `agentic-qa-platform` | agentic QA platform/pipeline/workflow, QA platform, multi-repository QA, shared QA contracts, synthetic-data lifecycle, isolated execution, failure triage, bounded repair, governance, pilots, adoption | Assessing, designing, building, reviewing, governing, and evolving reusable AI-assisted QA capabilities across repositories, applications, and teams, including architecture, contracts, evidence, synthetic data, isolation, autonomy, AgentCore/MicroVM implementation choices, and platform operations. |
 
 **Testing skills**
 
@@ -109,7 +115,7 @@ The pack includes eight skills that activate based on conversation triggers. The
 | `aws-step-functions` | Step Functions, state machine, ASL, JSONata, orchestrate workflow, Map/Distributed Map, Parallel, retries, saga, waitForTaskToken, human-approval gate, Standard vs Express | Authoring ASL state machines in JSONata to orchestrate multi-stage test/CI pipelines — fan-out across suites/shards/devices, retry/catch, approval callbacks, and large-scale data-driven runs; TestState unit testing. |
 | `connecting-lambda-to-api-gateway` | API Gateway, REST/HTTP API, Lambda proxy integration, expose an endpoint, test-trigger API, results API, CORS, authorizer, API key, throttling | Creating an HTTP endpoint in front of a Lambda — an API to trigger runs on demand or serve results/reports — with CORS, authorization, throttling, access logging, and production hardening. |
 | `aws-iam` | IAM role/policy, trust policy, execution role, service role, least privilege, STS/AssumeRole, permissions for CI, condition operators | Creating and scoping the roles and policies that let test infrastructure run — Lambda/Step Functions execution roles, CI assume-role setups, least-privilege access to artifacts — plus common IAM pitfalls. |
-| `amazon-bedrock` | Bedrock, generative AI, model invocation, Converse/InvokeModel, Knowledge Bases, RAG, Bedrock Agents, AgentCore, Guardrails, model selection | Applying generative AI to the testing workflow — generating test cases from requirements, triaging/summarizing failures, RAG over test docs, and Guardrails; model invocation and selection (Claude/Llama/Nova/Titan). |
+| `amazon-bedrock` | Bedrock, generative AI, model invocation, Converse/InvokeModel, Knowledge Bases, RAG, Bedrock Agents, AgentCore, Guardrails, model selection | Building and deploying the platform's AgentCore agents, plus applying generative AI to test generation, failure triage/summarization, RAG over test docs, Guardrails, and model selection. |
 | `aws-lambda-microvms` | Lambda MicroVM, Firecracker, strong isolation, sandbox compute, multi-tenant/untrusted-code execution, long-lived session, suspend/resume, port-listening server | Running test executors that need Firecracker-grade isolation, untrusted/per-tenant code execution, real long-lived servers/sessions, or state preserved across suspend/resume — beyond a standard Lambda function. |
 
 ### MCP servers
