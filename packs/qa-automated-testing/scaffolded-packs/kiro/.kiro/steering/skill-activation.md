@@ -28,7 +28,8 @@ Before responding, ask yourself:
 - Am I writing a **test-strategy decision file or designing the test approach** (`_decisions-design.md` for a testing spec)? → **STOP. Activate the matching skill and load its `references/qa-design-decisions.md` so the decision file surfaces the right QA choices (scope, test data, flakiness policy, device strategy, CI/reporting). Treat those categories as a starting set and expand them for this project.**
 - Am I designing **CI integration, sharding, or a device-farm strategy**? → **STOP. Activate the relevant testing skill (both have CI reference docs).**
 
-**Test infrastructure on AWS (CI runners, sandboxes, orchestration, result APIs):**
+**Agentic QA platform and test infrastructure on AWS (CI runners, sandboxes, orchestration, result APIs):**
+- Am I assessing, designing, building, governing, or evolving a reusable **agentic QA platform** across repositories, applications, or teams? → **STOP. Activate `agentic-qa-platform` skill FIRST.**
 - Am I writing or deploying a **Lambda function** (test runner, result processor, webhook handler, event-driven job)? → **STOP. Activate `aws-lambda` skill FIRST.**
 - Am I orchestrating a **multi-step test/CI workflow** (branching, retries, fan-out, human-approval gate)? → **STOP. Activate `aws-step-functions` skill FIRST.**
 - Am I exposing a Lambda through an **HTTP/REST endpoint** (test-trigger API, results/reporting API)? → **STOP. Activate `connecting-lambda-to-api-gateway` skill FIRST.**
@@ -68,6 +69,16 @@ Activate during design and decision phases too — e.g., when proposing a web te
 **Activate:** load the `mobile-test-automation` skill.
 
 Activate during design and decision phases too — e.g., when choosing between Appium / Maestro / Detox / Espresso / XCUITest, deciding emulator vs real device, or comparing device clouds.
+
+---
+
+## 🏗️ Agentic QA Platform
+
+**Triggers:** agentic QA, agentic QA pipeline/platform/workflow, QA platform, multi-repository QA, shared QA contracts, synthetic-data lifecycle, isolated execution, failure triage, bounded repair, governed autonomy, pilots, or platform adoption.
+
+**Activate:** load the `agentic-qa-platform` skill.
+
+Use when assessing, designing, building, reviewing, governing, or evolving a reusable AI-assisted QA capability across repositories, applications, or teams. Pair it with `amazon-bedrock` for AgentCore implementation and `aws-lambda-microvms` for strongly isolated execution.
 
 ---
 
@@ -135,4 +146,4 @@ Use when the test executor needs Firecracker-grade isolation, must run untrusted
 
 When a system spans **both web and mobile** (e.g., a responsive web app plus native iOS/Android apps), activate **both** `web-test-automation` and `mobile-test-automation`. This is common when designing a unified QA strategy across surfaces.
 
-When you also build the **AWS test infrastructure** behind the suite, combine the testing skill(s) with the relevant AWS build skills — a common stack is `aws-lambda` (runner) + `aws-step-functions` (orchestration) + `connecting-lambda-to-api-gateway` (trigger/results API) + `aws-iam` (execution roles), with `aws-lambda-microvms` for isolated executors and `amazon-bedrock` for AI-assisted testing. Activate every skill that applies.
+When designing or building a reusable **agentic QA platform**, activate `agentic-qa-platform` plus the relevant testing skills. For an AWS implementation, combine it with the relevant AWS build skills — commonly `amazon-bedrock` for AgentCore agents, `aws-lambda-microvms` for isolated executors, `aws-lambda` for event-driven jobs, `aws-step-functions` for orchestration, `connecting-lambda-to-api-gateway` for trigger/results APIs, and `aws-iam` for execution roles. Activate every skill that applies.

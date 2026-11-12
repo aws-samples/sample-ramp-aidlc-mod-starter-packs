@@ -23,6 +23,7 @@ mcp:
     url: https://knowledge-mcp.global.api.aws
 
 skills:
+  - agentic-qa-platform
   - amazon-bedrock
   - aws-iam
   - aws-lambda
